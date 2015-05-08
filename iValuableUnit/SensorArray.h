@@ -18,17 +18,19 @@ using namespace fastdelegate;
 #define SENSOR_DAMAGE			 	0x02
 #define SENSOR_FAULT				0x10
 
+#define SENSOR_NUM	6
+
 class SensorArray
 {
 	private:
-		HX711 *pSensors[6];
-		int32_t lastData[6];
-		int32_t tempData[6];
-		int32_t currentData[6];
-		int8_t tempCount[6];
-		int8_t count[6];
-		bool stable[6];
-		uint8_t state[6];
+		HX711 *pSensors[SENSOR_NUM];
+		int32_t lastData[SENSOR_NUM];
+		int32_t tempData[SENSOR_NUM];
+		int32_t currentData[SENSOR_NUM];
+		int8_t tempCount[SENSOR_NUM];
+		int8_t count[SENSOR_NUM];
+		bool stable[SENSOR_NUM];
+		uint8_t state[SENSOR_NUM];
 		float fullRange;
 		float safeRange;
 		float maxRange;
