@@ -58,8 +58,6 @@ bool boot = false;
 
 __align(16) volatile uint8_t MemBuffer[MEM_BUFSIZE];
 
-int32_t CurrentAD[6];
-
 struct CanResponse
 {
 	uint16_t sourceId;
@@ -67,16 +65,21 @@ struct CanResponse
 	uint8_t result;
 };
 
-CanResponse res;
+volatile CanResponse res;
 
-static bool syncTriggered = false;
-static CAN_ODENTRY syncEntry;
+volatile bool syncTriggered = false;
+volatile bool responseTriggered = false;
+volatile CAN_ODENTRY syncEntry;
+
+volatile bool Connected = true;			
+volatile bool Registered = false;		// Registered by host
+volatile bool ForceSync = false;
+volatile bool Gotcha = true;
 
 float BackupWeight=0;
-int16_t BackupValue[4];
-float WeightArray[6] = { 0, 0, 0, 0, 0, 0};
-
-static bool Connected = true;		// host initialize connection, so set true when powerup 
+int16_t BackupValue[SENSOR_NUM];
+float WeightArray[SENSOR_NUM] = { 0, 0, 0, 0, 0, 0};	
+int32_t CurrentAD[SENSOR_NUM];
 
 #define ADDR_SENSOR_ENABLE	0x00F
 #define ADDR_CAL_WEIGHT			0x010
@@ -137,10 +140,16 @@ void TIMER32_0_IRQHandler()
 		
 		++TickCount;
 		
-		if (Connected==false && counter1++>=HeartbeatInterval)
+		if (counter1++>=HeartbeatInterval)
 		{
 			counter1=0;
-			CANEXHeartbeat(STATE_OPERATIONAL);
+			if (Connected)
+			{
+				if (Registered && !Gotcha)
+					syncTriggered = true;
+			}
+			else
+				CANEXHeartbeat(STATE_OPERATIONAL);
 		}
 	}
 }
@@ -251,12 +260,12 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	uint8_t i;
 	uint8_t buf[0x20];
 	
-	CAN_ODENTRY *response=&(res.response);
+	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
 
 	res.sourceId = sourceId;
 	res.result=0xff;
 	
-	response->val  = &(res.result);
+	response->val = const_cast<uint8_t *>(&(res.result));
 	response->index = entry->index;
 	response->subindex = entry->subindex;
 	response->entrytype_len = 1;
@@ -380,7 +389,8 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		}
-	CANEXResponse(sourceId,response);
+//	CANEXResponse(sourceId,response);
+		responseTriggered = true;
 }
 
 uint8_t syncBuf[0x30];
@@ -398,6 +408,12 @@ void CanexSyncTrigger(uint16_t index,uint8_t mode)
 
 	switch(index)
 	{
+//		case SYNC_GOTCHA:
+//			Gotcha = true;
+//			break;
+//		case SYNC_RFID:
+//			ForceSync = true;
+//			break;
 		case SYNC_SENSOR:
 			if (Connected)
 			{
@@ -411,6 +427,8 @@ void CanexSyncTrigger(uint16_t index,uint8_t mode)
 			break;
 		case SYNC_LIVE:
 			Connected=!Connected;
+			if (Connected)
+				Registered = true;
 			break;
 	}
 }
@@ -462,16 +480,20 @@ int main()
 	enable_timer32(0);
 	enable_timer32(1);
 	
-	//NVIC_SystemReset();
-	
 	while(1)
 	{
 		Display::UARTProcessor();
 		
+		if (responseTriggered)
+		{
+			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
+			responseTriggered = false;
+		}
+		
 		if (syncTriggered)
 		{
+			CANEXBroadcast(const_cast<CAN_ODENTRY *>(&syncEntry));
 			syncTriggered = false;
-			CANEXBroadcast(&syncEntry);
 		}
 		bool displayChanged = false;
 		
