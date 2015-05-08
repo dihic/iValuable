@@ -6,8 +6,8 @@
 #define NULL    ((void *)0)
 #endif
 
-#define CAN_EN_PIN PORT1,8
-#define HOST_ID 0x001
+//#define CAN_EN_PIN 				PORT1, 8
+#define HOST_ID 					0x001
 
 #define BEGIN_SEND_INDEX 3
 
@@ -25,10 +25,10 @@ static volatile uint8_t can_memory[0x70] __attribute__((at(0x10000050)))={0xff};
 CanRom **rom = (CanRom **)0x1fff1ff8;
 CAN_MSG_OBJ msg_objs[33];
 CAN_MSG_OBJ filter_objs[2];
+CAN_MSG_OBJ nmtMsg;
 
-CAN_MSG_OBJ NmtMsg;
-
-volatile uint32_t msgSignals=0;
+volatile uint32_t msgSignals = 0;
+volatile int tx_count = 0;
 
 ReceiverEventHandler CANEXReceiverEvent = NULL;
 TriggerSyncEventHandler CANTEXTriggerSyncEvent = NULL;
@@ -182,6 +182,7 @@ void CAN_rx(uint8_t msg_obj_num)
 void CAN_tx(uint8_t msg_obj_num)
 {
 	msgSignals &= ~(1<<msg_obj_num);
+	--tx_count;
 }
 
 /*	CAN error callback */
@@ -205,7 +206,7 @@ void CANChangeNodeId(uint16_t id)
 	filter_objs[0].mask = 0x00000fff;
 	filter_objs[0].msg_obj_num=2;
 	CANSetFilter(&filter_objs[0]);
-	NmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
+	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
 }
 
 void CANInit(uint32_t baudRateinK)
@@ -218,13 +219,13 @@ void CANInit(uint32_t baudRateinK)
 	
 	baudRateBak=baudRateinK;
 	
-	//nmtMsg = msg_objs + INDEX_HB;
-	
 	rxEntry.val=rxdata;
 	
 	//CAN_STB Enable
+#ifdef CAN_EN_PIN
 	GPIOSetDir(CAN_EN_PIN, E_IO_OUTPUT);
 	GPIOSetValue(CAN_EN_PIN, 0);
+#endif
 	
 	CAN_cfgBaudrate(baudRateinK);
 	(*rom)->pCAND->init_can(ClkInitTable,1);
@@ -243,8 +244,8 @@ void CANInit(uint32_t baudRateinK)
 	filter_objs[1].msg_obj_num = 2;
 	CANSetFilter(&filter_objs[1]);
 	
-	NmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
-	NmtMsg.dlc = 1;
+	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
+	nmtMsg.dlc = 1;
 	
 	NVIC_EnableIRQ(CAN_IRQn);
 }
@@ -295,11 +296,10 @@ void CANSetFilter(CAN_MSG_OBJ *pMsg)
 }
 
 
-
 void CANEXHeartbeat(enum SystemState state)
 {
-	NmtMsg.data[0] = state;
-	CANSend(&NmtMsg);
+	nmtMsg.data[0]=state;
+	CANSend(&nmtMsg);
 }
 
 
@@ -333,23 +333,31 @@ void CANTransmit(uint32_t command,uint16_t targetId,CAN_ODENTRY *entry,uint16_t 
 	msg.data[1] = (entry->index>>8) & 0xff;
 	msg.data[2] =  entry->subindex;
 	msg.data[3] =  entry->entrytype_len;
+	
+	//Wait for last entry transmitted
+	while (tx_count>0)
+		__nop();
+	
 	if (entry->entrytype_len<=4)
 	{
 		msg.dlc = 4 + entry->entrytype_len;
 		memcpy(msg.data+4, entry->val, entry->entrytype_len);
+		tx_count = 1;
 		CANSend(&msg);
 		return;
 	}
 
-	msg.dlc = 8;
-	memcpy(msg.data+4, entry->val, 4);
-	CANSend(&msg);
-	
 	segment 	= (entry->entrytype_len-4) / 7;
 	remainder = (entry->entrytype_len-4) % 7;
 	offset=4;
 	if (remainder!=0)
 		segment++;
+	
+	tx_count = segment+1;
+	
+	msg.dlc = 8;
+	memcpy(msg.data+4, entry->val, 4);
+	CANSend(&msg);
 	
 	for(i=0; i<segment; ++i)
 	{

@@ -48,7 +48,6 @@ extern volatile uint16_t NodeId;
 extern uint16_t HeartbeatInterval;
 extern uint16_t SyncInterval;
 
-
 typedef struct _CAN_MSG_OBJ {
   uint32_t  mode_id;
   uint32_t  mask;
@@ -56,8 +55,6 @@ typedef struct _CAN_MSG_OBJ {
   uint8_t   dlc;
   uint8_t   msg_obj_num;
 }CAN_MSG_OBJ;
-
-extern CAN_MSG_OBJ NmtMsg;
 
 /**************************************************************************
 SDO Abort Codes
