@@ -52,8 +52,7 @@ __packed struct SuppliesInfo
 };
 
 void SystemSetup();
-void SetDLatch();
-void ClearDLatch();
+void EnterISP();
 
 #endif
 
