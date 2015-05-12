@@ -27,12 +27,9 @@ class ScaleInfo
 	private:
 		std::uint8_t channel;
 		ScaleBasic *basic;
-		std::uint16_t base;
 	public:
-		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
-		static WriteNVHandler WriteNV;
-		ScaleInfo(std::uint8_t ch, ScaleBasic *sb, std::uint32_t nvAddr)
-			:channel(ch), basic(sb), base(nvAddr) {}
+		ScaleInfo(std::uint8_t ch, ScaleBasic *sb)
+			:channel(ch), basic(sb) {}
 		~ScaleInfo() {}
 		ScaleBasic *GetBasic() { return basic; }
 		bool Calibrate(float w);

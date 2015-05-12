@@ -10,6 +10,13 @@ using namespace std;
 
 SensorArray *SensorArray::Singleton = NULL;
 
+SensorArray &SensorArray::Instance(ScaleAttribute *attr)
+{
+	SensorArray &instance = Instance();
+	instance.SetRange(attr);
+	return instance;
+}
+
 SensorArray::SensorArray()
 	:fullRange(0), safeRange(0), maxRange(0), zeroLimit(0)
 {

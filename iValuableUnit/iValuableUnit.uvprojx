@@ -428,6 +428,11 @@
               <FileType>8</FileType>
               <FilePath>.\ScaleInfo.cpp</FilePath>
             </File>
+            <File>
+              <FileName>DataProcessor.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\DataProcessor.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
