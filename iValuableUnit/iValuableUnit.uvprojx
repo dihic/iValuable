@@ -433,6 +433,11 @@
               <FileType>8</FileType>
               <FilePath>.\DataProcessor.cpp</FilePath>
             </File>
+            <File>
+              <FileName>SuppliesDisplay.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\SuppliesDisplay.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -487,6 +492,11 @@
               <FileName>timer32.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\timer32.c</FilePath>
+            </File>
+            <File>
+              <FileName>iap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\iap.c</FilePath>
             </File>
           </Files>
         </Group>
