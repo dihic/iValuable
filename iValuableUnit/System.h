@@ -42,14 +42,9 @@
 
 #define ABS(x) ((x)>=0?(x):-(x))
 
+#define SUPPLIES_NUM	10
+#define SENSOR_NUM	6
 
-__packed struct SuppliesInfo
-{
-	std::uint8_t Uid[0x10];
-	float Unit;
-	float Deviation;
-	std::int32_t Quantity;
-};
 
 void SystemSetup();
 void EnterISP();

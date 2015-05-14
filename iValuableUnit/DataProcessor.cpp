@@ -17,9 +17,10 @@ DataProcessor::DataProcessor()
 		ScaleBasic *sb = reinterpret_cast<ScaleBasic *>(MemBuffer + ADDR_SCALE+ i*sizeof(ScaleBasic));
 		pScales[i] = new ScaleInfo(i, sb);
 	}
-	for(int i=0; i<10; ++i)
+	for(int i=0; i<SUPPLIES_NUM; ++i)
 	{
 		pSupplies[i] = reinterpret_cast<SuppliesInfo *>(MemBuffer + ADDR_INFO+ i*sizeof(SuppliesInfo));
+		pQuantity[i] = reinterpret_cast<int32_t *>(MemBuffer + ADDR_QUANTITY+ i*sizeof(int32_t));
 	}
 	
 	pConfig = reinterpret_cast<ScaleAttribute *>(MemBuffer + ADDR_CONFIG);
@@ -37,14 +38,20 @@ DataProcessor::DataProcessor()
 	*pSensorEnable = 0x3f;	//Default all enable for channel 0-5
 }
 
+DataProcessor::~DataProcessor()
+{
+	for(int i=0; i<SENSOR_NUM; ++i)
+		delete pScales[i];
+}
+
 //Parameter flags stands for enable to calibrate sensors bitwise
-void DataProcessor::CalibrateSensors(uint8_t flags)
+void DataProcessor::CalibrateSensors(uint8_t flags, bool reverseUse)
 {
 	for(uint8_t i=0;i<SENSOR_NUM;++i)
 	{
 		if ((flags & (1<<i)) == 0)
 			continue;
-		pScales[i]->Calibrate(*pCalWeight);
+		pScales[i]->Calibrate(reverseUse ? -*pCalWeight : *pCalWeight);
 		if (WriteNV)
 		{
 			uint16_t base = ADDR_SCALE+ i*sizeof(ScaleBasic);
@@ -172,4 +179,73 @@ int DataProcessor::PrepareRaw(std::uint8_t *buf)
 		base += sizeof(float);
 	}
 	return base;
+}
+
+bool DataProcessor::FindSuppliesId(std::uint64_t id, std::uint8_t &index) const
+{
+	for(int i=0;i<SUPPLIES_NUM;++i)
+		if (pSupplies[i]->Uid == id)
+		{
+			index = i;
+			return true;
+		}
+	return false;
+}
+
+bool DataProcessor::GetSuppliesUnit(std::uint8_t index, float &unit, float &deviation) const 
+{ 
+	if (pSupplies[index]->Uid == 0)
+		return false;
+	unit = pSupplies[index]->Unit; 
+	deviation = pSupplies[index]->Deviation;
+	return true;
+}
+
+bool DataProcessor::SetQuantity(std::uint8_t index, std::int32_t num)
+{
+	if (pSupplies[index]->Uid == 0)
+		return false;
+	*pQuantity[index] = num;
+	if (WriteNV)
+		WriteNV(ADDR_QUANTITY+index*sizeof(int32_t), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(int32_t));
+	return true;
+}
+
+float DataProcessor::CalculateInventoryWeight(float &min, float &max)
+{
+	float total = 0;
+	min = max = 0;
+	for(int i=0;i<SUPPLIES_NUM;++i)
+		if (pSupplies[i]->Uid != 0)
+		{
+			total += pSupplies[i]->Unit**pQuantity[i];
+			min += pSupplies[i]->Unit*(*pQuantity[i] - pSupplies[i]->Deviation);
+			max += pSupplies[i]->Unit*(*pQuantity[i] + pSupplies[i]->Deviation);
+		}
+	return total;
+}
+
+void DataProcessor::SetSupplies(std::uint8_t index, const SuppliesInfo &info)
+{
+	memcpy(pSupplies[index], &info, sizeof(SuppliesInfo));
+	if (WriteNV)
+		WriteNV(ADDR_INFO+ index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
+}
+
+bool DataProcessor::AddSupplies(const SuppliesInfo &info)
+{
+	for(int i=0;i<SUPPLIES_NUM;++i)
+		if (pSupplies[i]->Uid == 0)
+		{
+			SetSupplies(i, info);
+			return true;
+		}
+	return false;
+}
+
+void DataProcessor::RemoveSupplies(std::uint8_t index)
+{
+	memset(pSupplies[index], 0 ,sizeof(SuppliesInfo));
+	if (WriteNV)
+		WriteNV(ADDR_INFO + index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
 }

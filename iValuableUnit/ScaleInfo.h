@@ -22,6 +22,13 @@ __packed struct ScaleBasic
 	std::int32_t Tare;
 };
 
+__packed struct SuppliesInfo
+{
+	std::uint64_t Uid;
+	float Unit;
+	float Deviation;
+};
+
 class ScaleInfo
 {
 	private:

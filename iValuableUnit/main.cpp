@@ -17,6 +17,7 @@
 
 #include "main.h"
 #include "DataProcessor.h"
+#include "SuppliesDisplay.h"
 
 using namespace std; 
 using namespace fastdelegate;
@@ -28,7 +29,7 @@ DataProcessor *Processor;
 volatile CanResponse res;
 
 volatile bool syncTriggered = false;
-volatile bool responseTriggered = false;
+//volatile bool responseTriggered = false;
 volatile CAN_ODENTRY syncEntry;
 
 volatile bool Connected = true;			
@@ -38,6 +39,7 @@ volatile bool Gotcha = true;
 
 
 float WeightArray[SENSOR_NUM];
+volatile WeightSet Weights;
 
 extern "C" {
 
@@ -80,6 +82,8 @@ void UpdateWeight()
 
 	SensorArray &sensorArray = SensorArray::Instance();
 	
+	float total = 0;
+	
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
@@ -93,9 +97,12 @@ void UpdateWeight()
 		if (!sensorArray.IsStable(i))
 			continue;
 
-		WeightArray[i] = Processor->CalculateWeight(i, sensorArray.GetCurrent(i));
+		total += WeightArray[i] = Processor->CalculateWeight(i, sensorArray.GetCurrent(i));
 	}
 
+	Weights.Total = total;
+	Weights.Delta = Weights.Total - Weights.Inventory;
+	
 	Updating = false;
 }
 
@@ -118,7 +125,9 @@ void TIMER32_1_IRQHandler()		//100Hz
 void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 {
 	uint8_t i;
-	float f;
+	float f, d;
+	SuppliesInfo info;
+	const uint8_t *data;
 	
 	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
 
@@ -133,6 +142,9 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	switch (entry->index)
 	{
 		case 0:	//system config
+			break;
+		case OP_ISP:
+			EnterISP(); //Enter CAN-ISP after reset for updating...
 			break;
 		case OP_SET_ZERO:
 //			disable_timer32(1);
@@ -151,7 +163,9 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			response->entrytype_len= Processor->PrepareRaw(response->val);
 			break;
 		case OP_AUTO_RAMPS:
-			Processor->CalibrateSensors(entry->val[0]);
+			if (entry->entrytype_len<2)
+				break;
+			Processor->CalibrateSensors(entry->val[0], entry->val[1]!=0);
 			*(response->val)=0;
 			break;
 		case OP_RAMPS: //R/W coeff
@@ -183,27 +197,73 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				*(response->val)=0;
 			}
 			break;
-		case OP_UNIT:
-//			if (entry->subindex==0)
-//			{
-//				response->entrytype_len = 25+(*pMedNameLen);
-//				response->val = pMedGuid;
-//			}
-//			else
-//			{
-//				if (entry->entrytype_len<25)
-//					break;
-//				memcpy(pMedGuid,entry->val,16);
-//				memcpy(pUnit,entry->val+16,sizeof(float));
-//				memcpy(pDeviation,entry->val+20,sizeof(float));
-//				*pMedNameLen = entry->val[24] & 0x7f;
-//				memcpy(pMedName,entry->val+25,*pMedNameLen);
-//				FRAM::WriteMemory(NVINFO_ADDR,(uint8_t *)(MemBuffer+NVDATA_BASE+ADDR_MED_GUID),25+(*pMedNameLen));
-//				UpdateScaleRange();
-//				//Update Display
-//				NeedUpdateDisplay = true;
-//				*(response->val)=0;
-//			}
+		case OP_UNIT_INFO:
+			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
+					break;
+			if (entry->subindex==0)	//Read
+			{
+				info.Uid = Processor->GetSuppliesId(entry->val[0]);
+				if (info.Uid == 0)
+					break;
+				
+				Processor->GetSuppliesUnit(entry->val[0], f, d);
+				info.Unit = f;
+				info.Deviation = d;
+				response->val = const_cast<uint8_t *>(res.buffer);
+				response->val[0] = entry->val[0];
+				memcpy(response->val+1, &info, sizeof(SuppliesInfo));
+				response->entrytype_len = sizeof(SuppliesInfo) + 1;
+				
+				data = SuppliesDisplay::GetString(entry->val[0], i);	//i for size of string
+				
+				if (data!=NULL && i>0)
+				{
+					response->val[response->entrytype_len] = i;
+					memcpy(response->val+response->entrytype_len+1, data, i);
+					response->entrytype_len += i+1; 
+				}
+				else
+					response->val[response->entrytype_len++] = 0;
+			}
+			else if (entry->subindex==1)	//Write
+			{
+				//Size of info
+				i = sizeof(SuppliesInfo);
+				memcpy(&info, entry->val+1, i);
+				Processor->SetSupplies(entry->val[0], info);
+				Processor->SetQuantity(entry->val[0], 0);
+				SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
+				*(response->val)=0;
+			}
+			else	//Remove above 2
+			{
+				Processor->RemoveSupplies(entry->val[0]);
+				SuppliesDisplay::DeleteString(entry->val[0]);
+				*(response->val)=0;
+			}
+			break;
+		case OP_QUANTITY:
+			if (entry->subindex==0)	//Read quantity
+			{
+				if (entry->entrytype_len<2 || entry->val[0]>=SUPPLIES_NUM)
+					break;
+				response->entrytype_len = 2;
+				response->val = const_cast<uint8_t *>(res.buffer);
+				response->val[0] = entry->val[0];
+				response->val[1] = Processor->GetQuantity(entry->val[0]);
+			}
+			else	//Write quantities
+			{
+				if (entry->val[0]==0 || entry->val[0]>SUPPLIES_NUM)
+					break;
+				for(i=0;i<entry->val[0];++i)
+					Processor->SetQuantity(entry->val[(i<<1)+1], entry->val[(i<<1)+2]);
+				Weights.Inventory = Processor->CalculateWeight(f, d);
+				Weights.Min = f;
+				Weights.Max = d;
+				Weights.Delta = Weights.Total - Weights.Inventory;
+				*(response->val)=0;
+			}
 			break;
 		case OP_CAL_UNIT:
 			if (entry->subindex==0)
@@ -251,15 +311,18 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		}
-		responseTriggered = true;
+//		responseTriggered = true;
+		CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 }
 
 uint8_t syncBuf[0x100];
 
 int PrepareData()
 {
-	syncBuf[0] = 0;
-	int base = 1;
+	syncBuf[0] = 0;	//Number of enabled channels
+	syncBuf[1] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
+	memcpy(syncBuf+2, const_cast<float *>(&Weights.Delta), sizeof(float));
+	int base = 2+sizeof(float);
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
@@ -269,7 +332,7 @@ int PrepareData()
 		syncBuf[base] = i;
 		syncBuf[base+1] = SensorArray::Instance().IsStable(i);
 		syncBuf[base+2] = SensorArray::Instance().GetStatus(i);
-		memcpy(syncBuf+base+3, reinterpret_cast<void *>(&WeightArray[i]), sizeof(float));
+		memcpy(syncBuf+base+4+sizeof(float), reinterpret_cast<void *>(&WeightArray[i]), sizeof(float));
 		base += 3+sizeof(float);
 	}
 	return base;
@@ -322,6 +385,7 @@ int main()
 	SystemSetup();
 	
 	Processor = DataProcessor::InstancePtr();
+	SuppliesDisplay::Init();
 	
 	DELAY(100000); 	//wait 100ms for voltage stable
 	uint8_t firstUse = FRAM::Init();
@@ -341,8 +405,6 @@ int main()
 	CANEXReceiverEvent = CanexReceived;
 	CANTEXTriggerSyncEvent = CanexSyncTrigger;
 	
-	
-	
 	UpdateWeight();
 	
 	init_timer32(0,TIME_INTERVAL(1000));	//	1000Hz
@@ -355,11 +417,11 @@ int main()
 	{
 		Display::UARTProcessor();
 		
-		if (responseTriggered)
-		{
-			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
-			responseTriggered = false;
-		}
+//		if (responseTriggered)
+//		{
+//			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
+//			responseTriggered = false;
+//		}
 		
 		if (syncTriggered)
 		{

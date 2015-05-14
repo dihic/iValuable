@@ -12,12 +12,14 @@
 #define OP_SET_ZERO 	0x00fe
 #define OP_RAMPS			0x8000
 #define OP_AUTO_RAMPS	0x8007
-#define OP_UNIT     	0x8001
+#define OP_UNIT_INFO  0x8001
 #define OP_CAL_UNIT   0x8002
 #define OP_CONFIG     0x8003
 #define OP_RAWDATA		0x8006
 #define OP_ENABLE			0x8008
 #define OP_TEMP				0x8009
+#define OP_QUANTITY		0x800A
+#define OP_ISP				0x80ff
 
 
 #define A_POS_X		5
@@ -39,6 +41,15 @@ struct CanResponse
 	uint8_t result;
 	uint8_t buffer[0x80];
 	CAN_ODENTRY response;
+};
+
+struct WeightSet
+{
+	float Total;
+	float Inventory;
+	float Delta;
+	float Min;
+	float Max;
 };
 
 

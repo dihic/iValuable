@@ -18,8 +18,6 @@ using namespace fastdelegate;
 #define SENSOR_DAMAGE			 	0x02
 #define SENSOR_FAULT				0x10
 
-#define SENSOR_NUM	6
-
 class SensorArray
 {
 	private:

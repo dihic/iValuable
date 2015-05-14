@@ -81,7 +81,7 @@ void CAN_IRQHandler(void)
   (*rom)->pCAND->isr();
 }
 
-uint8_t rxdata[0x100];
+__align(4) uint8_t rxdata[0x100];
 CAN_ODENTRY rxEntry;//={0,0,0,rxdata};
 
 void SystemEvent(uint16_t sourceId, CAN_ODENTRY *entry)

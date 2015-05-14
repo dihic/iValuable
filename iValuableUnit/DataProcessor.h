@@ -13,7 +13,8 @@ using namespace fastdelegate;
 #define ADDR_TEMP						0x014
 #define ADDR_CONFIG  				0x020
 #define ADDR_SCALE  				0x040
-#define ADDR_INFO						0x0C0
+#define ADDR_QUANTITY				0x0A0
+#define ADDR_INFO						0x0D0
 
 class DataProcessor
 {
@@ -21,7 +22,8 @@ class DataProcessor
 		std::int32_t currentAD[SENSOR_NUM];
 		ScaleAttribute *pConfig;
 		ScaleInfo *pScales[SENSOR_NUM];
-		SuppliesInfo *pSupplies[10];
+		SuppliesInfo *pSupplies[SUPPLIES_NUM];
+		std::int32_t *pQuantity[SUPPLIES_NUM];
 		float *pCalWeight;
 		float *pCurrentTemp;
 		std::uint8_t *pSensorEnable;
@@ -47,27 +49,36 @@ class DataProcessor
 
 		static __align(16) std::uint8_t MemBuffer[MEM_BUFSIZE];
 		
-		~DataProcessor() {}
+		~DataProcessor();
 		//Parameter flags stands for enable to calibrate sensors bitwise
-		void CalibrateSensors(std::uint8_t flags);
+		void CalibrateSensors(std::uint8_t flags, bool reverseUse);
+		//
 		float CalculateWeight(std::uint8_t ch, std::int32_t ad);
+		float CalculateInventoryWeight(float &min, float &max);
 		void SetRamp(std::uint8_t ch, float ramp);
 		void SetZero(std::uint8_t ch, bool tare);
+		bool SetQuantity(std::uint8_t index, std::int32_t num);
 		
 		void SetConfig(const std::uint8_t *buf);
 		void SetTemperature(float t);
 		void SetCalWeight(const std::uint8_t *buf);
 		void SetEnable(std::uint8_t en);
-			
+		
 		bool SensorEnable(std::uint8_t ch) const;
 		ScaleAttribute *GetConfig() { return pConfig; }
 		float GetCalWeight() const;
 		float GetRamp(std::uint8_t ch) const;
 		std::uint8_t GetEnable() const { return *pSensorEnable; }
+		std::int32_t GetQuantity(std::uint8_t index) const { return *pQuantity[index]; }
+		
+		std::uint64_t GetSuppliesId(std::uint8_t index) const { return pSupplies[index]->Uid; }
+		bool FindSuppliesId(std::uint64_t id, std::uint8_t &index) const;
+		bool GetSuppliesUnit(std::uint8_t index, float &unit, float &deviation) const;
+		void SetSupplies(std::uint8_t index, const SuppliesInfo &info);
+		bool AddSupplies(const SuppliesInfo &info);
+		void RemoveSupplies(std::uint8_t index);
 		
 		int PrepareRaw(std::uint8_t *buf);
-		
-		
 };
 
 #endif
