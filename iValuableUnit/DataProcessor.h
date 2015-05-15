@@ -79,6 +79,7 @@ class DataProcessor
 		void RemoveSupplies(std::uint8_t index);
 		
 		int PrepareRaw(std::uint8_t *buf);
+		bool UpdateDisplay(bool force=false);
 };
 
 #endif

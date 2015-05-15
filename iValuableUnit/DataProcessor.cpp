@@ -1,4 +1,6 @@
 #include "DataProcessor.h"
+#include "display.h"
+#include "SuppliesDisplay.h"
 #include <cmath>
 
 using namespace std;
@@ -198,7 +200,7 @@ bool DataProcessor::GetSuppliesUnit(std::uint8_t index, float &unit, float &devi
 		return false;
 	unit = pSupplies[index]->Unit; 
 	deviation = pSupplies[index]->Deviation;
-	return true;
+	return (abs(unit)>0.000001f);
 }
 
 bool DataProcessor::SetQuantity(std::uint8_t index, std::int32_t num)
@@ -248,4 +250,70 @@ void DataProcessor::RemoveSupplies(std::uint8_t index)
 	memset(pSupplies[index], 0 ,sizeof(SuppliesInfo));
 	if (WriteNV)
 		WriteNV(ADDR_INFO + index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
+}
+
+#define TEXT_POS_Y	5
+
+bool DataProcessor::UpdateDisplay(bool force)
+{
+	static uint8_t index = 0;
+	static const uint8_t *data = NULL;
+	static uint8_t len = 0;
+	
+	if (force)
+	{
+		index = 0;
+		data = NULL;
+		len = 0;
+	}
+
+	uint16_t posY = TEXT_POS_Y;
+	bool needUpdate = (index!=0);
+	bool needClear = false;
+	
+	//Clear screen
+	Display::ClearRegion(0, 0, RES_X, MAXLINE_Y_LIMIT);
+	
+	for(int i=index; i<SUPPLIES_NUM; ++i)
+	{
+		if (pSupplies[i]->Uid == 0)	//Skip empty
+			continue;
+		if (data == NULL)
+		{
+			data = SuppliesDisplay::GetString(i, len);		//Load name string
+			if (len==0)		//Skip supplies without name string
+			{
+				data = NULL;
+				continue;
+			}
+		}
+		
+		if (needClear)
+		{
+			index = i;
+			data = NULL;
+			len = 0;
+			return true;
+		}
+		//Display string
+		uint8_t end = Display::ShowFormatString(data, len, posY);
+		if (end==0)		//Just completed but need to clear screen in next update
+		{
+			needClear = true;
+			continue;
+		}
+		else if (end<len)
+		{
+			//Record current position for next display
+			index = i;
+			data = data+end;
+			len -= end;
+			return true;
+		}
+	}
+
+	index = 0;
+	data = NULL;
+	len = 0;
+	return needUpdate;
 }
