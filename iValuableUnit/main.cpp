@@ -22,21 +22,7 @@
 using namespace std; 
 using namespace fastdelegate;
 
-//#define INTRUSION_EXTENSION_TIME 500   //500ms
-
-DataProcessor *Processor;
-
-volatile CanResponse res;
-
-volatile bool syncTriggered = false;
-//volatile bool responseTriggered = false;
-volatile CAN_ODENTRY syncEntry;
-
-volatile bool Connected = true;			
-volatile bool Registered = false;		// Registered by host
-volatile bool ForceSync = false;
-volatile bool Gotcha = true;
-
+DataProcessor *Processor = NULL;
 
 float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
@@ -46,11 +32,9 @@ extern "C" {
 //volatile uint8_t lastState=0;	//0:intrusion 1:stable
 volatile uint32_t TickCount = 0;
 	
-void TIMER32_0_IRQHandler()
+void TIMER32_0_IRQHandler()		//1000Hz
 {
 	static uint32_t counter1=0;
-//	static uint32_t counter2=0;
-//	uint8_t currentState;
 	
 	if ( LPC_TMR32B0->IR & 0x01 )
   {    
@@ -72,8 +56,6 @@ void TIMER32_0_IRQHandler()
 	}
 }
 
-
-
 volatile bool Updating=0;
 
 void UpdateWeight()
@@ -83,6 +65,7 @@ void UpdateWeight()
 	SensorArray &sensorArray = SensorArray::Instance();
 	
 	float total = 0;
+	bool allStable = true;
 	
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
@@ -95,13 +78,20 @@ void UpdateWeight()
 
 		//Skip unstable sensors
 		if (!sensorArray.IsStable(i))
+		{
+			allStable = false;
 			continue;
+		}
 
 		total += WeightArray[i] = Processor->CalculateWeight(i, sensorArray.GetCurrent(i));
 	}
-
-	Weights.Total = total;
-	Weights.Delta = Weights.Total - Weights.Inventory;
+	
+	Weights.AllStable = allStable;
+	if (allStable)
+	{
+		Weights.Total = total;
+		Weights.Delta = Weights.Total - Weights.Inventory;
+	}
 	
 	Updating = false;
 }
@@ -109,6 +99,9 @@ void UpdateWeight()
 void TIMER32_1_IRQHandler()		//100Hz
 {
 	static int counter=0;
+	static int cd = 0;
+	static bool refresh = false;
+	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
 		LPC_TMR32B1->IR = 1;			/* clear interrupt flag */
@@ -118,6 +111,22 @@ void TIMER32_1_IRQHandler()		//100Hz
 		{
 			counter = 0;
 			UpdateWeight(); 
+		}
+		
+		//Logic of display into pages 
+		if (Processor)
+		{
+			if (ForceDisplay)
+			{
+				cd = 0;
+				ForceDisplay = false;
+				refresh = Processor->UpdateDisplay(true);
+			}
+			else if (refresh && ++cd==300) // Interval 3s
+			{
+				cd = 0;
+				refresh = Processor->UpdateDisplay();
+			}
 		}
 	}
 }
@@ -234,12 +243,14 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				Processor->SetQuantity(entry->val[0], 0);
 				SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
 				*(response->val)=0;
+				ForceDisplay = true;
 			}
 			else	//Remove above 2
 			{
 				Processor->RemoveSupplies(entry->val[0]);
 				SuppliesDisplay::DeleteString(entry->val[0]);
 				*(response->val)=0;
+				ForceDisplay = true;
 			}
 			break;
 		case OP_QUANTITY:
@@ -319,22 +330,38 @@ uint8_t syncBuf[0x100];
 
 int PrepareData()
 {
+	int base = 2+sizeof(float);
 	syncBuf[0] = 0;	//Number of enabled channels
+#if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
+	float unit,dev;
 	syncBuf[1] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
 	memcpy(syncBuf+2, const_cast<float *>(&Weights.Delta), sizeof(float));
-	int base = 2+sizeof(float);
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
 		if (!Processor->SensorEnable(i))
 			continue;
 		++syncBuf[0];
-		syncBuf[base] = i;
-		syncBuf[base+1] = SensorArray::Instance().IsStable(i);
-		syncBuf[base+2] = SensorArray::Instance().GetStatus(i);
-		memcpy(syncBuf+base+4+sizeof(float), reinterpret_cast<void *>(&WeightArray[i]), sizeof(float));
-		base += 3+sizeof(float);
+		syncBuf[base++] = i;
+		syncBuf[base++] = SensorArray::Instance().IsStable(i);
+		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
+		syncBuf[base++] = (Processor->GetSuppliesUnit(i, unit, dev)) ? (uint8_t)(WeightArray[i]/unit):0;	//Quantity temp
+		memcpy(syncBuf+base, reinterpret_cast<void *>(&WeightArray[i]), sizeof(float));
+		base += sizeof(float);
 	}
+#else
+	syncBuf[1] = Weights.AllStable;
+	memcpy(syncBuf+2, const_cast<float *>(&Weights.Total), sizeof(float));
+	for(int i=0; i<SENSOR_NUM; ++i)
+	{
+		//Skip disabled sensors
+		if (!Processor->SensorEnable(i))
+			continue;
+		++syncBuf[0];
+		syncBuf[base++] = i;
+		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
+	}
+#endif
 	return base;
 }
 
@@ -351,13 +378,11 @@ void CanexSyncTrigger(uint16_t index,uint8_t mode)
 
 	switch(index)
 	{
-//		case SYNC_GOTCHA:
-//			Gotcha = true;
-//			break;
+		case SYNC_GOTCHA:
+			Gotcha = true;
+			break;
 		case SYNC_DATA:
-			ForceSync = true;
-			if (Connected)
-				syncTriggered = true;
+			Gotcha = false;
 			break;
 		case SYNC_LIVE:
 			Connected=!Connected;
@@ -371,11 +396,9 @@ void CanexSyncTrigger(uint16_t index,uint8_t mode)
 
 void AckReciever(uint8_t *ack, uint8_t len)
 {
-	if (len>0 && ack[0] == 0xff)
-	{
-//		boot = true;
-//		NeedUpdateDisplay = true;
-	}
+//	if (len>0 && ack[0] == 0xff)
+//	{
+//	}
 }
 
 
@@ -389,7 +412,7 @@ int main()
 	
 	DELAY(100000); 	//wait 100ms for voltage stable
 	uint8_t firstUse = FRAM::Init();
-	//firstUse=1; 	//Force to format
+	//firstUse=1; 	//Force to format FRAM for debug
 	if (firstUse)
 		FRAM::WriteMemory(0x04, (uint8_t *)(DataProcessor::MemBuffer+4), MEM_BUFSIZE-4);		//Write default values
 	else
@@ -413,6 +436,8 @@ int main()
 	enable_timer32(0);
 	enable_timer32(1);
 	
+	ForceDisplay = true;
+	
 	while(1)
 	{
 		Display::UARTProcessor();
@@ -431,8 +456,5 @@ int main()
 			CANEXBroadcast(const_cast<CAN_ODENTRY *>(&syncEntry));
 			syncTriggered = false;
 		}
-//		bool displayChanged = false;
-		
 	}
-//	SensorArray::Release();
 }

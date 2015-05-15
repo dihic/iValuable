@@ -5,7 +5,7 @@
 #include "canonchip.h"
 
 
-#define SYNC_SENSOR     0x0101
+#define SYNC_GOTCHA			0x0180
 #define SYNC_DATA				0x0100
 #define SYNC_LIVE				0x01ff
 
@@ -22,18 +22,18 @@
 #define OP_ISP				0x80ff
 
 
-#define A_POS_X		5
-#define A_POS_Y		170
-#define B_POS_X 	170
-#define B_POS_Y		170
-#define DIGIT_W		150
-#define DIGIT_H		70
-#define DIGIT_SCALE 2.0f
-#define AUX_SCALE   1.5f
+//#define A_POS_X		5
+//#define A_POS_Y		170
+//#define B_POS_X 	170
+//#define B_POS_Y		170
+//#define DIGIT_W		150
+//#define DIGIT_H		70
+//#define DIGIT_SCALE 2.0f
+//#define AUX_SCALE   1.5f
 
-#define TEXT_POS_Y	5
-#define A_NUM_OFFSET	70
-#define B_NUM_OFFSET	60	
+
+//#define A_NUM_OFFSET	70
+//#define B_NUM_OFFSET	60	
 
 struct CanResponse
 {
@@ -50,7 +50,21 @@ struct WeightSet
 	float Delta;
 	float Min;
 	float Max;
+	bool AllStable;
 };
+
+volatile CanResponse res;
+
+volatile bool syncTriggered = false;
+//volatile bool responseTriggered = false;
+volatile CAN_ODENTRY syncEntry;
+
+volatile bool Connected = true;			
+volatile bool Registered = false;		// Registered by host
+//volatile bool ForceSync = false;
+volatile bool Gotcha = true;
+
+volatile bool ForceDisplay = false;
 
 
 #endif
