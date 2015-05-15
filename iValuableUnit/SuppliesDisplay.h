@@ -15,6 +15,7 @@ class SuppliesDisplay
 	private:
 		static __align(4) std::uint8_t tempBuffer[0x100];
 		SuppliesDisplay() {}
+		static void CopyFromSource(int index, const std::uint8_t *source, std::uint8_t len);
 	public:
 		static void Init();
 		~SuppliesDisplay() {}

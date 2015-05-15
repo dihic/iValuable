@@ -13,17 +13,48 @@ void SuppliesDisplay::Init()
 	memset(tempBuffer, 0 ,0x100);
 }
 
+void SuppliesDisplay::CopyFromSource(int index, const uint8_t *source, uint8_t len)
+{
+#if UNIT_TYPE == UNIT_TYPE_INDEPENDENT
+	++index;
+	if (index<10)
+	{
+		tempBuffer[0] = len+4;
+		tempBuffer[1] = 0;
+		tempBuffer[2] = 0x30+index;
+		tempBuffer[3] = 0;
+		tempBuffer[4] = 0x2e;		//Char .
+		tempBuffer[5] = 0;
+		memcpy(tempBuffer+6, source, len);
+	}
+	else
+	{
+		tempBuffer[0] = len+6;
+		tempBuffer[1] = 0;
+		tempBuffer[2] = 0x30+index%10;
+		tempBuffer[3] = 0;
+		tempBuffer[4] = 0x30+index/10;
+		tempBuffer[5] = 0;
+		tempBuffer[6] = 0x2e;		//Char .
+		tempBuffer[7] = 0;
+		memcpy(tempBuffer+8, source, len);
+	}
+#else
+	tempBuffer[0] = len;
+	tempBuffer[1] = 0;
+	memcpy(tempBuffer+2, source, len);
+#endif
+}
+
 bool SuppliesDisplay::ModifyString(int index, const uint8_t *source, uint8_t len)
 {
-	if (index>=SUPPLIES_NUM || len>250)
+	if (index>=SUPPLIES_NUM || len>200)
 		return false;
 	
 	const uint8_t *status = (const uint8_t *)((SUPPLIES_FLASH_SECTOR<<12)|(index<<8));
 	if (*status == 0xff)	//Current index available
 	{
-		tempBuffer[0] = len;
-		tempBuffer[1] = 0;
-		memcpy(tempBuffer+2, source, len);
+		CopyFromSource(index, source, len);
 		CopyToFlash256((SUPPLIES_FLASH_SECTOR<<12)|(index<<8), (unsigned int)tempBuffer);
 		CopyToFlash256((BACKUP_FLASH_SECTOR<<12)|(index<<8), (unsigned int)tempBuffer);
 		return true;
@@ -33,11 +64,7 @@ bool SuppliesDisplay::ModifyString(int index, const uint8_t *source, uint8_t len
 	for(int i=0;i<SUPPLIES_NUM;++i)
 	{
 		if (i==index)
-		{
-			tempBuffer[0] = len;
-			tempBuffer[1] = 0;
-			memcpy(tempBuffer+2, source, len);
-		}
+			CopyFromSource(i, source, len);
 		else
 		{
 			status = (const uint8_t *)((BACKUP_FLASH_SECTOR<<12)|(i<<8));
