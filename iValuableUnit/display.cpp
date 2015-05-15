@@ -81,22 +81,14 @@ uint16_t Display::ackLength = 0;
 
 Display::AckRecieverHandler Display::OnAckReciever = NULL;
 
-void Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy, float scale)
+uint16_t Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &posy, float scale)
 {
 	uint16_t index = 0;
 	uint16_t tail = 0;
 	uint16_t len = 0;
 	bool more = true;
-	bool sign = false;
-	bool vertical = true;
-	bool custom_w = false;
 	
 	int currentW = X_OFFSET;
-	int xlimit = MAXLINE_X_LIMIT;
-	
-	int wx, wy;
-	
-	//bool newline = true;
 	
 	while (tail < size)
 	{
@@ -106,26 +98,11 @@ void Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy,
 		{
 			if (len>0)
 			{
-				if (sign)
-				{
-					int s=(int)(LINE_HEIGHT*WARNING_SCALE);
-					if (vertical)
-					{
-						ClearRegion(wx, wy, s+WARNING_MARGIN_X, s*len+WARNING_MARGIN_Y);
-						ShowStringVertical(str+index, len, wx+WARNING_MARGIN_X, wy+WARNING_MARGIN_Y, WARNING_SCALE);
-					}
-					else
-					{
-						ClearRegion(wx, wy, s*len, s+WARNING_MARGIN_Y);
-						ShowString(str+index, len, wx+WARNING_MARGIN_X, wy, WARNING_SCALE);
-					}
-					sign = false;
-				}
-				else
-				{
-					ShowString(str+index, len, X_OFFSET, posy, scale);
-					posy += LINE_HEIGHT;
-				}
+				ShowString(str+index, len, X_OFFSET, posy, scale);
+				posy += LINE_HEIGHT;
+				if (posy+LINE_HEIGHT > MAXLINE_Y_LIMIT)
+					return tail+2;	//Need to clear screen in next update
+
 				index += (len<<1);
 				len = 0;
 				currentW = X_OFFSET;
@@ -136,61 +113,12 @@ void Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy,
 			SetColor(255, 255, 255, 0);
 			SetColor(0, 0, 0, 1);
 			more = false;
-			//newline = true;
-			
 		}
-		else if ((str[tail]==1 || str[tail]==2) && str[tail+1]==0)
+		else if (str[tail]==4 && str[tail+1]==0)	//Set colors
 		{
-			if (len>0)
-			{
-				ShowString(str+index, len, X_OFFSET, posy, scale);
-				index += (len<<1);
-				len = 0;
-				currentW = X_OFFSET;
-				posy += LINE_HEIGHT;
-			}
-			index += 8;
-			
-			vertical = (str[tail]==1);
-			if (!custom_w)
-			{
-				if (vertical)
-				{
-					wx = WARNING_X_V;
-					wy = WARNING_Y_V;
-				}
-				else
-				{
-					wx = WARNING_X_H;
-					wy = WARNING_Y_H;
-				}
-				xlimit = wx;
-			}
-			
 			SetColor(str[tail+2], str[tail+3], str[tail+4], 0);
 			SetColor(str[tail+5], str[tail+6], str[tail+7], 1);
-			more = false;
-			sign = true;
-			//newline = true;
 			tail += 8;
-		}
-		else if (str[tail]==3  && str[tail+1]==0)
-		{
-			if (len>0)
-			{
-				ShowString(str+index, len, X_OFFSET, posy, scale);
-				index += (len<<1);
-				len = 0;
-				currentW = X_OFFSET;
-				posy += LINE_HEIGHT;
-			}
-			index += 6;
-			custom_w = true;
-			wx = str[tail+2] | (str[tail+3]<<8);
-			wy = str[tail+4] | (str[tail+5]<<8);
-			xlimit = wx;
-			more = false;
-			tail += 6;
 		}
 		else
 		{
@@ -198,14 +126,16 @@ void Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy,
 			currentW += CHAR_WEIGHT;
 			if (str[tail+1]!=0)
 				currentW += CHAR_WEIGHT;
-			if (currentW >= xlimit-CHAR_WEIGHT*2)
+			if (currentW >= MAXLINE_X_LIMIT-CHAR_WEIGHT*2)
 			{
 				ShowString(str+index, len, X_OFFSET, posy, scale);
+				posy+=LINE_HEIGHT;
+				if (posy+LINE_HEIGHT > MAXLINE_Y_LIMIT)
+					return tail+2;	//Need to clear screen in next update
 				more = false;
 				index += (len<<1);
 				len = 0;
 				currentW = X_OFFSET;
-				posy+=LINE_HEIGHT;
 			}
 			tail+=2;
 		}
@@ -213,10 +143,19 @@ void Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy,
 	if (more)
 	{
 		ShowString(str+index, len, X_OFFSET, posy, scale);
+		if (posy+2*LINE_HEIGHT > MAXLINE_Y_LIMIT)
+		{
+			//Reset color
+			SetColor(255, 255, 255, 0);
+			SetColor(0, 0, 0, 1);
+			return 0;		//Just completed but need to clear screen in next update
+		}
 	}
+	
 	//Reset color
 	SetColor(255, 255, 255, 0);
 	SetColor(0, 0, 0, 1);
+	return size;	//Just completed
 }
 	
 void Display::ShowString(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale)

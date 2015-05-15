@@ -14,6 +14,7 @@ using namespace fastdelegate;
 #define RES_Y 					 240
 
 #define MAXLINE_X_LIMIT	 (RES_X-X_OFFSET)
+#define MAXLINE_Y_LIMIT	 200
 
 
 class Display
@@ -27,7 +28,7 @@ class Display
 		typedef FastDelegate2<std::uint8_t *, std::uint8_t> AckRecieverHandler;
 		static AckRecieverHandler OnAckReciever;
 		static void UARTProcessor();
-		static void ShowFormatString(const uint8_t *str, uint16_t size, uint16_t posy, float scale=1.0f);
+		static uint16_t ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &posy, float scale=1.0f);
 		static void ShowStringVertical(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static uint16_t ShowString(const uint8_t *str, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static void ShowString(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale=1.0f);
