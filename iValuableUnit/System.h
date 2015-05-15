@@ -2,6 +2,7 @@
 #define _SYSTEM_H
 
 #include <cstdint>
+#include "UnitType.h"
 
 #define PRECISION_DIGITS 24
 
@@ -42,12 +43,13 @@
 
 #define ABS(x) ((x)>=0?(x):-(x))
 
+
 #define SUPPLIES_NUM	10
 #define SENSOR_NUM	6
 
-
 void SystemSetup();
 void EnterISP();
+
 
 #endif
 

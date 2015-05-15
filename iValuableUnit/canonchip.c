@@ -1,6 +1,7 @@
 #include "canonchip.h"
 #include <string.h>
 #include "gpio.h"
+#include "UnitType.h"
 
 #ifndef NULL
 #define NULL    ((void *)0)
@@ -245,7 +246,7 @@ void CANInit(uint32_t baudRateinK)
 	CANSetFilter(&filter_objs[1]);
 	
 	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
-	nmtMsg.dlc = 1;
+	nmtMsg.dlc = 2;
 	
 	NVIC_EnableIRQ(CAN_IRQn);
 }
@@ -299,6 +300,7 @@ void CANSetFilter(CAN_MSG_OBJ *pMsg)
 void CANEXHeartbeat(enum SystemState state)
 {
 	nmtMsg.data[0]=state;
+	nmtMsg.data[1]=UNIT_TYPE;
 	CANSend(&nmtMsg);
 }
 
