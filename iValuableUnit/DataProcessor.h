@@ -76,6 +76,9 @@ class DataProcessor
 		float GetRamp(std::uint8_t ch) const;
 		std::uint8_t GetEnable() const { return *pSensorEnable; }
 		std::int32_t GetQuantity(std::uint8_t index) const { return *pQuantity[index]; }
+#if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
+		float GetTareWeight() const { return *pTareSum; }
+#endif
 		
 		std::uint64_t GetSuppliesId(std::uint8_t index) const { return pSupplies[index]->Uid; }
 		bool FindSuppliesId(std::uint64_t id, std::uint8_t &index) const;

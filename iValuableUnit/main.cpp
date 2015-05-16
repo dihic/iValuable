@@ -89,7 +89,11 @@ void UpdateWeight()
 	Weights.AllStable = allStable;
 	if (allStable)
 	{
+#if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 		Weights.Total = total;
+#else
+		Weights.Total = total - Processor->GetTareWeight();
+#endif
 		Weights.Delta = Weights.Total - Weights.Inventory;
 	}
 	
