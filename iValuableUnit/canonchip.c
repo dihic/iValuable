@@ -246,7 +246,10 @@ void CANInit(uint32_t baudRateinK)
 	CANSetFilter(&filter_objs[1]);
 	
 	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
-	nmtMsg.dlc = 2;
+	nmtMsg.dlc = 4;
+	nmtMsg.data[1] = UNIT_TYPE;
+	nmtMsg.data[2] = FW_VERSION>>8;	//Major version
+	nmtMsg.data[3] = FW_VERSION&0xff; //Minor version
 	
 	NVIC_EnableIRQ(CAN_IRQn);
 }
@@ -300,7 +303,6 @@ void CANSetFilter(CAN_MSG_OBJ *pMsg)
 void CANEXHeartbeat(enum SystemState state)
 {
 	nmtMsg.data[0]=state;
-	nmtMsg.data[1]=UNIT_TYPE;
 	CANSend(&nmtMsg);
 }
 
