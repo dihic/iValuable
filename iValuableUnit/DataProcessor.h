@@ -11,6 +11,9 @@ using namespace fastdelegate;
 #define ADDR_SENSOR_ENABLE	0x00F
 #define ADDR_CAL_WEIGHT			0x010
 #define ADDR_TEMP						0x014
+#if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
+	#define ADDR_TARE_SUM				0x018
+#endif
 #define ADDR_CONFIG  				0x020
 #define ADDR_SCALE  				0x040
 #define ADDR_QUANTITY				0x0A0
@@ -29,6 +32,9 @@ class DataProcessor
 		std::uint8_t *pSensorEnable;
 		DataProcessor();
 		static DataProcessor *Singleton;
+#if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
+		float *pTareSum;
+#endif
 	public:
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
 		static WriteNVHandler WriteNV;

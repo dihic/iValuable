@@ -35,6 +35,10 @@ DataProcessor::DataProcessor()
 	
 	pCalWeight = reinterpret_cast<float *>(MemBuffer + ADDR_CAL_WEIGHT);
 	pCurrentTemp = reinterpret_cast<float *>(MemBuffer + ADDR_TEMP);
+
+#if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
+	pTareSum = reinterpret_cast<float *>(MemBuffer + ADDR_TARE_SUM);
+#endif
 	
 	pSensorEnable = reinterpret_cast<uint8_t *>(MemBuffer + ADDR_SENSOR_ENABLE);
 	*pSensorEnable = 0x3f;	//Default all enable for channel 0-5
@@ -71,11 +75,9 @@ float DataProcessor::CalculateWeight(uint8_t ch, int32_t ad)
 		(ad - pScales[ch]->GetBasic()->Tare)/pScales[ch]->GetBasic()->Ramp: 0;
 }
 
-inline bool DataProcessor::SensorEnable(std::uint8_t ch) const
+bool DataProcessor::SensorEnable(std::uint8_t ch) const
 {
-	if (ch>=SENSOR_NUM)
-		return false;
-	return (*pSensorEnable & (1<<ch))!=0;
+	return (ch<SENSOR_NUM) ? (*pSensorEnable & (1<<ch))!=0 : false;
 }
 
 void DataProcessor::SetConfig(const std::uint8_t *buf)
@@ -144,12 +146,56 @@ float DataProcessor::GetCalWeight() const
 
 void DataProcessor::SetZero(uint8_t ch, bool tare)
 {
+#if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	if (ch>=SENSOR_NUM)
-		return ;
+		return;
 	if (tare)
 		pScales[ch]->SetTare();
 	else
 		pScales[ch]->SetZero();
+	if (WriteNV)
+	{
+		uint16_t base = ADDR_SCALE+ ch*sizeof(ScaleBasic);
+		WriteNV(base, MemBuffer+base, sizeof(ScaleBasic));
+	}
+#else
+	*pTareSum = 0;
+	if (tare)
+	{
+		//Ignore ch when taring
+		for(uint8_t i=0;i<SENSOR_NUM;++i)
+			if (SensorEnable(i))
+			{
+				pScales[i]->SetTare();
+				*pTareSum += pScales[i]->GetBasic()->Tare;
+			}
+		if (WriteNV)
+		{
+			WriteNV(ADDR_TARE_SUM, reinterpret_cast<uint8_t *>(pTareSum), sizeof(float));
+			for(uint8_t i=0;i<SENSOR_NUM;++i)
+				if (SensorEnable(i))
+				{
+					uint16_t base = ADDR_SCALE+ i*sizeof(ScaleBasic);
+					WriteNV(base, MemBuffer+base, sizeof(ScaleBasic));
+				}
+		}
+	}
+	else
+	{
+		if (ch>=SENSOR_NUM)
+			return;
+		//When set zero for any channel, tare sum must be cleared!
+		pScales[ch]->SetZero();
+		if (WriteNV)
+		{
+			WriteNV(ADDR_TARE_SUM, reinterpret_cast<uint8_t *>(pTareSum), sizeof(float));
+			uint16_t base = ADDR_SCALE+ ch*sizeof(ScaleBasic);
+			WriteNV(base, MemBuffer+base, sizeof(ScaleBasic));
+		}
+	}
+#endif
+	
+	
 }
 
 void DataProcessor::SetEnable(std::uint8_t en)

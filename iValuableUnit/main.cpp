@@ -156,16 +156,31 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			EnterISP(); //Enter CAN-ISP after reset for updating...
 			break;
 		case OP_SET_ZERO:
-//			disable_timer32(1);
 			i = entry->val[1];
+#if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 			if (Processor->SensorEnable(i))
 			{
 				//0 for set Zero, 1 for set Tare
 				Processor->SetZero(i, entry->val[0]!=0);
 				*(response->val)=0;
 			}
-//			reset_timer32(1);
-//			enable_timer32(1);
+#else
+			if (entry->val[0]==0)
+			{
+				if (Processor->SensorEnable(i))
+				{
+					//0 for set Zero, 1 for set Tare
+					Processor->SetZero(i, false);
+					*(response->val)=0;
+				}
+			}
+			else
+			{
+				//Set tare sum, so dump channel value
+				Processor->SetZero(0xff, true);
+				*(response->val)=0;
+			}
+#endif
 			break;
 		case OP_RAWDATA:
 			response->val = const_cast<uint8_t *>(res.buffer);
