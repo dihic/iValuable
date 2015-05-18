@@ -347,7 +347,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>4</Optim>
             <oTime>1</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -437,6 +437,11 @@
               <FileName>SuppliesDisplay.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\SuppliesDisplay.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>NoticeLogic.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\NoticeLogic.cpp</FilePath>
             </File>
           </Files>
         </Group>

@@ -18,6 +18,7 @@
 #include "main.h"
 #include "DataProcessor.h"
 #include "SuppliesDisplay.h"
+#include "NoticeLogic.h"
 
 using namespace std; 
 using namespace fastdelegate;
@@ -27,10 +28,15 @@ DataProcessor *Processor = NULL;
 float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
 
+#define LOCK_WAIT_SECONDS  5
+
 extern "C" {
 
-//volatile uint8_t lastState=0;	//0:intrusion 1:stable
-volatile uint32_t TickCount = 0;
+volatile uint32_t TickCount = 0;	
+volatile uint16_t LockCount = 0xffff;
+	
+volatile bool DoorState = false;
+//volatile bool DoorClosedEvent = false;
 	
 void TIMER32_0_IRQHandler()		//1000Hz
 {
@@ -41,6 +47,16 @@ void TIMER32_0_IRQHandler()		//1000Hz
 		LPC_TMR32B0->IR = 1;			/* clear interrupt flag */
 		
 		++TickCount;
+		
+		//Timeout to re-lock after last unlock
+		if (LockCount!=0xffff && IS_LOCKER_ON)
+		{
+			if (--LockCount == 0)
+			{
+				LOCKER_OFF;
+				LockCount = 0xffff;
+			}
+		}
 		
 		if (counter1++>=HeartbeatInterval)
 		{
@@ -115,6 +131,27 @@ void TIMER32_1_IRQHandler()		//100Hz
 		{
 			counter = 0;
 			UpdateWeight(); 
+		}
+		
+		//Door and lock management
+		if (IS_LOCKER_ON)
+		{
+			if (LockCount == 0xffff)
+				LockCount = LOCK_WAIT_SECONDS*1000;
+			if (IS_DOOR_OPEN)
+			{
+				LOCKER_OFF;
+				LockCount = 0xffff;
+				DoorState = true;
+				//syncTriggered = true;
+			}
+		}
+		else if (IS_DOOR_CLOSED && DoorState)
+		{
+			NoticeLogic::NoticeCommand = NOTICE_RECOVER;
+			DoorState = false;
+//			DoorClosedEvent = true;
+			//syncTriggered = true;
 		}
 		
 		//Logic of display into pages 
@@ -340,6 +377,25 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				*(response->val)=0;
 			}
 			break;
+		case OP_NOTICE:
+			if (entry->subindex!=1)
+			{
+				NoticeLogic::NoticeCommand = NOTICE_GUIDE;
+				*(response->val)=0;
+			}
+			break;
+		case OP_OPEN:
+			if (entry->subindex!=0 && IS_LOCKER_ENABLE)
+			{
+				if (entry->val[0])
+					LOCKER_ON;
+				else
+					LOCKER_OFF;
+				*(response->val)=0;
+			}
+			break;
+		default:
+			break;
 		}
 //		responseTriggered = true;
 		CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
@@ -349,12 +405,13 @@ uint8_t syncBuf[0x100];
 
 int PrepareData()
 {
-	int base = 2+sizeof(float);
-	syncBuf[0] = 0;	//Number of enabled channels
+	int base = 3+sizeof(float);
+	syncBuf[0] = IS_LOCKER_ENABLE & IS_DOOR_OPEN;
+	syncBuf[1] = 0;	//Number of enabled channels
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	float unit,dev;
-	syncBuf[1] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
-	memcpy(syncBuf+2, const_cast<float *>(&Weights.Delta), sizeof(float));
+	syncBuf[2] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
+	memcpy(syncBuf+3, const_cast<float *>(&Weights.Delta), sizeof(float));
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
@@ -369,8 +426,8 @@ int PrepareData()
 		base += sizeof(float);
 	}
 #else
-	syncBuf[1] = Weights.AllStable;
-	memcpy(syncBuf+2, const_cast<float *>(&Weights.Total), sizeof(float));
+	syncBuf[2] = Weights.AllStable;
+	memcpy(syncBuf+3, const_cast<float *>(&Weights.Total), sizeof(float));
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
@@ -421,6 +478,8 @@ void AckReciever(uint8_t *ack, uint8_t len)
 }
 
 
+
+
 int main()
 {
 	SystemCoreClockUpdate();
@@ -466,6 +525,8 @@ int main()
 //			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 //			responseTriggered = false;
 //		}
+		
+		NoticeLogic::NoticeUpdate();
 		
 		if (syncTriggered)
 		{

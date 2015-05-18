@@ -21,19 +21,9 @@
 #define OP_QUANTITY		0x800A
 #define OP_ISP				0x80ff
 
-
-//#define A_POS_X		5
-//#define A_POS_Y		170
-//#define B_POS_X 	170
-//#define B_POS_Y		170
-//#define DIGIT_W		150
-//#define DIGIT_H		70
-//#define DIGIT_SCALE 2.0f
-//#define AUX_SCALE   1.5f
-
-
-//#define A_NUM_OFFSET	70
-//#define B_NUM_OFFSET	60	
+#define OP_NOTICE     0x9000
+#define OP_LED				0x9001
+#define OP_OPEN				0x9002
 
 struct CanResponse
 {
