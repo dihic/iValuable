@@ -363,9 +363,9 @@
             <useXO>0</useXO>
             <VariousControls>
               <MiscControls>--gnu</MiscControls>
-              <Define>HSE_VALUE=25000000</Define>
+              <Define>HSE_VALUE=25000000,DEBUG_PRINT</Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>.\bson;.\</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -417,6 +417,106 @@
               <FileName>main.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\main.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ConfigComm.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\ConfigComm.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>CanEx.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\CanEx.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>NetworkEngine.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\NetworkEngine.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>TcpClient.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\TcpClient.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>CanDevice.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\CanDevice.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>StorageUnit.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\StorageUnit.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>NetworkConfig.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\NetworkConfig.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>CommStructures.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\CommStructures.cpp</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Bson</GroupName>
+          <Files>
+            <File>
+              <FileName>BsonBinary.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\BsonBinary.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>BsonCString.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\BsonCString.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>BsonDocument.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\BsonDocument.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>BsonString.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\BsonString.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Element.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\Element.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Guid.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\Guid.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>MemStream.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\MemStream.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>TypeInfoBase.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\bson\TypeInfoBase.cpp</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Driver</GroupName>
+          <Files>
+            <File>
+              <FileName>CAN_STM32F40x.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CAN_STM32F40x.c</FilePath>
+            </File>
+            <File>
+              <FileName>Driver_CAN.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Driver_CAN.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -578,6 +678,12 @@
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="STM32Cube HAL" Csub="DMA" Cvendor="Keil" Cversion="1.1.0" condition="STM32F4 HAL">
+        <package name="STM32F4xx_DFP" schemaVersion="1.3" url="http://www.keil.com/pack" vendor="Keil" version="2.4.0"/>
+        <targetInfos>
+          <targetInfo name="Debug"/>
+        </targetInfos>
+      </component>
+      <component Cclass="Device" Cgroup="STM32Cube HAL" Csub="Flash" Cvendor="Keil" Cversion="1.1.0" condition="STM32F4 HAL">
         <package name="STM32F4xx_DFP" schemaVersion="1.3" url="http://www.keil.com/pack" vendor="Keil" version="2.4.0"/>
         <targetInfos>
           <targetInfo name="Debug"/>
