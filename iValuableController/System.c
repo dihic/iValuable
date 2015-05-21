@@ -2,7 +2,6 @@
 #include "System.h"
 #include <string.h>
 #include <rt_heap.h>
-#include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
 
 
 RNG_HandleTypeDef RNGHandle = { RNG, 
@@ -15,7 +14,7 @@ const uint8_t *UserFlash = (const uint8_t *)USER_ADDR;
 //AHB Clock    180000000
 //APB1 Clock   45000000                  
 //APB2 Clock   90000000
-
+																
 #ifdef __cplusplus
 extern "C" {
 #endif  /* __cplusplus */
@@ -202,11 +201,6 @@ void HAL_MspInit(void)
 	//SDRAM Init and Heap Realloction
 	MX_FMC_Init();
 	_init_alloc(SDRAM_BASE, SDRAM_BASE+IS42S16400J_SIZE);
-	
-	//Ethernet Init
-	net_initialize();
-	osDelay(100);
-	Driver_ETH_PHY0.SetMode(ARM_ETH_PHY_AUTO_NEGOTIATE);
 }
 
 void HAL_Delay(__IO uint32_t Delay)
@@ -387,88 +381,88 @@ void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
   HAL_FMC_MspDeInit();
 }
 
-//static const FLASH_EraseInitTypeDef EraseInitTypeBackup = {
-//	TYPEERASE_SECTORS,
-//	0,
-//	FLASH_SECTOR_10,
-//	1,
-//	VOLTAGE_RANGE_3
-//};
+static const FLASH_EraseInitTypeDef EraseInitTypeBackup = {
+	TYPEERASE_SECTORS,
+	FLASH_BANK_2,
+	FLASH_SECTOR_13,
+	1,
+	VOLTAGE_RANGE_3
+};
 
-//static const FLASH_EraseInitTypeDef EraseInitTypeCurrent = {
-//	TYPEERASE_SECTORS,
-//	0,
-//	FLASH_SECTOR_11,
-//	1,
-//	VOLTAGE_RANGE_3
-//};
+static const FLASH_EraseInitTypeDef EraseInitTypeCurrent = {
+	TYPEERASE_SECTORS,
+	FLASH_BANK_2,
+	FLASH_SECTOR_12,
+	1,
+	VOLTAGE_RANGE_3
+};
 
-//void EraseFlash(void)
-//{
-//	uint32_t error;
-//	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeCurrent), &error);
-//}
+void EraseFlash(void)
+{
+	uint32_t error;
+	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeCurrent), &error);
+}
 
-//void PrepareWriteFlash(uint32_t addr, uint32_t size)
-//{
-//	uint32_t error;
-//	uint32_t i = 0;
-//	uint32_t limit = addr+size;
-//	const uint32_t *word;
-//	const uint8_t *byte;
-//	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeBackup), &error);
-//	while (i<0x10000)
-//	{
-//		if (i<addr)
-//		{
-//			if (i+4<=addr)
-//			{
-//				word = (uint32_t *)(USER_ADDR+i);
-//				HAL_FLASH_Program(TYPEPROGRAM_WORD, BACK_ADDR+i, *word);
-//				i+=4;
-//				continue;
-//			}
-//			else
-//			{
-//				while(i<addr)
-//				{
-//					byte = (uint8_t *)(USER_ADDR+i);
-//					HAL_FLASH_Program(TYPEPROGRAM_BYTE, BACK_ADDR+i, *byte);
-//					++i;
-//				}
-//				i = limit & (~0x3);				
-//			}
-//		}
-//		else if (i==addr)
-//			i = limit & (~0x3);
-//		if (i<limit && i+4>limit)
-//		{
-//			error = i+4 - limit;
-//			i = limit;
-//			while(error>0)
-//			{
-//				byte = (uint8_t *)(USER_ADDR+i);
-//				HAL_FLASH_Program(TYPEPROGRAM_BYTE, BACK_ADDR+i, *byte);
-//				--error;
-//				++i;
-//			}
-//		}
-//		else
-//		{
-//			word = (uint32_t *)(USER_ADDR+i);
-//			HAL_FLASH_Program(TYPEPROGRAM_WORD, BACK_ADDR+i, *word);
-//			i+=4;
-//		}
-//	}
-//	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeCurrent), &error);
-//	i = 0;
-//	while (i<0x10000)
-//	{
-//		word = (uint32_t *)(BACK_ADDR+i);
-//		HAL_FLASH_Program(TYPEPROGRAM_WORD, USER_ADDR+i, *word);
-//		i+=4;
-//	}
-//}
+void PrepareWriteFlash(uint32_t addr, uint32_t size)
+{
+	uint32_t error;
+	uint32_t i = 0;
+	uint32_t limit = addr+size;
+	const uint32_t *word;
+	const uint8_t *byte;
+	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeBackup), &error);
+	while (i<USER_SIZE)
+	{
+		if (i<addr)
+		{
+			if (i+4<=addr)
+			{
+				word = (uint32_t *)(USER_ADDR+i);
+				HAL_FLASH_Program(TYPEPROGRAM_WORD, BACK_ADDR+i, *word);
+				i+=4;
+				continue;
+			}
+			else
+			{
+				while(i<addr)
+				{
+					byte = (uint8_t *)(USER_ADDR+i);
+					HAL_FLASH_Program(TYPEPROGRAM_BYTE, BACK_ADDR+i, *byte);
+					++i;
+				}
+				i = limit & (~0x3);				
+			}
+		}
+		else if (i==addr)
+			i = limit & (~0x3);
+		if (i<limit && i+4>limit)
+		{
+			error = i+4 - limit;
+			i = limit;
+			while(error>0)
+			{
+				byte = (uint8_t *)(USER_ADDR+i);
+				HAL_FLASH_Program(TYPEPROGRAM_BYTE, BACK_ADDR+i, *byte);
+				--error;
+				++i;
+			}
+		}
+		else
+		{
+			word = (uint32_t *)(USER_ADDR+i);
+			HAL_FLASH_Program(TYPEPROGRAM_WORD, BACK_ADDR+i, *word);
+			i+=4;
+		}
+	}
+	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeCurrent), &error);
+	i = 0;
+	while (i<USER_SIZE)
+	{
+		word = (uint32_t *)(BACK_ADDR+i);
+		HAL_FLASH_Program(TYPEPROGRAM_WORD, USER_ADDR+i, *word);
+		i+=4;
+	}
+}
 
 #ifdef __cplusplus
 }

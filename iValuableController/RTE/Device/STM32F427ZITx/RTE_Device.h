@@ -260,10 +260,10 @@
 
 // <e> USART3 (Universal synchronous asynchronous receiver transmitter) [Driver_USART3]
 // <i> Configuration settings for Driver_USART3 in component ::CMSIS Driver:USART
-#define RTE_USART3                      0
+#define RTE_USART3                      1
 
 //   <o> USART3_TX Pin <0=>PB10 <1=>PC10 <2=>PD8
-#define RTE_USART3_TX_ID                0
+#define RTE_USART3_TX_ID                1
 #if    (RTE_USART3_TX_ID == 0)
 #define RTE_USART3_TX_PORT              GPIOB
 #define RTE_USART3_TX_BIT               10
@@ -278,7 +278,7 @@
 #endif
 
 //   <o> USART3_RX Pin <0=>PB11 <1=>PC11 <2=>PD9
-#define RTE_USART3_RX_ID                0
+#define RTE_USART3_RX_ID                1
 #if    (RTE_USART3_RX_ID == 0)
 #define RTE_USART3_RX_PORT              GPIOB
 #define RTE_USART3_RX_BIT               11
@@ -354,7 +354,7 @@
 //     <o4> Priority <0=>Low <1=>Medium <2=>High <3=>Very High
 //     <i>  Selects DMA Priority
 //   </e>
-#define RTE_USART3_RX_DMA               0
+#define RTE_USART3_RX_DMA               1
 #define RTE_USART3_RX_DMA_NUMBER        1
 #define RTE_USART3_RX_DMA_STREAM        1
 #define RTE_USART3_RX_DMA_CHANNEL       4
@@ -370,7 +370,7 @@
 //     <o4> Priority <0=>Low <1=>Medium <2=>High <3=>Very High
 //     <i>  Selects DMA Priority
 //   </e>
-#define RTE_USART3_TX_DMA               0
+#define RTE_USART3_TX_DMA               1
 #define RTE_USART3_TX_DMA_NUMBER        1
 #define RTE_USART3_TX_DMA_STREAM        3
 #define RTE_USART3_TX_DMA_CHANNEL       4
