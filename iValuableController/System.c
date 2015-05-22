@@ -3,10 +3,15 @@
 #include <string.h>
 #include <rt_heap.h>
 
+#define TEMP_AVG_SLOPE_INV 		400	// 2.5mV/degree
+#define TEMP_V25							0.76f	// unit:  V
+#define TEMP_AVG_WINDOW				10
 
 RNG_HandleTypeDef RNGHandle = { RNG, 
 																HAL_UNLOCKED,
 																HAL_RNG_STATE_RESET };
+
+ADC_HandleTypeDef hAdc1;
 
 const uint8_t *UserFlash = (const uint8_t *)USER_ADDR;
 
@@ -187,6 +192,74 @@ void MX_FMC_Init(void)
 	HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1386);
 }
 
+/* ADC1 init function */
+void MX_ADC1_Init(void)
+{
+  ADC_ChannelConfTypeDef sConfig;
+
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+    */
+  hAdc1.Instance = ADC1;
+  hAdc1.Init.ClockPrescaler = ADC_CLOCKPRESCALER_PCLK_DIV2;
+  hAdc1.Init.Resolution = ADC_RESOLUTION12b;
+  hAdc1.Init.ScanConvMode = DISABLE;
+  hAdc1.Init.ContinuousConvMode = DISABLE;
+  hAdc1.Init.DiscontinuousConvMode = DISABLE;
+  hAdc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hAdc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hAdc1.Init.NbrOfConversion = 1;
+  hAdc1.Init.DMAContinuousRequests = ENABLE;
+  hAdc1.Init.EOCSelection = EOC_SINGLE_CONV;
+  HAL_ADC_Init(&hAdc1);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  HAL_ADC_ConfigChannel(&hAdc1, &sConfig);
+
+}
+
+volatile float CurrentTemperature = 0;
+
+
+void ADC_IRQHandler(void)
+{
+	HAL_ADC_IRQHandler(&hAdc1);
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	static uint8_t tempIndex = 0xff;
+	static uint32_t templist[TEMP_AVG_WINDOW];
+	static uint32_t tempSum = 0;
+
+	uint8_t i;
+	uint32_t data = HAL_ADC_GetValue(hadc);
+	
+	if (tempIndex == 0xff)
+	{
+		for(i=0;i<TEMP_AVG_WINDOW;++i)
+			tempSum+=(templist[i]=data);
+		tempIndex=0;
+	}
+	else
+	{
+		tempSum-=templist[tempIndex];
+		tempSum+=(templist[tempIndex++]=data);
+		if (tempIndex>=TEMP_AVG_WINDOW)
+			tempIndex = 0;
+	}
+	
+	CurrentTemperature = (tempSum*3.3f/(0xfff*TEMP_AVG_WINDOW)-TEMP_V25)*TEMP_AVG_SLOPE_INV + 25;
+}
+
+void RequestTemperature()
+{
+	HAL_ADC_Start_IT(&hAdc1);
+}
+
 /**
   * Initializes the Global MSP.
   */
@@ -201,6 +274,8 @@ void HAL_MspInit(void)
 	//SDRAM Init and Heap Realloction
 	MX_FMC_Init();
 	_init_alloc(SDRAM_BASE, SDRAM_BASE+IS42S16400J_SIZE);
+	
+	MX_ADC1_Init();
 }
 
 void HAL_Delay(__IO uint32_t Delay)
@@ -215,12 +290,12 @@ void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
     __RNG_CLK_ENABLE();
 }
 
-//void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
-//{
-//  if(hrng->Instance==RNG)
-//    /* Peripheral clock disable */
-//    __RNG_CLK_DISABLE();
-//}
+void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
+{
+  if(hrng->Instance==RNG)
+    /* Peripheral clock disable */
+    __RNG_CLK_DISABLE();
+}
 
 static int FMC_Initialized = 0;
 
@@ -379,6 +454,26 @@ static void HAL_FMC_MspDeInit(void){
 
 void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
   HAL_FMC_MspDeInit();
+}
+
+void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
+{
+  if(hadc->Instance==ADC1)
+  {
+    /* Peripheral clock enable */
+    __ADC1_CLK_ENABLE();
+  }
+  HAL_NVIC_EnableIRQ(ADC_IRQn);
+}
+
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+{
+  if(hadc->Instance==ADC1)
+  {
+    /* Peripheral clock disable */
+    __ADC1_CLK_DISABLE();
+	}
+	HAL_NVIC_DisableIRQ(ADC_IRQn);
 }
 
 static const FLASH_EraseInitTypeDef EraseInitTypeBackup = {
