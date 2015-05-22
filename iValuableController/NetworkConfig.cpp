@@ -1,7 +1,12 @@
 #include "NetworkConfig.h"
 #include <cstring>
+
 #include <rl_net_lib.h>
 #include "System.h"
+
+#ifdef DEBUG_PRINT
+#include <iostream>
+#endif
 
 
 using namespace std;
@@ -33,6 +38,9 @@ NetworkConfig::NetworkConfig(ARM_DRIVER_USART &u)
 	comm->OnCommandArrivalEvent.bind(this, &NetworkConfig::CommandArrival);
 	Init();
 	comm->Start();
+#ifdef DEBUG_PRINT
+	cout<<"Network UART Initialized."<<endl;
+#endif
 }
 
 void NetworkConfig::Init()

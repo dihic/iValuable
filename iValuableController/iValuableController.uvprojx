@@ -458,6 +458,11 @@
               <FileType>8</FileType>
               <FilePath>.\CommStructures.cpp</FilePath>
             </File>
+            <File>
+              <FileName>UnitManager.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\UnitManager.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -566,7 +571,12 @@
       <api Capiversion="1.0" Cclass="CMSIS" Cgroup="RTOS" exclusive="1">
         <package name="CMSIS" schemaVersion="1.3" url="http://www.keil.com/pack/" vendor="ARM" version="4.3.0"/>
         <targetInfos>
-          <targetInfo name="Debug"/>
+          <targetInfo name="Debug">
+            <mem>
+              <RVCTOtherData>5</RVCTOtherData>
+              <RVCTZI>5</RVCTZI>
+            </mem>
+          </targetInfo>
         </targetInfos>
       </api>
       <api Cclass="Device" Cgroup="STM32Cube Framework" exclusive="1">
@@ -654,6 +664,12 @@
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="STM32Cube Framework" Csub="Classic" Cvendor="Keil" Cversion="1.1.0" condition="STM32F4 Framework Classic">
+        <package name="STM32F4xx_DFP" schemaVersion="1.3" url="http://www.keil.com/pack" vendor="Keil" version="2.4.0"/>
+        <targetInfos>
+          <targetInfo name="Debug"/>
+        </targetInfos>
+      </component>
+      <component Cclass="Device" Cgroup="STM32Cube HAL" Csub="ADC" Cvendor="Keil" Cversion="1.1.0" condition="STM32F4 HAL DMA">
         <package name="STM32F4xx_DFP" schemaVersion="1.3" url="http://www.keil.com/pack" vendor="Keil" version="2.4.0"/>
         <targetInfos>
           <targetInfo name="Debug"/>

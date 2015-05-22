@@ -8,8 +8,8 @@ using namespace std;
 
 namespace IntelliStorage
 {	
-	NetworkEngine::NetworkEngine(const std::uint8_t *endpoint, map<uint16_t, boost::shared_ptr<CanDevice> > &list)
-		:tcp(endpoint),unitList(list)
+	NetworkEngine::NetworkEngine(const std::uint8_t *endpoint, boost::scoped_ptr<UnitManager> &units)
+		:tcp(endpoint),unitManager(units)
 	{
 		tcp.CommandArrivalEvent.bind(this, &NetworkEngine::TcpClientCommandArrival);
 	}

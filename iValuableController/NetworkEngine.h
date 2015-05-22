@@ -3,7 +3,7 @@
 
 #include "TcpClient.h"
 #include "CommStructures.h"
-#include "CanDevice.h"
+#include "UnitManager.h"
 #include <boost/type_traits.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -14,13 +14,13 @@ namespace IntelliStorage
 	{
 		private:
 			TcpClient tcp;
-			std::map<std::uint16_t, boost::shared_ptr<CanDevice> > &unitList;
+			boost::scoped_ptr<UnitManager> &unitManager;
 			void TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size);
 			void WhoAmI();
 //			void SendRfidData(boost::shared_ptr<StorageUnit> unit);
 		public:
 
-			NetworkEngine(const std::uint8_t *endpoint, std::map<std::uint16_t, boost::shared_ptr<CanDevice> > &list);
+			NetworkEngine(const std::uint8_t *endpoint, boost::scoped_ptr<UnitManager> &units);
 			~NetworkEngine() {}
 			void SendHeartBeat();
 			void InventoryRfid();
