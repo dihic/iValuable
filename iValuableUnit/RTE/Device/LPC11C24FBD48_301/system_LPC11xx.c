@@ -361,5 +361,5 @@ void SystemInit (void) {
 
   LPC_SYSCON->SYSAHBCLKDIV  = SYSAHBCLKDIV_Val;
 #endif
-
+	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<16);	//Enable IOCON
 }
