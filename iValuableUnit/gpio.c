@@ -40,8 +40,8 @@ void GPIOInit( void )
 	LPC_IOCON->R_PIO1_2  &= ~0x07;
   LPC_IOCON->R_PIO1_2  |= 0x01;
 	
-//	LPC_IOCON->PIO0_4 = 0x100;
-//	LPC_IOCON->PIO0_5 = 0x100;
+	LPC_IOCON->PIO0_4 = 0x100;
+	LPC_IOCON->PIO0_5 = 0x100;
 
   /* Set up NVIC when I/O pins are configured as external interrupts. */
   //NVIC_EnableIRQ(EINT0_IRQn);

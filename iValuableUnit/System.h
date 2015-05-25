@@ -19,10 +19,10 @@
 #define SENSOR6_SCK  PORT3,3
 #define SENSOR6_DOUT PORT3,2
 
-#define LATCH_LE 		PORT0,2
-#define LATCH_D 		PORT0,4
-#define LATCH_Q1 		PORT0,1
-#define LATCH_Q2 		PORT0,3
+//#define LATCH_LE 		PORT0,2
+//#define LATCH_D 		PORT0,4
+//#define LATCH_Q1 		PORT0,1
+//#define LATCH_Q2 		PORT0,3
 
 #define CON_LOCKER	PORT0,5
 #define CON_LED			PORT0,11
@@ -48,7 +48,7 @@
 #define SENSOR_NUM	6
 
 void SystemSetup();
-void EnterISP();
+//void EnterISP();
 
 
 #endif

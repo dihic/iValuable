@@ -8,6 +8,7 @@
 #include "SensorArray.h"
 #include "canonchip.h"
 #include "fram.h"
+#include "iap.h"
 #include "Display.h"
 #include "ScaleInfo.h"
 
@@ -194,7 +195,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case 0:	//system config
 			break;
 		case OP_ISP:
-			EnterISP(); //Enter CAN-ISP after reset for updating...
+			ReinvokeISP(1); //Enter CAN-ISP for updating...
 			break;
 		case OP_SET_ZERO:
 			i = entry->val[1];

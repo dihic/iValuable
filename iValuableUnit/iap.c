@@ -1,5 +1,6 @@
 #include "iap.h"
 #include "gpio.h"
+#include "timer32.h"
 
 extern uint32_t SystemCoreClock;
 
@@ -64,6 +65,18 @@ int EraseSectors(unsigned int start, unsigned int end)
 
 void ReinvokeISP(int can)
 {
+	disable_timer32(0);
+	disable_timer32(1);
+	
+	NVIC_DisableIRQ(CAN_IRQn);
+	LPC_SYSCON->SYSAHBCLKCTRL &= ~(1<<17);	//Disable CAN clock 
+	
+	LPC_SYSCON->MAINCLKSEL    = 0;     							/* Select IRC Clock Output  */
+  LPC_SYSCON->MAINCLKUEN    = 0x01;               /* Update MCLK Clock Source */
+  LPC_SYSCON->MAINCLKUEN    = 0x00;               /* Toggle Update Register   */
+  LPC_SYSCON->MAINCLKUEN    = 0x01;
+  while (!(LPC_SYSCON->MAINCLKUEN & 0x01));       /* Wait Until Updated       */
+	
 	GPIOSetDir(PORT0, 3, E_IO_OUTPUT);
 	GPIOSetValue(PORT0, 3, can!=0);
 	iap_command_param[0] = IAP_COMMAND_REINVOKE_ISP;

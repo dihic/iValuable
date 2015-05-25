@@ -5,21 +5,21 @@
 #include "delay.h"
 #include "canonchip.h"
 
-void SetDLatch()
-{
-	DrvGPIO_ClrBit(LATCH_LE);
-	DrvGPIO_SetBit(LATCH_D);
-	DELAY(1000);
-	DrvGPIO_SetBit(LATCH_LE);
-}
+//void SetDLatch()
+//{
+//	DrvGPIO_ClrBit(LATCH_LE);
+//	DrvGPIO_SetBit(LATCH_D);
+//	DELAY(1000);
+//	DrvGPIO_SetBit(LATCH_LE);
+//}
 
-void ClearDLatch()
-{
-	DrvGPIO_ClrBit(LATCH_LE);
-	DrvGPIO_ClrBit(LATCH_D);
-	DELAY(1000);
-	DrvGPIO_SetBit(LATCH_LE);
-}
+//void ClearDLatch()
+//{
+//	DrvGPIO_ClrBit(LATCH_LE);
+//	DrvGPIO_ClrBit(LATCH_D);
+//	DELAY(1000);
+//	DrvGPIO_SetBit(LATCH_LE);
+//}
 
 void SystemSetup()
 {
@@ -39,12 +39,12 @@ void SystemSetup()
 		id|=0x40;
 	NodeId = 0x100 | id;
 	
-	GPIOSetDir(LATCH_LE, E_IO_OUTPUT);
-	GPIOSetDir(LATCH_D, E_IO_OUTPUT);
-	GPIOSetDir(LATCH_Q1, E_IO_INPUT);
-	GPIOSetDir(LATCH_Q2, E_IO_INPUT);
-	//Normal start in next power cycle
-	SetDLatch();
+//	GPIOSetDir(LATCH_LE, E_IO_OUTPUT);
+//	GPIOSetDir(LATCH_D, E_IO_OUTPUT);
+//	GPIOSetDir(LATCH_Q1, E_IO_INPUT);
+//	GPIOSetDir(LATCH_Q2, E_IO_INPUT);
+//	//Normal start in next power cycle
+//	SetDLatch();
 	
 	GPIOSetDir(CON_LOCKER, E_IO_OUTPUT);
 	GPIOSetDir(CON_LED, E_IO_OUTPUT);
@@ -55,13 +55,13 @@ void SystemSetup()
 }
 
 
-void EnterISP()
-{
-	//Enter CAN-ISP in next power cycle
-	ClearDLatch();
-	DELAY(1000);
-	NVIC_SystemReset();
-}
+//void EnterISP()
+//{
+//	//Enter CAN-ISP in next power cycle
+//	ClearDLatch();
+//	DELAY(1000);
+//	NVIC_SystemReset();
+//}
 
 
 
