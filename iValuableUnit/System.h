@@ -36,9 +36,9 @@
 #define LED_ON						GPIOSetValue(CON_LED, 1)
 #define LED_OFF 					GPIOSetValue(CON_LED, 0)
 #define LED_BLINK 				GPIOSetValue(CON_LED, GPIOGetValue(CON_LED)==0)
-#define LOCKER_ON 				GPIOSetValue(CON_LOCKER, 1)
-#define LOCKER_OFF 				GPIOSetValue(CON_LOCKER, 0)
-#define IS_LOCKER_ON 			(GPIOGetValue(CON_LOCKER)!=0)
+#define LOCKER_ON 				GPIOSetValue(CON_LOCKER, 0)
+#define LOCKER_OFF 				GPIOSetValue(CON_LOCKER, 1)
+#define IS_LOCKER_ON 			(GPIOGetValue(CON_LOCKER)==0)
 #define IS_LOCKER_ENABLE	(GPIOGetValue(ENABLE_LOCKER)!=0)
 
 #define ABS(x) ((x)>=0?(x):-(x))
