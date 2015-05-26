@@ -67,8 +67,9 @@ void ReinvokeISP(int can)
 {
 	disable_timer32(0);
 	disable_timer32(1);
-	
+	NVIC_DisableIRQ(UART_IRQn);
 	NVIC_DisableIRQ(CAN_IRQn);
+	LPC_SYSCON->SYSAHBCLKCTRL &= ~(1<<12);	//Disable UART clock 
 	LPC_SYSCON->SYSAHBCLKCTRL &= ~(1<<17);	//Disable CAN clock 
 	
 	LPC_SYSCON->MAINCLKSEL    = 0;     							/* Select IRC Clock Output  */
