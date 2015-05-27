@@ -183,7 +183,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	uint64_t id;
 	bool result;
 	SuppliesInfo info;
-	uint8_t *data;
+	const uint8_t *data;
 	
 	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
 
@@ -240,17 +240,18 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				response->entrytype_len = 1;
 				response->val = const_cast<uint8_t *>(res.buffer);
 				response->val[0] = 0;
-				data = response->val+1;
+				uint8_t *ptr = response->val+1;
 				for(i=0;i<SENSOR_NUM;++i)
-					if (Processor->SensorEnable(i))
-					{
-						++response->val[0];
-						data[0] = i;
-						f =  Processor->GetRamp(entry->val[0]);
-						memcpy(data+1, &f, sizeof(float));
-						data += sizeof(float)+1;
-						response->entrytype_len += sizeof(float)+1;
-					}
+				{
+					if (!Processor->SensorEnable(i))
+						continue;
+					++response->val[0];
+					ptr[0] = i;
+					f =  Processor->GetRamp(entry->val[0]);
+					memcpy(ptr+1, &f, sizeof(float));
+					ptr += sizeof(float)+1;
+					response->entrytype_len += sizeof(float)+1;
+				}
 			}
 			else
 			{
@@ -278,28 +279,22 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					break;
 			if (entry->subindex==0)	//Read
 			{
-				info.Uid = Processor->GetSuppliesId(entry->val[0]);
-				if (info.Uid == 0)
-					break;
-				
-				Processor->GetSuppliesUnit(entry->val[0], f, d);
-				info.Unit = f;
-				info.Deviation = d;
+				response->entrytype_len = 1;
 				response->val = const_cast<uint8_t *>(res.buffer);
-				response->val[0] = entry->val[0];
-				memcpy(response->val+1, &info, sizeof(SuppliesInfo));
-				response->entrytype_len = sizeof(SuppliesInfo) + 1;
-				
-				data = SuppliesDisplay::GetString(entry->val[0], i);	//i for size of string
-				
-				if (data!=NULL && i>0)
+				response->val[0] = 0;
+				uint8_t *ptr = response->val+1;
+				for(i=0;i<SUPPLIES_NUM;++i)
 				{
-					response->val[response->entrytype_len] = i;
-					memcpy(response->val+response->entrytype_len+1, data, i);
-					response->entrytype_len += i+1; 
+					info.Uid = Processor->GetSuppliesId(i);
+					if (info.Uid==0)
+						continue;
+					++response->val[0];
+					Processor->GetSuppliesUnit(i, info.Unit, info.Deviation);
+					ptr[0] = i; 
+					memcpy(ptr+1, &info, sizeof(SuppliesInfo));
+					ptr += sizeof(SuppliesInfo)+1;
+					response->entrytype_len += sizeof(SuppliesInfo)+1;
 				}
-				else
-					response->val[response->entrytype_len++] = 0;
 			}
 			else if (entry->subindex==1)	//Write
 			{
@@ -321,14 +316,24 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_QUANTITY:
-			if (entry->subindex==0)	//Read quantity
+			if (entry->subindex==0)	//Read quantities
 			{
-				if (entry->entrytype_len<2 || entry->val[0]>=SUPPLIES_NUM)
-					break;
-				response->entrytype_len = 2;
+				response->entrytype_len = 1;
 				response->val = const_cast<uint8_t *>(res.buffer);
-				response->val[0] = entry->val[0];
-				response->val[1] = Processor->GetQuantity(entry->val[0]);
+				response->val[0] = 0;
+				uint8_t *ptr = response->val+1;
+				for(i=0;i<SUPPLIES_NUM;++i)
+				{
+					id = Processor->GetSuppliesId(i);
+					if (id==0)
+						continue;
+					++response->val[0];
+					memcpy(ptr, &id, sizeof(uint64_t));
+					ptr += sizeof(uint64_t);
+					ptr[0] = Processor->GetQuantity(i);
+					++ptr;
+					response->entrytype_len += sizeof(uint64_t)+1;
+				}
 			}
 			else	//Write quantities
 			{

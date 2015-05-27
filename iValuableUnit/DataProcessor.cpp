@@ -228,7 +228,7 @@ int DataProcessor::PrepareRaw(std::uint8_t *buf)
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
-		if (SensorEnable(i))
+		if (!SensorEnable(i))
 			continue;
 		++buf[0];
 		buf[base++] = i;
@@ -291,6 +291,7 @@ void DataProcessor::SetSupplies(std::uint8_t index, const SuppliesInfo &info)
 	memcpy(pSupplies[index], &info, sizeof(SuppliesInfo));
 	if (WriteNV)
 		WriteNV(ADDR_INFO+ index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
+	SetQuantity(index, 0);
 }
 
 bool DataProcessor::AddSupplies(const SuppliesInfo &info)
