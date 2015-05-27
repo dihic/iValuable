@@ -3,96 +3,103 @@
 
 #include <string>
 #include "CanDevice.h"
+#include "CommStructures.h"
 
 namespace IntelliStorage
-{
-#define SYNC_DATA				0x0100
-#define SYNC_GOTCHA			0x0180
-#define SYNC_LIVE				0x01ff
-	
-	enum RfidType
-	{
-		RfidUnknown = 0,
-		RfidIso15693 = 0x01,
-		RfidIso14443A = 0x02,
-		RfidIso14443B = 0x03,
-	};
-
-	enum RfidStatus
-	{
-		RfidNone = 0,
-    RfidExpanded = 1,
-    RfidAvailable = 2,
-		RfidNA = 0xff
+{			
+	enum DeviceAttribute : std::uint16_t
+	{		
+			Zero 								= 0x00fe,   //W
+			Ramp		 						= 0x8000,   //RW
+			InventoryInfo				= 0x8001,   //RW
+			CalWeight						= 0x8002,   //W
+			SensorConfig				= 0x8003,		//W
+			RawData							= 0x8006,   //R
+			AutoRamp						= 0x8007,   //W
+			SensorEnable				= 0x8008,   //RW
+			Temperature					= 0x8009,   //W
+			InventoryQuantity		= 0x800A,   //RW
+			QueryInventory			= 0x800B,		//W
+			Version 						= 0x80ff,		//R
+			Notice 							= 0x9000,   //W
+			Locker							= 0x9002,   //W
 	};
 	
-	enum RfidAction
-	{
-		CardLeave,
-		CardArrival,
-	};
-	
-	class DeviceAttribute
-	{
-		private:
-			DeviceAttribute() {}
-		public:
-			static const std::uint8_t OpLatch 	= 0x00;
-			static const std::uint8_t OpRead 		= 0x00;
-			static const std::uint8_t OpWrite 	= 0x01;
-			static const std::uint8_t OpDel 		= 0x02;
-		
-			static const std::uint16_t Zero 								= 0x00fe;   //L
-			static const std::uint16_t Ramp		 							= 0x8000;   //R
-			static const std::uint16_t UnitInfo							= 0x8001;   //RW
-			static const std::uint16_t CalWeight						= 0x8003;   //RW
-			static const std::uint16_t RawData							= 0x8006;   //R
-			static const std::uint16_t AutoRamp							= 0x8007;   //L
-			static const std::uint16_t SensorEnable					= 0x8008;   //RW
-			static const std::uint16_t Temperature					= 0x8009;   //W
-			static const std::uint16_t InventoryQuantity		= 0x800A;   //RW
-			static const std::uint16_t Notice 							= 0x9000;   //W
-			static const std::uint16_t Door									= 0x9002;   //W
+	enum DeviceSync : std::uint16_t
+	{		
+		Data 			= 0x0100,
+		Gotcha		= 0x0180,
+		ISP 			= 0x01f0,
+		Live			= 0x01ff,
 	};
 	
 	class StorageUnit : public CanDevice
 	{
-		private:
-			static string GenerateId(const uint8_t *id, size_t len);
-			uint8_t lastCardType;
-			volatile bool cardChanged;
-			volatile std::uint8_t cardState;
-			std::string cardId;
-			std::string presId;
-		public:
-			static const std::uint8_t CardArrival = 0x80;
-			static const std::uint8_t CardLeft    = 0x81;
-		
-			StorageUnit(CANExtended::CanEx &ex, std::uint16_t id);
-			virtual ~StorageUnit() {}
+		protected:
+			const std::uint8_t SensorNum;
+			const bool IsDoorController : 1;
+		public:		
+			const std::uint8_t GroupId : 4;
+			const std::uint8_t NodeId  : 3;
 			
-			void SetNotice(uint8_t level);
+			StorageUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
+			virtual ~StorageUnit() {}
+				
+			
+			void SetRamp(std::uint8_t index, float val);
+			void SetZero(std::uint8_t flags, bool tare);
+			void SetAutoRamp(std::uint8_t flags);
+			void SetSensorEnable(std::uint8_t flags);
+			void SetCalWeight(float weight);
+			void SetTemperature(float t);
+			void SetNotice(std::uint8_t level);
+			void LockControl(bool open);
+			void SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr);
+			void SetInventoryInfo(boost::shared_ptr<SerializableObjects::SuppliesItem> &info);
+			void SetInventoryQuantity(std::uint8_t index, std::uint16_t q);
+			void QueryInventoryById(std::uint64_t id, bool notice);
+			
+			void RequestVersion()
+			{
+				ReadAttribute(DeviceAttribute::Version);
+			}
+				
+			void RequestRamps()
+			{
+				ReadAttribute(DeviceAttribute::Ramp);
+			}
+			
+			void RequestInventoryQuantities()
+			{
+				ReadAttribute(DeviceAttribute::InventoryQuantity);
+			}
+			
+			void RequestSensorsEnable()
+			{
+				ReadAttribute(DeviceAttribute::SensorEnable);
+			}
 			
 			void RequestRawData()
 			{
 				ReadAttribute(DeviceAttribute::RawData);
 			}
 			
-			bool CardChanged() const { return cardChanged; }
-			bool IsEmpty() const { return (cardState == CardLeft) || presId.empty(); }
-			
-			void UpdateCard();
-			
-			uint8_t GetCardState() const { return cardState; }
-			std::string &GetPresId() { return presId; }
-			std::string &GetCardId() { return cardId; }
+			void RequestInventoryInfos()
+			{
+				ReadAttribute(DeviceAttribute::InventoryInfo);
+			}
 			
 			void RequestData()
 			{
-				canex.Sync(DeviceId, SYNC_DATA, CANExtended::Trigger);
+				canex.Sync(DeviceId, DeviceSync::Data, CANExtended::Trigger);
 			}
 			
-			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry);
+			void EnterCanISP()
+			{
+				canex.Sync(DeviceId, DeviceSync::ISP, CANExtended::Trigger);
+			}
+			
+			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry) override;
 	};
 }
 

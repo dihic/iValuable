@@ -38,14 +38,14 @@ namespace IntelliStorage
 	boost::shared_ptr<CanDevice> UnitManager::FindUnit(std::uint16_t id)
 	{
 		boost::shared_ptr<CanDevice> unit;
-		UnitIterator it = unitList.find(id);
+		auto it = unitList.find(id);
 		if (it != unitList.end())
 			unit = it->second;
 		return unit;
 	}
 	
-	void UnitManager::Add(std::uint16_t id, boost::shared_ptr<CanDevice> unit) 
+	void UnitManager::Add(boost::shared_ptr<CanDevice> &unit) 
 	{
-		unitList[id] = unit; 
+		unitList[unit->DeviceId] = unit; 
 	}
 }

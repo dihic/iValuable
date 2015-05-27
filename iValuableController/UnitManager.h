@@ -34,7 +34,7 @@ namespace IntelliStorage
 //			SendDataCB OnSendData;
 			UnitManager() {}
 			~UnitManager() {}
-			void Add(std::uint16_t id, boost::shared_ptr<CanDevice> unit);
+			void Add(boost::shared_ptr<CanDevice> &unit);
 			std::map<std::uint16_t, boost::shared_ptr<CanDevice> > &GetList() { return unitList; }
 			
 			void UpdateLatest(boost::shared_ptr<CanDevice> &unit);

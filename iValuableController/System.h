@@ -19,8 +19,6 @@ extern ARM_DRIVER_ETH_PHY Driver_ETH_PHY0;
 
 extern RNG_HandleTypeDef RNGHandle;
 
-extern volatile float CurrentTemperature;
-
 #define USER_ADDR 0x08100000
 //#define CARD_ADDR 0x080E8000
 #define BACK_ADDR 0x08104000
