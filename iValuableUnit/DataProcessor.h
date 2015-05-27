@@ -57,7 +57,7 @@ class DataProcessor
 		
 		~DataProcessor();
 		//Parameter flags stands for enable to calibrate sensors bitwise
-		void CalibrateSensors(std::uint8_t flags, bool reverseUse);
+		void CalibrateSensors(std::uint8_t flags);
 		//
 		float CalculateWeight(std::uint8_t ch, std::int32_t ad);
 		float CalculateInventoryWeight(float &min, float &max);

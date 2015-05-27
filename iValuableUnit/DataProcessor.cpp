@@ -51,13 +51,13 @@ DataProcessor::~DataProcessor()
 }
 
 //Parameter flags stands for enable to calibrate sensors bitwise
-void DataProcessor::CalibrateSensors(uint8_t flags, bool reverseUse)
+void DataProcessor::CalibrateSensors(uint8_t flags)
 {
 	for(uint8_t i=0;i<SENSOR_NUM;++i)
 	{
 		if ((flags & (1<<i)) == 0)
 			continue;
-		pScales[i]->Calibrate(reverseUse ? -*pCalWeight : *pCalWeight);
+		pScales[i]->Calibrate(*pCalWeight);
 		if (WriteNV)
 		{
 			uint16_t base = ADDR_SCALE+ i*sizeof(ScaleBasic);

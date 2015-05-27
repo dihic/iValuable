@@ -8,6 +8,7 @@
 #define SYNC_GOTCHA			0x0180
 #define SYNC_DATA				0x0100
 #define SYNC_LIVE				0x01ff
+#define SYNC_ISP				0x01f0
 
 #define OP_SET_ZERO 	0x00fe
 #define OP_RAMPS			0x8000
@@ -19,11 +20,12 @@
 #define OP_ENABLE			0x8008
 #define OP_TEMP				0x8009
 #define OP_QUANTITY		0x800A
-#define OP_ISP				0x80ff
+#define OP_QUERY			0x800B
+#define OP_VERSION		0x80ff
 
 #define OP_NOTICE     0x9000
 #define OP_LED				0x9001
-#define OP_OPEN				0x9002
+#define OP_LOCKER			0x9002
 
 struct CanResponse
 {

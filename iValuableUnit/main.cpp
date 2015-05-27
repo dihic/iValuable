@@ -21,6 +21,9 @@
 #include "SuppliesDisplay.h"
 #include "NoticeLogic.h"
 
+#define FW_VERSION_INDEX				0x01
+#define FW_VERSION_SUBINDEX			0x00
+
 using namespace std; 
 using namespace fastdelegate;
 
@@ -177,8 +180,10 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 {
 	uint8_t i;
 	float f, d;
+	uint64_t id;
+	bool result;
 	SuppliesInfo info;
-	const uint8_t *data;
+	uint8_t *data;
 	
 	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
 
@@ -194,27 +199,22 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	{
 		case 0:	//system config
 			break;
-		case OP_ISP:
-			ReinvokeISP(1); //Enter CAN-ISP for updating...
-			break;
 		case OP_SET_ZERO:
-			i = entry->val[1];
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
-			if (Processor->SensorEnable(i))
-			{
-				//0 for set Zero, 1 for set Tare
-				Processor->SetZero(i, entry->val[0]!=0);
-				*(response->val)=0;
-			}
-#else
-			if (entry->val[0]==0)
-			{
-				if (Processor->SensorEnable(i))
+			for(i=0;i<SENSOR_NUM;++i)
+				if (Processor->SensorEnable(i) && ((1<<i) & entry->val[0]))
 				{
 					//0 for set Zero, 1 for set Tare
-					Processor->SetZero(i, false);
+					Processor->SetZero(i, entry->val[1]!=0);
 					*(response->val)=0;
 				}
+#else
+			if (entry->val[1]==0)		//0 for set Zero, 1 for set Tare
+			{
+				for(i=0;i<SENSOR_NUM;++i)
+					if (Processor->SensorEnable(i) && ((1<<i) & entry->val[0]))
+						Processor->SetZero(i, false);
+				*(response->val)=0;
 			}
 			else
 			{
@@ -229,24 +229,34 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			response->entrytype_len= Processor->PrepareRaw(response->val);
 			break;
 		case OP_AUTO_RAMPS:
-			if (entry->entrytype_len<2)
+			if (entry->entrytype_len<1)
 				break;
-			Processor->CalibrateSensors(entry->val[0], entry->val[1]!=0);
+			Processor->CalibrateSensors(entry->val[0]);
 			*(response->val)=0;
 			break;
 		case OP_RAMPS: //R/W coeff
 			if (entry->subindex==0)
 			{
-				if (entry->val[0]>=SENSOR_NUM)
-					break;
-				response->entrytype_len = sizeof(float);
+				response->entrytype_len = 1;
 				response->val = const_cast<uint8_t *>(res.buffer);
-				f = Processor->GetRamp(entry->val[0]);
-				memcpy(response->val, &f, sizeof(float));
+				response->val[0] = 0;
+				data = response->val+1;
+				for(i=0;i<SENSOR_NUM;++i)
+					if (Processor->SensorEnable(i))
+					{
+						++response->val[0];
+						data[0] = i;
+						f =  Processor->GetRamp(entry->val[0]);
+						memcpy(data+1, &f, sizeof(float));
+						data += sizeof(float)+1;
+						response->entrytype_len += sizeof(float)+1;
+					}
 			}
 			else
 			{
-				if (entry->val[0]>=SENSOR_NUM)
+				if (entry->entrytype_len<1)
+					break;
+				if (!Processor->SensorEnable(i))
 					break;
 				memcpy(&f, entry->val+1, sizeof(float));
 				Processor->SetRamp(entry->val[0], f);
@@ -256,7 +266,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case OP_TEMP:
 			if (entry->entrytype_len<4)
 				break;
-			if (entry->subindex!=0)
+			if (entry->subindex==1)
 			{
 				memcpy(&f, entry->val, sizeof(float));
 				Processor->SetTemperature(f);
@@ -379,20 +389,42 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_NOTICE:
-			if (entry->subindex!=1)
+			if (entry->subindex==1)
 			{
 				NoticeLogic::NoticeCommand = NOTICE_GUIDE;
 				*(response->val)=0;
 			}
 			break;
-		case OP_OPEN:
-			if (entry->subindex!=0 && IS_LOCKER_ENABLE)
+		case OP_LOCKER:
+			if (entry->subindex==0 && IS_LOCKER_ENABLE)
 			{
 				if (entry->val[0])
 					LOCKER_ON;
 				else
 					LOCKER_OFF;
 				*(response->val)=0;
+			}
+			break;
+		case OP_QUERY:
+			if (entry->subindex==1 && entry->entrytype_len>5)
+			{
+				memcpy(&id, &entry->val, sizeof(uint64_t));
+				result = Processor->FindSuppliesId(id, i);
+				if (result)
+				{
+					if (entry->val[sizeof(uint64_t)])
+						NoticeLogic::NoticeCommand = NOTICE_GUIDE;
+					*(response->val) = i;
+				}
+			}
+			break;
+		case OP_VERSION:
+			if (entry->subindex==0)
+			{
+				response->entrytype_len = 2;
+				response->val = const_cast<uint8_t *>(res.buffer);
+				response->val[0] = FW_VERSION_INDEX;
+				response->val[1] = FW_VERSION_SUBINDEX;
 			}
 			break;
 		default:

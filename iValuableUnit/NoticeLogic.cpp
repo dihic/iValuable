@@ -22,6 +22,11 @@ void NoticeLogic::DrawNoticeBar(uint8_t r, uint8_t g, uint8_t b)
 
 void NoticeLogic::NoticeUpdate()
 {
+	if (NoticeCommand == currentState)
+	{
+		NoticeCommand = NOTICE_NONE;
+		return;
+	}
 	switch (NoticeCommand)
 	{
 		case NOTICE_RECOVER:
