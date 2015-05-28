@@ -29,8 +29,9 @@ namespace SerializableObjects
 		CodeQueryConfig					= 0xF0,
 		CodeQuerySensorEnable   = 0xF1,
 		CodeQueryInventory			= 0xF2,
+		CodeWhoAmI							= 0xFD,	
 		CodeCommandResult				= 0xFE,
-		CodeWhoAmI							= 0xFF,	
+		CodeError								= 0xFF,
 	};
 
 	DECLARE_CLASS(HeartBeat)
@@ -180,12 +181,14 @@ namespace SerializableObjects
 		public:
 			ScaleState()
 			{
+				REGISTER_FIELD(SensorIndex);
 				REGISTER_FIELD(Weight);
 				REGISTER_FIELD(WeightState);
 				REGISTER_FIELD(IsDamaged);
 				REGISTER_FIELD(IsStable);
 			}
 			virtual ~ScaleState() {}
+			int SensorIndex;
 			float Weight;
 			int WeightState;
 			bool IsDamaged;
@@ -284,7 +287,7 @@ namespace SerializableObjects
 		public:
 			SuppliesItem()
 			{
-				REGISTER_FIELD(SensorIndex);
+				REGISTER_FIELD(Index);
 				REGISTER_FIELD(MaterialId);
 				REGISTER_FIELD(UnitWeight);
 				REGISTER_FIELD(ErrorRange);
@@ -292,7 +295,7 @@ namespace SerializableObjects
 			}
 			virtual ~SuppliesItem() {}
 
-			int SensorIndex;
+			int Index;
 			std::uint64_t MaterialId;
 			float UnitWeight;
 			float ErrorRange;
