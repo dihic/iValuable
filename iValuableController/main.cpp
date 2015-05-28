@@ -27,6 +27,8 @@ namespace boost
 	void throw_exception(const std::exception& ex) {}
 }
 
+extern volatile float CurrentTemperature;
+
 void HeatbeatTimer_Callback(void const *arg)
 {
 	static uint8_t hbcount = 20;
@@ -79,7 +81,7 @@ int main()
 	HAL_MspInit();
 	cout<<"System Started..."<<endl;
 	
-	CommStructures::Register();
+	SerializableObjects::CommStructures::Register();
 	unitManager.reset(new UnitManager);
 	
 	ethConfig.reset(new NetworkConfig(Driver_USART3));

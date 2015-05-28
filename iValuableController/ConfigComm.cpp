@@ -153,7 +153,7 @@ inline void ConfigComm::Sync()
 
 bool ConfigComm::SendData(const uint8_t *data, size_t len)
 {
-	uint8_t pre[3]={ dataHeader[0],dataHeader[2],len };
+	uint8_t pre[3]={ dataHeader[0],dataHeader[2], static_cast<uint8_t>(len) };
 	Sync();
 	uart.Send(pre,3);
 	Sync();
@@ -163,7 +163,7 @@ bool ConfigComm::SendData(const uint8_t *data, size_t len)
 
 bool ConfigComm::SendData(uint8_t command,const uint8_t *data,size_t len)
 {
-	uint8_t pre[4]={ dataHeader[0], dataHeader[2], command, len };
+	uint8_t pre[4]={ dataHeader[0], dataHeader[2], command, static_cast<uint8_t>(len) };
 	Sync();
 	uart.Send(pre,4);
 	if (len>0)
