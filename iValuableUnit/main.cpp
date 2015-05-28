@@ -443,19 +443,20 @@ uint8_t syncBuf[0x100];
 
 int PrepareData()
 {
-	int base = 3+sizeof(float);
+	int base = 4+sizeof(float);
 	syncBuf[0] = IS_LOCKER_ENABLE & IS_DOOR_OPEN;
-	syncBuf[1] = 0;	//Number of enabled channels
+	syncBuf[1] = Processor->GetEnable();	//Enabled channel flag
+	syncBuf[2] = 0; //Channel count
+	syncBuf[3] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
+	memcpy(syncBuf+4, const_cast<float *>(&Weights.Delta), sizeof(float));
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	float unit,dev;
-	syncBuf[2] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
-	memcpy(syncBuf+3, const_cast<float *>(&Weights.Delta), sizeof(float));
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
 		if (!Processor->SensorEnable(i))
 			continue;
-		++syncBuf[0];
+		++syncBuf[2];
 		syncBuf[base++] = i;
 		syncBuf[base++] = SensorArray::Instance().IsStable(i);
 		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
@@ -464,14 +465,15 @@ int PrepareData()
 		base += sizeof(float);
 	}
 #else
-	syncBuf[2] = Weights.AllStable;
-	memcpy(syncBuf+3, const_cast<float *>(&Weights.Total), sizeof(float));
+	syncBuf[base] = Weights.AllStable;
+	memcpy(syncBuf+base+1, const_cast<float *>(&Weights.Total), sizeof(float));
+	base += sizeof(float)+1;
 	for(int i=0; i<SENSOR_NUM; ++i)
 	{
 		//Skip disabled sensors
 		if (!Processor->SensorEnable(i))
 			continue;
-		++syncBuf[0];
+		++syncBuf[2];
 		syncBuf[base++] = i;
 		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
 	}
