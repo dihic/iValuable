@@ -272,6 +272,11 @@ public:
 	
 	virtual ~Array() {}
 	
+	void Clear()
+	{
+		pArray->list.clear();
+	}
+	
 	//Add a constant element
 	void Add(const T &element) 
 	{
@@ -346,7 +351,7 @@ extern const char _name_##class_name[]; \
 class class_name : public DynamicBase<class_name, _name_##class_name>
 
 #define CLAIM_CLASS(class_name) \
-const char _name_##class_name[]=#class_name \
+const char _name_##class_name[]=#class_name
 	
 #define DEFINE_CLASS(class_name) \
 char _name_##class_name[]=#class_name; \
