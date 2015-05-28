@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define IS_DC(x)							(((x)&0x80)!=0)
+#define IS_LC(x)							(((x)&0x80)!=0)
 #define OBTAIN_GROUP_ID(x) 		(((x)&0x78)>>3)
 #define OBTAIN_NODE_ID(x)			((x)&0x07)
 
@@ -14,7 +14,7 @@ namespace IntelliStorage
 {
 
 	StorageUnit::StorageUnit(CANExtended::CanEx &ex, uint16_t id, uint8_t sensorNum)
-		:	CanDevice(ex, id), SensorNum(sensorNum), IsDoorController(IS_DC(id)), 
+		:	CanDevice(ex, id), SensorNum(sensorNum), IsLockController(IS_LC(id)), 
 			GroupId(OBTAIN_GROUP_ID(id)), NodeId(OBTAIN_NODE_ID(id))
 	{
 	}
@@ -100,7 +100,7 @@ namespace IntelliStorage
 		static constexpr size_t fixSize = sizeof(uint64_t)+sizeof(float)*2+1;
 		size_t size = info->MaterialName.size() + fixSize;
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(size);
-		data[0] = info->SensorIndex & 0xff;
+		data[0] = info->Index & 0xff;
 		uint8_t *ptr = data.get()+1;
 		memcpy(ptr, &info->MaterialId, sizeof(uint64_t));
 		ptr += sizeof(uint64_t);
@@ -131,10 +131,23 @@ namespace IntelliStorage
 		data[sizeof(uint64_t)] = notice;
 		WriteAttribute(DeviceAttribute::QueryInventory, data, size);
 	}
-
-	void StorageUnit::ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry)
+	
+	void StorageUnit::ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry)
 	{
-		CanDevice::ProcessRecievedEvent(entry);
+		const DeviceSync syncIndex = static_cast<DeviceSync>(entry->Index);
+		auto val = entry->GetVal();
+		auto len = entry->GetLen();
+		switch (syncIndex)
+		{
+			case DeviceSync::SyncData:
+				sensorFlags = val[0];
+				allStable = val[2]!=0;
+				inventoryExpected = val[3]!=0;
+				memcpy(reinterpret_cast<void *>(&deltaWeight), val.get()+4, sizeof(float));
+				break;
+			default:
+				break;
+		}
 	}
 }
 

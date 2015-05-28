@@ -56,8 +56,8 @@ class CanDevice : public CANExtended::ICanDevice
 		
 		virtual ~CanDevice() {	}
 		
-		virtual void ResponseRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry);
-		virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry);
+		virtual void ResponseRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
+//		virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override = 0;
 	
 //			typedef FastDelegate0<> EventHandler;
 //			

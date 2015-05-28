@@ -134,18 +134,13 @@ void CanDevice::WriteAttribute(uint16_t attr,const boost::shared_ptr<std::uint8_
 	osSignalSet(tid, 0x100);
 }
 
-void CanDevice::ResponseRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry)
+void CanDevice::ResponseRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry)
 {
-	map<uint32_t, osThreadId>::iterator it = SyncTable.find((DeviceId<<16)|entry->Index);
+	auto it = SyncTable.find((DeviceId<<16)|entry->Index);
 	if (it !=  SyncTable.end())
 	{
 		EntryBuffer = entry;
 		osSignalSet(it->second, 0xff);
 	}
-}
-
-void CanDevice::ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry)
-{
-	
 }
 

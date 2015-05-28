@@ -20,12 +20,12 @@ namespace CANExtended
 		protected:
 			CanEx &canex;
 			ICanDevice(CanEx &ex, std::uint16_t deviceId)
-				: canex(ex),DeviceId(deviceId)
+				: canex(ex), DeviceId(deviceId)
 			{}
 		public:
-			std::uint16_t DeviceId;
-			virtual void ResponseRecievedEvent(boost::shared_ptr<OdEntry> entry) = 0;
-			virtual void ProcessRecievedEvent(boost::shared_ptr<OdEntry> entry) = 0;
+			const std::uint16_t DeviceId;
+			virtual void ResponseRecievedEvent(boost::shared_ptr<OdEntry> &entry) = 0;
+			virtual void ProcessRecievedEvent(boost::shared_ptr<OdEntry> &entry) = 0;
 			virtual ~ICanDevice() {}
 	};
 	

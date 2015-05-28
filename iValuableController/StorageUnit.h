@@ -1,7 +1,7 @@
 #ifndef _STORAGE_UNIT_H
 #define _STORAGE_UNIT_H
 
-#include <string>
+#include "boost/tuple/tuple.hpp"
 #include "CanDevice.h"
 #include "CommStructures.h"
 
@@ -27,24 +27,44 @@ namespace IntelliStorage
 	
 	enum DeviceSync : std::uint16_t
 	{		
-		Data 			= 0x0100,
-		Gotcha		= 0x0180,
-		ISP 			= 0x01f0,
-		Live			= 0x01ff,
+		SyncData 			= 0x0100,
+		SyncRfid			= 0x0101,
+		SyncDoor      = 0x0102,
+		SyncGotcha		= 0x0180,
+		SyncISP 			= 0x01f0,
+		SyncLive			= 0x01ff,
 	};
+	
 	
 	class StorageUnit : public CanDevice
 	{
 		protected:
-			const std::uint8_t SensorNum;
-			const bool IsDoorController : 1;
-		public:		
-			const std::uint8_t GroupId : 4;
-			const std::uint8_t NodeId  : 3;
-			
+			volatile std::uint8_t sensorFlags = 0xff;
+			volatile bool isDoorOpen = false;
+			volatile bool allStable = false;
+			volatile bool inventoryExpected = false;
+			volatile float deltaWeight = 0;
 			StorageUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
-			virtual ~StorageUnit() {}
+		public:		
+			const std::uint8_t SensorNum;
+			const bool IsLockController : 1;
+			const std::uint8_t GroupId 	: 4;
+			const std::uint8_t NodeId  	: 3;
+			
+			static std::uint16_t GetId(std::uint8_t groupId, std::uint8_t nodeId)
+			{
+				return ((groupId&0xf)<<3)|(nodeId&0x7);
+			}
 				
+			virtual ~StorageUnit() {}
+			
+			bool IsEnable(std::uint8_t ch) const
+			{
+				return (ch<SensorNum) ? (sensorFlags & (1<<ch))!=0 : false;
+			}				
+			
+			std::uint8_t GetSensorEnable() const { return sensorFlags; }
+			bool GetAllStable() const { return allStable; }
 			
 			void SetRamp(std::uint8_t index, float val);
 			void SetZero(std::uint8_t flags, bool tare);
@@ -74,10 +94,10 @@ namespace IntelliStorage
 				ReadAttribute(DeviceAttribute::InventoryQuantity);
 			}
 			
-			void RequestSensorsEnable()
-			{
-				ReadAttribute(DeviceAttribute::SensorEnable);
-			}
+//			void RequestSensorsEnable()
+//			{
+//				ReadAttribute(DeviceAttribute::SensorEnable);
+//			}
 			
 			void RequestRawData()
 			{
@@ -91,15 +111,30 @@ namespace IntelliStorage
 			
 			void RequestData()
 			{
-				canex.Sync(DeviceId, DeviceSync::Data, CANExtended::Trigger);
+				canex.Sync(DeviceId, DeviceSync::SyncData, CANExtended::Trigger);
 			}
 			
 			void EnterCanISP()
 			{
-				canex.Sync(DeviceId, DeviceSync::ISP, CANExtended::Trigger);
+				canex.Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
 			}
 			
-			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> entry) override;
+			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
+	};
+	
+	template<class T>
+	class WeightBase : public StorageUnit
+	{
+		protected:
+			boost::shared_ptr<T[]> scaleList; 
+			WeightBase<T>(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum)
+				:StorageUnit(ex, id, sensorNum)
+			{
+				scaleList = boost::make_shared<T[]>(sensorNum);
+			}
+		public:
+			virtual ~WeightBase() {}
+			boost::shared_ptr<T[]> &GetScaleList() { return scaleList; }
 	};
 }
 
