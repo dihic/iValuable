@@ -224,7 +224,7 @@ namespace CANExtended
 				break;
 			case Command::Heartbeat:
 				if (HeartbeatArrivalEvent)
-						HeartbeatArrivalEvent(sourceId, (DeviceState) msgReceived.data[0]);
+						HeartbeatArrivalEvent(sourceId, msgReceived.data, msgReceived.len);
 				break;
       default:
         break;

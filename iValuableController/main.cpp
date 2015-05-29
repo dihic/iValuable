@@ -10,6 +10,9 @@
 #include "CommStructures.h"
 #include "NetworkEngine.h"
 #include "UnitManager.h"
+#include "IndependentUnit.h"
+#include "UnityUnit.h"
+#include "RfidUnit.h"
 
 #include "FastDelegate.h"
 
@@ -26,6 +29,10 @@ namespace boost
 {
 	void throw_exception(const std::exception& ex) {}
 }
+
+#define UNIT_TYPE_INDEPENDENT		0x80
+#define UNIT_TYPE_UNITY					0x81
+#define UNIT_TYPE_UNITY_RFID		0x82
 
 extern volatile float CurrentTemperature;
 
@@ -71,8 +78,31 @@ osThreadDef(UpdateWorker, osPriorityNormal, 1, 0);
 //}
 //osThreadDef(UpdateUnits, osPriorityNormal, 1, 0);
 
-void HeartbeatArrival(uint16_t sourceId, CANExtended::DeviceState state)
+void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t len)
 {
+	if (len<5)
+		return;
+	CANExtended::DeviceState state = static_cast<CANExtended::DeviceState>(data[0]);
+	if (state != CANExtended::Operational)
+		return;
+	auto unit = unitManager->FindUnit(sourceId&0x7f);
+	if (unit == nullptr)
+	{
+		switch (data[1])
+		{
+			case UNIT_TYPE_INDEPENDENT:
+				unit.reset(new IndependentUnit(*CanEx, sourceId, data[2]));
+				break;
+			case UNIT_TYPE_UNITY:
+				unit.reset(new UnityUnit(*CanEx, sourceId, data[2]));
+				break;
+			case UNIT_TYPE_UNITY_RFID:
+				unit.reset(new RfidUnit(*CanEx, sourceId, data[2]));
+				break;
+		}
+		unitManager->Add(sourceId&0x7f, unit);
+	}
+	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
 }
 
 
@@ -110,6 +140,8 @@ int main()
 	
 	osThreadCreate(osThread(UpdateWorker), NULL);
 //	osThreadCreate(osThread(UpdateUnits), NULL);
+	
+	CanEx->SyncAll(DeviceSync::SyncLive, CANExtended::Trigger);
 	
 	while (1)
 	{

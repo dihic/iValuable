@@ -91,7 +91,7 @@ namespace CANExtended
 			
 			void Transmit(std::uint32_t command,std::uint16_t targetId,OdEntry &entry);
 		public:
-			typedef FastDelegate2<std::uint16_t,DeviceState> HeartbeatArrivalHandler;
+			typedef FastDelegate3<std::uint16_t, const std::uint8_t *, std::uint8_t> HeartbeatArrivalHandler;
 			HeartbeatArrivalHandler HeartbeatArrivalEvent;
 			CanEx(ARM_DRIVER_CAN &bus, std::uint16_t id);
 			~CanEx();
