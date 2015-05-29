@@ -317,6 +317,20 @@ namespace SerializableObjects
 			Array<SuppliesItem> AllMaterialInfos;
 	};
 	
+	DECLARE_CLASS(DoorReport)
+	{
+		public:
+			DoorReport()
+			{
+				REGISTER_FIELD(GroupIndex);
+				REGISTER_FIELD(GateIsOpen);
+			}
+			virtual ~DoorReport() {}
+			int GroupIndex;
+			bool GateIsOpen;
+	};
+
+	
 	class CommStructures
 	{
 		public:

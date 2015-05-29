@@ -5,6 +5,7 @@
 #include "CommStructures.h"
 #include "UnitManager.h"
 #include "StorageUnit.h"
+#include "RfidUnit.h"
 #include <boost/type_traits.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -20,13 +21,14 @@ namespace IntelliStorage
 			void CommandResponse(StorageUnit &unit, DeviceAttribute attr, bool isWrite, bool result);
 			void TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size);
 			void WhoAmI();
-//			void SendRfidData(boost::shared_ptr<StorageUnit> unit);
+			void SendRfidData(boost::shared_ptr<RfidUnit> &unit);
+			//void SendDoorData(
 		public:
 
 			NetworkEngine(const std::uint8_t *endpoint, boost::scoped_ptr<UnitManager> &units);
 			~NetworkEngine() {}
 			void SendHeartBeat();
-			void InventoryRfid();
+			void InventoryTraversal();
 			void Process();
 			void Connection();
 			void ChangeServiceEndpoint(const std::uint8_t *endpoint)

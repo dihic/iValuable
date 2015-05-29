@@ -143,7 +143,11 @@ namespace IntelliStorage
 				sensorFlags = val[0];
 				allStable = val[2]!=0;
 				inventoryExpected = val[3]!=0;
-				memcpy(reinterpret_cast<void *>(&deltaWeight), val.get()+4, sizeof(float));
+				memcpy(const_cast<float *>(&deltaWeight), val.get()+4, sizeof(float));
+				break;
+			case DeviceSync::SyncDoor:
+				if (OnDoorChangedEvent)
+					OnDoorChangedEvent(GroupId, val[0]!=0);
 				break;
 			default:
 				break;

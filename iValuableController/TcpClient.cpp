@@ -271,7 +271,6 @@ void TcpClient::TcpProcessor(void const *argument)
 //		client.threadTx_id = osThreadGetId();
 	
 	//Make sure Ethernet get linked
-	//if (Driver_ETH_PHY0.GetLinkState() == ARM_ETH_LINK_DOWN)
 	if (!LinkState)
 	{
 		if (client.tcpSocket && client.conn)

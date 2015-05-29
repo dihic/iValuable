@@ -20,7 +20,6 @@ namespace IntelliStorage
 			Temperature					= 0x8009,   //W
 			InventoryQuantity		= 0x800A,   //RW
 			QueryInventory			= 0x800B,		//W
-			Version 						= 0x80ff,		//R
 			Notice 							= 0x9000,   //W
 			Locker							= 0x9002,   //W
 	};
@@ -30,7 +29,6 @@ namespace IntelliStorage
 		SyncData 			= 0x0100,
 		SyncRfid			= 0x0101,
 		SyncDoor      = 0x0102,
-		SyncGotcha		= 0x0180,
 		SyncISP 			= 0x01f0,
 		SyncLive			= 0x01ff,
 	};
@@ -50,6 +48,9 @@ namespace IntelliStorage
 			const bool IsLockController : 1;
 			const std::uint8_t GroupId 	: 4;
 			const std::uint8_t NodeId  	: 3;
+		
+			typedef FastDelegate2<std::uint8_t, bool> DoorChangedHandler;
+			DoorChangedHandler OnDoorChangedEvent;
 			
 			static std::uint16_t GetId(std::uint8_t groupId, std::uint8_t nodeId)
 			{
@@ -63,8 +64,10 @@ namespace IntelliStorage
 				return (ch<SensorNum) ? (sensorFlags & (1<<ch))!=0 : false;
 			}				
 			
+			
 			std::uint8_t GetSensorEnable() const { return sensorFlags; }
 			bool GetAllStable() const { return allStable; }
+			bool IsDoorOpen() const { return isDoorOpen; }
 			
 			void SetRamp(std::uint8_t index, float val);
 			void SetZero(std::uint8_t flags, bool tare);
@@ -79,9 +82,9 @@ namespace IntelliStorage
 			void SetInventoryQuantity(std::uint8_t index, std::uint16_t q);
 			void QueryInventoryById(std::uint64_t id, bool notice);
 			
-			void RequestVersion()
+			void RequestSensorConfig()
 			{
-				ReadAttribute(DeviceAttribute::Version);
+				ReadAttribute(DeviceAttribute::SensorConfig);
 			}
 				
 			void RequestRamps()
@@ -94,10 +97,10 @@ namespace IntelliStorage
 				ReadAttribute(DeviceAttribute::InventoryQuantity);
 			}
 			
-//			void RequestSensorsEnable()
-//			{
-//				ReadAttribute(DeviceAttribute::SensorEnable);
-//			}
+			void RequestSensorEnable()
+			{
+				ReadAttribute(DeviceAttribute::SensorEnable);
+			}
 			
 			void RequestRawData()
 			{

@@ -32,45 +32,59 @@ namespace IntelliStorage
 		tcp.SendData(SerializableObjects::CodeWhoAmI, ME, 0x14);
 	}
 	
-//	void NetworkEngine::InventoryRfid()
-//	{
-//		static bool needReport = true;
-//		if (!tcp.IsConnected())
-//		{
-//			needReport = true;
-//			return;
-//		}
-//		
-//		for (map<uint16_t, boost::shared_ptr<StorageUnit> >::iterator it = unitList.begin(); 
-//				 it!= unitList.end(); ++it)
-//		{
-//			if (needReport)
-//			{
-//				if (it->second->GetCardState() != StorageUnit::CardArrival)
-//					continue;
-//			}
-//			else if (!it->second->CardChanged())
-//				continue;
-//			SendRfidData(it->second);
-//		}
-//		needReport = false;
-//	}
-//	
-//	void NetworkEngine::SendRfidData(boost::shared_ptr<StorageUnit> unit)
-//	{
-//		if (unit.get() == NULL)
-//			return;
-//		size_t bufferSize = 0;
-//		boost::shared_ptr<RfidDataBson> rfidBson(new RfidDataBson);
-//		rfidBson->NodeId = unit->DeviceId;
-//		rfidBson->State = unit->GetCardState();
-//		rfidBson->PresId = unit->GetPresId();
-//		rfidBson->CardId = unit->GetCardId();
-//		boost::shared_ptr<uint8_t[]> buffer = BSON::Bson::Serialize(rfidBson, bufferSize);
-//		unit->UpdateCard();
-//		if (buffer.get()!=NULL && bufferSize>0)
-//			tcp.SendData(RfidDataCode, buffer.get(), bufferSize);
-//	}
+	void NetworkEngine::InventoryTraversal()
+	{
+		static bool forceReport = true;
+		if (!tcp.IsConnected())
+		{
+			forceReport = true;
+			return;
+		}
+		
+		auto unitList = unitManager->GetList();
+		
+		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
+		{
+			auto rfidUnit = boost::dynamic_pointer_cast<RfidUnit>(it->second);
+			if (rfidUnit == nullptr)
+				continue;
+			if (forceReport)
+			{
+				if (rfidUnit->GetCardState() != RfidStatus::CardArrival)
+					continue;
+			}
+			else if (!rfidUnit->CardChanged())
+				continue;
+			SendRfidData(rfidUnit);
+		}
+		
+		auto groups = unitManager->GetLockGroups();
+		for(auto it = groups.begin(); it!=groups.end(); ++it)
+		{
+			if (forceReport || it->second->IsChanged())
+			{
+				
+			}
+		}
+		
+		forceReport = false;
+	}
+	
+	void NetworkEngine::SendRfidData(boost::shared_ptr<RfidUnit> &unit)
+	{
+		if (unit == nullptr)
+			return;
+		boost::shared_ptr<SerializableObjects::RfidData> rfid(new SerializableObjects::RfidData);
+		rfid->GroupIndex = unit->GroupId;
+		rfid->NodeIndex = unit->NodeId;
+		rfid->CardType = unit->GetCardState();
+		rfid->CardId = unit->GetCardId();
+		size_t bufferSize = 0;
+		auto buffer = BSON::Bson::Serialize(rfid, bufferSize);
+		unit->AfterUpdate();
+		if (buffer!=nullptr && bufferSize>0)
+			tcp.SendData(SerializableObjects::CodeReportRfid, buffer.get(), bufferSize);
+	}
 	
 	void NetworkEngine::Process()
 	{		
@@ -274,12 +288,8 @@ namespace IntelliStorage
 //		CodeSetInventory				= 0x0E,
 //		CodeLockControl					= 0x0F,
 //		CodeGuide								= 0x10,
-//		
-//		CodeQueryConfig					= 0xF0,
-//		CodeQuerySensorEnable   = 0xF1,
+
 //		CodeQueryInventory			= 0xF2,
-//		CodeCommandResult				= 0xFE,
-//		CodeWhoAmI							= 0xFF,	
 	
 	void NetworkEngine::TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size)
 	{
@@ -301,8 +311,7 @@ namespace IntelliStorage
 		boost::shared_ptr<SerializableObjects::DeviceDesc>						deviceDesc;
 		boost::shared_ptr<SerializableObjects::ScaleAttribute>				scaleAttr;
 		boost::shared_ptr<SerializableObjects::UnitEntryCollection>   dataCollection;
-//		map<uint16_t, boost::shared_ptr<StorageUnit> >::iterator it;
-//		
+
 		boost::shared_ptr<MemStream> stream(new MemStream(payload, size, 1));
 //		
 //		
@@ -317,8 +326,7 @@ namespace IntelliStorage
 			BSON::Bson::Deserialize(stream, sensorEnable);
 			if (sensorEnable != nullptr)
 			{
-				auto unit = boost::dynamic_pointer_cast<StorageUnit>(
-					unitManager->FindUnit(StorageUnit::GetId(sensorEnable->GroupIndex, sensorEnable->NodeIndex)));
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(sensorEnable->GroupIndex, sensorEnable->NodeIndex));
 				if (unit != nullptr)
 				{
 					if (code == SerializableObjects::CodeZero)
@@ -340,8 +348,7 @@ namespace IntelliStorage
 			BSON::Bson::Deserialize(stream, calWeight);
 			if (calWeight != nullptr)
 			{
-				auto unit = boost::dynamic_pointer_cast<StorageUnit>(
-					unitManager->FindUnit(StorageUnit::GetId(calWeight->GroupIndex, calWeight->NodeIndex)));
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(calWeight->GroupIndex, calWeight->NodeIndex));
 				if (unit != nullptr)
 					unit->SetCalWeight(calWeight->Weight);
 				else
@@ -352,17 +359,22 @@ namespace IntelliStorage
 			break;
 		case SerializableObjects::CodeQueryAD:
 		case SerializableObjects::CodeQueryRamp:
+		case SerializableObjects::CodeQueryConfig:
+		case SerializableObjects::CodeQuerySensorEnable:
 			BSON::Bson::Deserialize(stream, deviceDesc);
 			if (sensorEnable != nullptr)
 			{
-				auto unit = boost::dynamic_pointer_cast<StorageUnit>(
-					unitManager->FindUnit(StorageUnit::GetId(deviceDesc->GroupIndex, deviceDesc->NodeIndex)));
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(deviceDesc->GroupIndex, deviceDesc->NodeIndex));
 				if (unit != nullptr)
 				{
 					if (code == SerializableObjects::CodeQueryAD)
 						unit->RequestRawData();
 					else if (code == SerializableObjects::CodeQueryRamp)
 						unit->RequestRamps();
+					else if (code == SerializableObjects::CodeQueryConfig)
+						unit->RequestSensorConfig();
+					else if (code == SerializableObjects::CodeQuerySensorEnable)
+						unit->RequestSensorEnable();
 				}
 				else
 					CommandResponse(*unit, code, false);
@@ -375,8 +387,7 @@ namespace IntelliStorage
 			BSON::Bson::Deserialize(stream, scaleAttr);
 			if (sensorEnable != nullptr)
 			{
-				auto unit = boost::dynamic_pointer_cast<StorageUnit>(
-					unitManager->FindUnit(StorageUnit::GetId(scaleAttr->GroupIndex, scaleAttr->NodeIndex)));
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(scaleAttr->GroupIndex, scaleAttr->NodeIndex));
 				if (unit != nullptr)
 					unit->SetSensorConfig(scaleAttr);
 				else
@@ -391,68 +402,13 @@ namespace IntelliStorage
 			if (buffer!=nullptr && bufferSize>0)
 				tcp.SendData(SerializableObjects::CodeQueryInventory, buffer.get(), bufferSize);
 			break;
+			
+		case SerializableObjects::CodeWhoAmI:
+			WhoAmI();
+			break;
 		default:
 			break;
 		}
-//				nodeList.reset(new NodeList);
-//				for(it = unitList.begin(); it != unitList.end(); ++it)
-//				{
-//					id = it->first;
-//					nodeList->NodeIds.Add(id);
-//				}
-//				buffer = BSON::Bson::Serialize(nodeList, bufferSize);
-//				if (buffer.get()!=NULL && bufferSize>0)
-//					tcp.SendData(code, buffer.get(), bufferSize);
-//				
-////				for (it = unitList.begin(); it!= unitList.end(); ++it)
-////				{
-////					if (it->second->GetCardState() != StorageUnit::CardArrival)
-////						continue;
-////					SendRfidData(it->second);
-////				}
-//				break;
-//			case QueryRfid:
-//				BSON::Bson::Deserialize(stream, nodeQuery);
-//				if (nodeQuery.get()!=NULL)
-//				{
-//					it = unitList.find(nodeQuery->NodeId);
-//					if (it != unitList.end())
-//						SendRfidData(it->second);
-//				}
-//			case WhoAmICode:
-//				WhoAmI();
-//				break;
-//			case RfidDataCode:
-//				BSON::Bson::Deserialize(stream, rfidBson);
-//				if (rfidBson.get()!=NULL)
-//				{
-//					for(it = unitList.begin(); it != unitList.end(); ++it)
-//						if (rfidBson->PresId.compare(it->second->GetPresId())==0)
-//						{
-//							found = true;
-//							break;
-//						}
-//					response.reset(new CommandResult);
-//					response->Command = RfidDataCode;
-//					if (found)
-//					{
-//						it->second->SetNotice(rfidBson->State);
-//						response->NodeId = it->first;
-//						response->Result = true;
-//					}
-//					else
-//					{
-//						response->NodeId = 0;
-//						response->Result = false;
-//					}
-//					buffer = BSON::Bson::Serialize(response, bufferSize);
-//					if (buffer.get()!=NULL && bufferSize>0)
-//						tcp.SendData(CommandResponse, buffer.get(), bufferSize);
-//				}
-//				break;
-//			default:
-//				break;
-//		}
 	}
 }
 

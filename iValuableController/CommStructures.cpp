@@ -21,6 +21,7 @@ namespace SerializableObjects
 	CLAIM_CLASS(SuppliesCollection);
 	CLAIM_CLASS(InventoryQuantity);
 	CLAIM_CLASS(InventoryCollection);
+	CLAIM_CLASS(DoorReport);
 
 	void CommStructures::Register()
 	{
@@ -43,6 +44,7 @@ namespace SerializableObjects
 		REGISTER_CLASS(SuppliesCollection);
 		REGISTER_CLASS(InventoryQuantity);
 		REGISTER_CLASS(InventoryCollection);
+		REGISTER_CLASS(DoorReport);
 	}
 }
 	
