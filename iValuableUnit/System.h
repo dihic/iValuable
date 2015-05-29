@@ -43,10 +43,6 @@
 
 #define ABS(x) ((x)>=0?(x):-(x))
 
-
-#define SUPPLIES_NUM	10
-#define SENSOR_NUM	6
-
 void SystemSetup();
 //void EnterISP();
 

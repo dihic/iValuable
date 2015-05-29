@@ -246,10 +246,11 @@ void CANInit(uint32_t baudRateinK)
 	CANSetFilter(&filter_objs[1]);
 	
 	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
-	nmtMsg.dlc = 4;
+	nmtMsg.dlc = 5;
 	nmtMsg.data[1] = UNIT_TYPE;
-	nmtMsg.data[2] = FW_VERSION_MAJOR;	//Major version
-	nmtMsg.data[3] = FW_VERSION_MINOR; //Minor version
+	nmtMsg.data[2] = SENSOR_NUM;
+	nmtMsg.data[3] = FW_VERSION_MAJOR;	//Major version
+	nmtMsg.data[4] = FW_VERSION_MINOR; //Minor version
 	
 	NVIC_EnableIRQ(CAN_IRQn);
 }
