@@ -225,17 +225,17 @@ namespace SerializableObjects
 			Array<UnitEntry> AllUnits;
 	};
 
-	DECLARE_CLASS(RfidDataBson)
+	DECLARE_CLASS(RfidData)
 	{
 		public:
-			RfidDataBson()
+			RfidData()
 			{
 				REGISTER_FIELD(GroupIndex);
 				REGISTER_FIELD(NodeIndex);
 				REGISTER_FIELD(CardType);
 				REGISTER_FIELD(CardId);
 			}
-			virtual ~RfidDataBson() {}
+			virtual ~RfidData() {}
 			int GroupIndex;
 			int NodeIndex;
 			int CardType;

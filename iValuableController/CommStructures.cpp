@@ -13,7 +13,7 @@ namespace SerializableObjects
 	CLAIM_CLASS(ScaleState);
 	CLAIM_CLASS(UnitEntry);
 	CLAIM_CLASS(UnitEntryCollection);
-	CLAIM_CLASS(RfidDataBson);
+	CLAIM_CLASS(RfidData);
 	CLAIM_CLASS(CommandResult);
 	
 	CLAIM_CLASS(ScaleAttribute);
@@ -35,7 +35,7 @@ namespace SerializableObjects
 		REGISTER_CLASS(ScaleState);
 		REGISTER_CLASS(UnitEntry);
 		REGISTER_CLASS(UnitEntryCollection);
-		REGISTER_CLASS(RfidDataBson);
+		REGISTER_CLASS(RfidData);
 		REGISTER_CLASS(CommandResult);
 		
 		REGISTER_CLASS(ScaleAttribute);
