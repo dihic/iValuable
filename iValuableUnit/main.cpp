@@ -38,6 +38,8 @@ volatile bool DoorChangedEvent = false;
 	
 volatile uint16_t LockCount = 0xffff;
 	
+static SystemState UnitSystemState = STATE_BOOTUP;
+	
 void TIMER32_0_IRQHandler()		//1000Hz
 {
 	static uint32_t hbCount = HeartbeatInterval;
@@ -73,7 +75,7 @@ void TIMER32_0_IRQHandler()		//1000Hz
 			if (hbCount++>=HeartbeatInterval)
 			{
 				hbCount = 0;
-				CANEXHeartbeat(STATE_OPERATIONAL);
+				CANEXHeartbeat(UnitSystemState);
 			}
 		}
 	}
@@ -486,7 +488,10 @@ void CanexSyncTrigger(uint16_t index, uint8_t mode)
 		case SYNC_LIVE:
 			Connected=!Connected;
 			if (Connected)
+			{
 				Registered = true;
+				AutoSyncEnable = (mode!=0);
+			}
 			break;
 		case SYNC_ISP:
 			ReinvokeISP(1);
@@ -519,9 +524,19 @@ int main()
 	SystemCoreClockUpdate();
 	SystemSetup();
 	
+	//Canbus Init
+	CANInit(500);
+	CANEXReceiverEvent = CanexReceived;
+	CANTEXTriggerSyncEvent = CanexSyncTrigger;
+	init_timer32(0,TIME_INTERVAL(1000));	//	1000Hz
+	DELAY(10);
+	enable_timer32(0);
+	UnitSystemState = STATE_PREOPERATIONAL;
+	
 	Processor = DataProcessor::InstancePtr();
 	SuppliesDisplay::Init();
 	
+	//FRAM Init
 	DELAY(100000); 	//wait 100ms for voltage stable
 	uint8_t firstUse = FRAM::Init();
 	//firstUse=1; 	//Force to format FRAM for debug
@@ -536,19 +551,15 @@ int main()
 	UARTInit(230400);
 	Display::OnAckReciever.bind(&AckReciever);
 	
-	CANInit(500);
-	CANEXReceiverEvent = CanexReceived;
-	CANTEXTriggerSyncEvent = CanexSyncTrigger;
-	
 	UpdateWeight();
 	
-	init_timer32(0,TIME_INTERVAL(1000));	//	1000Hz
 	init_timer32(1,TIME_INTERVAL(100));		//	100Hz
 	DELAY(10);
-	enable_timer32(0);
 	enable_timer32(1);
 	
 	ForceDisplay = true;
+	
+	UnitSystemState = STATE_OPERATIONAL;
 	
 	while(1)
 	{
