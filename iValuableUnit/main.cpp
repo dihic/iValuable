@@ -21,9 +21,6 @@
 #include "SuppliesDisplay.h"
 #include "NoticeLogic.h"
 
-#define FW_VERSION_INDEX				0x01
-#define FW_VERSION_SUBINDEX			0x00
-
 using namespace std; 
 using namespace fastdelegate;
 
@@ -35,48 +32,54 @@ volatile WeightSet Weights;
 #define LOCK_WAIT_SECONDS  5
 
 extern "C" {
-
-volatile uint32_t TickCount = 0;	
-volatile uint16_t LockCount = 0xffff;
 	
 volatile bool DoorState = false;
-//volatile bool DoorClosedEvent = false;
+volatile bool DoorChangedEvent = false;
+	
+volatile uint16_t LockCount = 0xffff;
 	
 void TIMER32_0_IRQHandler()		//1000Hz
 {
-	static uint32_t counter1=0;
+	static uint32_t hbCount = HeartbeatInterval;
+	static uint32_t syncCount = SyncInterval;
 	
 	if ( LPC_TMR32B0->IR & 0x01 )
   {    
 		LPC_TMR32B0->IR = 1;			/* clear interrupt flag */
 		
-		++TickCount;
-		
 		//Timeout to re-lock after last unlock
 		if (LockCount!=0xffff && IS_LOCKER_ON)
-		{
 			if (--LockCount == 0)
 			{
 				LOCKER_OFF;
 				LockCount = 0xffff;
 			}
-		}
 		
-		if (counter1++>=HeartbeatInterval)
+		if (Connected)
 		{
-			counter1=0;
-			if (Connected)
+			hbCount = HeartbeatInterval;
+			if (Registered && AutoSyncEnable)
 			{
-				if (Registered && !Gotcha)
-					syncTriggered = true;
+				if (syncCount++>=SyncInterval)
+				{
+					syncCount = 0;
+					DataSyncTriggered = true;
+				}
 			}
-			else
+		}
+		else
+		{
+			syncCount = SyncInterval;
+			if (hbCount++>=HeartbeatInterval)
+			{
+				hbCount = 0;
 				CANEXHeartbeat(STATE_OPERATIONAL);
+			}
 		}
 	}
 }
 
-volatile bool Updating=0;
+volatile bool Updating = false;
 
 void UpdateWeight()
 {
@@ -147,15 +150,14 @@ void TIMER32_1_IRQHandler()		//100Hz
 				LOCKER_OFF;
 				LockCount = 0xffff;
 				DoorState = true;
-				//syncTriggered = true;
+				DoorChangedEvent = true;
 			}
 		}
 		else if (IS_DOOR_CLOSED && DoorState)
 		{
 			NoticeLogic::NoticeCommand = NOTICE_RECOVER;
 			DoorState = false;
-//			DoorClosedEvent = true;
-			//syncTriggered = true;
+			DoorChangedEvent = true;
 		}
 		
 		//Logic of display into pages 
@@ -183,7 +185,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	uint64_t id;
 	bool result;
 	SuppliesInfo info;
-	const uint8_t *data;
+//	const uint8_t *data;
 	
 	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
 
@@ -289,7 +291,9 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					if (info.Uid==0)
 						continue;
 					++response->val[0];
-					Processor->GetSuppliesUnit(i, info.Unit, info.Deviation);
+					Processor->GetSuppliesUnit(i, f, d);
+					info.Unit = f;
+					info.Deviation = d;
 					ptr[0] = i; 
 					memcpy(ptr+1, &info, sizeof(SuppliesInfo));
 					ptr += sizeof(SuppliesInfo)+1;
@@ -423,15 +427,6 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				}
 			}
 			break;
-		case OP_VERSION:
-			if (entry->subindex==0)
-			{
-				response->entrytype_len = 2;
-				response->val = const_cast<uint8_t *>(res.buffer);
-				response->val[0] = FW_VERSION_INDEX;
-				response->val[1] = FW_VERSION_SUBINDEX;
-			}
-			break;
 		default:
 			break;
 		}
@@ -439,17 +434,15 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 }
 
-uint8_t syncBuf[0x100];
-
 int PrepareData()
 {
-	int base = 4+sizeof(float);
-	//syncBuf[0] = IS_LOCKER_ENABLE & IS_DOOR_OPEN;
+	int base = 5+sizeof(float);
 	syncBuf[0] = Processor->GetEnable();	//Enabled channel flag
 	syncBuf[1] = 0; //Channel count
-	syncBuf[2] = Weights.AllStable;
-	syncBuf[3] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
-	memcpy(syncBuf+4, const_cast<float *>(&Weights.Delta), sizeof(float));
+	syncBuf[2] = IS_LOCKER_ENABLE & IS_DOOR_OPEN;
+	syncBuf[3] = Weights.AllStable;
+	syncBuf[4] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
+	memcpy(syncBuf+5, const_cast<float *>(&Weights.Delta), sizeof(float));
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	float unit,dev;
 	for(int i=0; i<SENSOR_NUM; ++i)
@@ -481,29 +474,23 @@ int PrepareData()
 	return base;
 }
 
-void CanexSyncTrigger(uint16_t index,uint8_t mode)
+void CanexSyncTrigger(uint16_t index, uint8_t mode)
 {	
-	if (mode!=0)
-		return;
-	if (syncTriggered)
-		return;
-	
-	syncEntry.index=index;
-	syncEntry.subindex=0;
-	syncEntry.val=syncBuf;
-
 	switch(index)
 	{
-		case SYNC_GOTCHA:
-			Gotcha = true;
-			break;
 		case SYNC_DATA:
-			Gotcha = false;
+			AutoSyncEnable = (mode!=0);
+			if (mode == 0)
+				DataSyncTriggered = true;
 			break;
 		case SYNC_LIVE:
 			Connected=!Connected;
 			if (Connected)
 				Registered = true;
+			break;
+		case SYNC_ISP:
+			ReinvokeISP(1);
+		default:
 			break;
 	}
 }
@@ -517,8 +504,15 @@ void AckReciever(uint8_t *ack, uint8_t len)
 //	}
 }
 
-
-
+void ReportDoorState()
+{
+	syncBuf[0] = DoorState;
+	syncEntry.index = SYNC_DOOR;
+	syncEntry.subindex = 0;
+	syncEntry.val = syncBuf;
+	syncEntry.entrytype_len = 1;
+	CANEXBroadcast(&syncEntry);
+}
 
 int main()
 {
@@ -568,13 +562,22 @@ int main()
 		
 		NoticeLogic::NoticeUpdate();
 		
-		if (syncTriggered)
+		if (DataSyncTriggered)
 		{
 			while(Updating)
 				__nop();
+			syncEntry.index = SYNC_DATA;
+			syncEntry.subindex = 0;
+			syncEntry.val = syncBuf;
 			syncEntry.entrytype_len = PrepareData();
-			CANEXBroadcast(const_cast<CAN_ODENTRY *>(&syncEntry));
-			syncTriggered = false;
+			CANEXBroadcast(&syncEntry);
+			DataSyncTriggered = false;
+		}
+		
+		if (DoorChangedEvent)
+		{
+			ReportDoorState();
+			DoorChangedEvent = false;
 		}
 	}
 }

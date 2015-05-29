@@ -36,7 +36,7 @@ TriggerSyncEventHandler CANTEXTriggerSyncEvent = NULL;
 
 volatile uint16_t NodeId = 0x0FFF;
 uint16_t HeartbeatInterval = 200;
-uint16_t SyncInterval = 10;
+uint16_t SyncInterval = 500;
 
 uint32_t ClkInitTable[2];
 
@@ -248,8 +248,8 @@ void CANInit(uint32_t baudRateinK)
 	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
 	nmtMsg.dlc = 4;
 	nmtMsg.data[1] = UNIT_TYPE;
-	nmtMsg.data[2] = FW_VERSION>>8;	//Major version
-	nmtMsg.data[3] = FW_VERSION&0xff; //Minor version
+	nmtMsg.data[2] = FW_VERSION_MAJOR;	//Major version
+	nmtMsg.data[3] = FW_VERSION_MINOR; //Minor version
 	
 	NVIC_EnableIRQ(CAN_IRQn);
 }

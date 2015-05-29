@@ -8,6 +8,7 @@
 #define UNIT_TYPE			UNIT_TYPE_UNITY			
 //#define UNIT_TYPE			UNIT_TYPE_INDEPENDENT
 
-#define FW_VERSION	0x0100
+#define FW_VERSION_MAJOR				0x01
+#define FW_VERSION_MINOR				0x00
 
 #endif

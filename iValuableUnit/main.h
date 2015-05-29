@@ -5,8 +5,10 @@
 #include "canonchip.h"
 
 
-#define SYNC_GOTCHA			0x0180
+//#define SYNC_GOTCHA			0x0180
 #define SYNC_DATA				0x0100
+#define SYNC_RFID				0x0101
+#define SYNC_DOOR				0x0102
 #define SYNC_LIVE				0x01ff
 #define SYNC_ISP				0x01f0
 
@@ -21,7 +23,6 @@
 #define OP_TEMP				0x8009
 #define OP_QUANTITY		0x800A
 #define OP_QUERY			0x800B
-#define OP_VERSION		0x80ff
 
 #define OP_NOTICE     0x9000
 #define OP_LED				0x9001
@@ -31,7 +32,7 @@ struct CanResponse
 {
 	uint16_t sourceId;
 	uint8_t result;
-	uint8_t buffer[0x80];
+	uint8_t buffer[0x100];
 	CAN_ODENTRY response;
 };
 
@@ -45,16 +46,20 @@ struct WeightSet
 	bool AllStable;
 };
 
+uint8_t syncBuf[0x100];
+
 volatile CanResponse res;
 
-volatile bool syncTriggered = false;
+volatile bool DataSyncTriggered = false;
+volatile bool AutoSyncEnable = false;
 //volatile bool responseTriggered = false;
-volatile CAN_ODENTRY syncEntry;
+
+CAN_ODENTRY syncEntry;
 
 volatile bool Connected = true;			
 volatile bool Registered = false;		// Registered by host
 //volatile bool ForceSync = false;
-volatile bool Gotcha = true;
+//volatile bool Gotcha = true;
 
 volatile bool ForceDisplay = false;
 
