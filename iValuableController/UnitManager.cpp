@@ -38,6 +38,31 @@ namespace IntelliStorage
 		dataCollection.reset(new SerializableObjects::UnitEntryCollection);
 	}
 	
+	void UnitManager::Traversal(bool forceReport)
+	{		
+		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
+		{
+			auto rfidUnit = boost::dynamic_pointer_cast<RfidUnit>(it->second);
+			if (rfidUnit == nullptr)
+				continue;
+			if (forceReport)
+			{
+				if (rfidUnit->GetCardState() != RfidStatus::CardArrival)
+					continue;
+			}
+			else if (!rfidUnit->CardChanged())
+				continue;
+			if (ReportRfidDataEvent)
+				ReportRfidDataEvent(rfidUnit);
+		}
+		
+		for(auto it = groupList.begin(); it!=groupList.end(); ++it)
+		{
+			if ((forceReport || it->second->IsChanged()) && ReportDoorDataEvent)
+				ReportDoorDataEvent(it->first, it->second->IsOpen());
+		}
+	}
+	
 	void UnitManager::UpdateLatest(boost::shared_ptr<CanDevice> &unit)
 	{
 //		string cardId = unit->GetCardId();

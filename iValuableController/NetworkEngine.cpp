@@ -12,6 +12,8 @@ namespace IntelliStorage
 		:tcp(endpoint),unitManager(units)
 	{
 		tcp.CommandArrivalEvent.bind(this, &NetworkEngine::TcpClientCommandArrival);
+		unitManager->ReportRfidDataEvent.bind(this, &NetworkEngine::SendRfidData);
+		unitManager->ReportDoorDataEvent.bind(this, &NetworkEngine::SendDoorData);
 	}
 	
 	void NetworkEngine::SendHeartBeat()
@@ -32,42 +34,15 @@ namespace IntelliStorage
 		tcp.SendData(SerializableObjects::CodeWhoAmI, ME, 0x14);
 	}
 	
-	void NetworkEngine::InventoryTraversal()
+	void NetworkEngine::SendDoorData(uint8_t groupId, bool state)
 	{
-		static bool forceReport = true;
-		if (!tcp.IsConnected())
-		{
-			forceReport = true;
-			return;
-		}
-		
-		auto unitList = unitManager->GetList();
-		
-		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
-		{
-			auto rfidUnit = boost::dynamic_pointer_cast<RfidUnit>(it->second);
-			if (rfidUnit == nullptr)
-				continue;
-			if (forceReport)
-			{
-				if (rfidUnit->GetCardState() != RfidStatus::CardArrival)
-					continue;
-			}
-			else if (!rfidUnit->CardChanged())
-				continue;
-			SendRfidData(rfidUnit);
-		}
-		
-		auto groups = unitManager->GetLockGroups();
-		for(auto it = groups.begin(); it!=groups.end(); ++it)
-		{
-			if (forceReport || it->second->IsChanged())
-			{
-				
-			}
-		}
-		
-		forceReport = false;
+		boost::shared_ptr<SerializableObjects::DoorReport> report(new SerializableObjects::DoorReport);
+		report->GroupIndex = groupId;
+		report->GateIsOpen = state;
+		size_t bufferSize = 0;
+		auto buffer = BSON::Bson::Serialize(report, bufferSize);
+		if (buffer!=nullptr && bufferSize>0)
+			tcp.SendData(SerializableObjects::CodeReportDoor, buffer.get(), bufferSize);
 	}
 	
 	void NetworkEngine::SendRfidData(boost::shared_ptr<RfidUnit> &unit)

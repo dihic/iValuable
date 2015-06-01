@@ -43,11 +43,18 @@ namespace IntelliStorage
 			boost::shared_ptr<LockGroup> ObtainGroup(std::uint8_t id);
 			void OnDoorChanged(std::uint8_t groupId, bool open);
 		public:
+			typedef FastDelegate1<boost::shared_ptr<RfidUnit> &> ReportRfidDataHandler;
+			typedef FastDelegate2<std::uint8_t, bool> ReportDoorDataHandler;
+			ReportRfidDataHandler ReportRfidDataEvent;
+			ReportDoorDataHandler ReportDoorDataEvent;
+		
 			UnitManager();
 			~UnitManager() {}
 			void Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
-			std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > &GetList() { return unitList; }
-			std::map<std::uint8_t, boost::shared_ptr<LockGroup> > &GetLockGroups() { return groupList; }
+			//std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > &GetList() { return unitList; }
+			//std::map<std::uint8_t, boost::shared_ptr<LockGroup> > &GetLockGroups() { return groupList; }
+			
+			void Traversal(bool forceReport);
 			
 			void UpdateLatest(boost::shared_ptr<CanDevice> &unit);
 			boost::shared_ptr<RfidUnit> FindUnit(const std::string &cardId);

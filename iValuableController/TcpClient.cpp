@@ -124,7 +124,7 @@ void TcpClient::DataReciever(const boost::shared_ptr<uint8_t[]> &data, uint32_t 
 
 extern "C"
 {
-	void eth_link_notify( uint32_t  if_num,ethLinkEvent  event)
+	void eth_link_notify(uint32_t if_num, ethLinkEvent event)
 	{
 #ifdef DEBUG_PRINT
 		if (event==ethLinkDown)

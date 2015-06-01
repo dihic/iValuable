@@ -59,7 +59,7 @@ static void UpdateWorker (void const *argument)
 {
 	while(1)
 	{
-		if (ConfigComm::Instance().get()!=NULL)
+		if (ConfigComm::Instance() != nullptr)
 			ConfigComm::Instance()->DataReceiver();
 		CanEx->Poll();
 		osThreadYield();
@@ -67,16 +67,22 @@ static void UpdateWorker (void const *argument)
 }
 osThreadDef(UpdateWorker, osPriorityNormal, 1, 0);
 
-//static void UpdateUnits(void const *argument)  //Prevent missing status
-//{
-//	while(1)
-//	{
-////		CanEx->Poll();
-////		unitManager.Traversal();	//Update all units
-//		osThreadYield();
-//	}
-//}
-//osThreadDef(UpdateUnits, osPriorityNormal, 1, 0);
+static void Traversal(void const *argument)  //Prevent missing status
+{
+	static bool forceReport = true;
+	while(1)
+	{
+		if (ethEngine==nullptr || !ethEngine->IsConnected())
+		{
+			forceReport = true;
+			continue;
+		}
+		unitManager->Traversal(forceReport);	//Update all units
+		forceReport = false;
+		osThreadYield();
+	}
+}
+osThreadDef(Traversal, osPriorityNormal, 1, 0);
 
 void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t len)
 {
@@ -99,7 +105,12 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 			case UNIT_TYPE_UNITY_RFID:
 				unit.reset(new RfidUnit(*CanEx, sourceId, data[2]));
 				break;
+			default:
+				CanEx->Sync(sourceId, DeviceSync::SyncLive,  CANExtended::Trigger);
+				return;
 		}
+		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
+		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
 		unitManager->Add(sourceId&0x7f, unit);
 	}
 	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
@@ -112,8 +123,8 @@ int main()
 	cout<<"System Started..."<<endl;
 	
 	SerializableObjects::CommStructures::Register();
-	unitManager.reset(new UnitManager);
 	
+	unitManager.reset(new UnitManager);
 	ethConfig.reset(new NetworkConfig(Driver_USART3));
 	
 	//Ethernet Init
@@ -139,7 +150,7 @@ int main()
 	osTimerStart(heartbeat, 500);
 	
 	osThreadCreate(osThread(UpdateWorker), NULL);
-//	osThreadCreate(osThread(UpdateUnits), NULL);
+	osThreadCreate(osThread(Traversal), NULL);
 	
 	CanEx->SyncAll(DeviceSync::SyncLive, CANExtended::Trigger);
 	

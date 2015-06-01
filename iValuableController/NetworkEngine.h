@@ -22,15 +22,14 @@ namespace IntelliStorage
 			void TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size);
 			void WhoAmI();
 			void SendRfidData(boost::shared_ptr<RfidUnit> &unit);
-			//void SendDoorData(
+			void SendDoorData(uint8_t groupId, bool state);
 		public:
 
 			NetworkEngine(const std::uint8_t *endpoint, boost::scoped_ptr<UnitManager> &units);
 			~NetworkEngine() {}
 			void SendHeartBeat();
-			void InventoryTraversal();
 			void Process();
-			void Connection();
+			bool IsConnected() const { return tcp.IsConnected(); }
 			void ChangeServiceEndpoint(const std::uint8_t *endpoint)
 			{
 				tcp.ChangeServiceEndpoint(endpoint);
