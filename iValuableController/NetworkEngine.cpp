@@ -72,11 +72,11 @@ namespace IntelliStorage
 		CommandResponse(unit, static_cast<DeviceAttribute>(attr), true, result);
 	}
 	
-	void NetworkEngine::CommandResponse(StorageUnit &unit, SerializableObjects::CodeType code, bool result)
+	void NetworkEngine::CommandResponse(uint8_t groupId, uint8_t nodeId, SerializableObjects::CodeType code, bool result)
 	{
 		boost::shared_ptr<SerializableObjects::CommandResult> response(new SerializableObjects::CommandResult);
-		response->GroupIndex = unit.GroupId;
-		response->NodeIndex = unit.NodeId;
+		response->GroupIndex = groupId;
+		response->NodeIndex = nodeId;
 		response->RequestDemandType = code;
 		response->IsOk = result;
 		size_t bufferSize = 0;
@@ -132,10 +132,16 @@ namespace IntelliStorage
 				code = isWrite ? 
 					SerializableObjects::CodeSetInventory : SerializableObjects::CodeQueryInventory;
 				break;
+			case DeviceAttribute::Locker:
+				code = SerializableObjects::CodeLockControl;
+				break;
+			case DeviceAttribute::Notice:
+				code = SerializableObjects::CodeGuide;
+				break;
 			default:
 				return;
 		}
-		CommandResponse(unit, code, result);
+		CommandResponse(unit.GroupId, unit.NodeId, code, result);
 	}
 	
 	void NetworkEngine::DeviceReadResponse(CanDevice &device, uint16_t attr, const boost::shared_ptr<uint8_t[]> &data, size_t size)
@@ -257,7 +263,6 @@ namespace IntelliStorage
 	}
 	
 
-//		CodeQueryState				= 0x0B,
 //		CodeSetInventoryInfo		= 0x0C,
 //		CodeQueryInventoryInfo	= 0x0D,
 //		CodeSetInventory				= 0x0E,
@@ -286,6 +291,7 @@ namespace IntelliStorage
 		boost::shared_ptr<SerializableObjects::DeviceDesc>						deviceDesc;
 		boost::shared_ptr<SerializableObjects::ScaleAttribute>				scaleAttr;
 		boost::shared_ptr<SerializableObjects::UnitEntryCollection>   dataCollection;
+		boost::shared_ptr<SerializableObjects::DirectGuide>						directGuide;
 
 		boost::shared_ptr<MemStream> stream(new MemStream(payload, size, 1));
 //		
@@ -314,7 +320,7 @@ namespace IntelliStorage
 						unit->SetSensorEnable(sensorEnable->Flags);
 				}
 				else
-					CommandResponse(*unit, code, false);
+					CommandResponse(sensorEnable->GroupIndex, sensorEnable->NodeIndex, code, false);
 			}
 			else
 				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
@@ -327,7 +333,7 @@ namespace IntelliStorage
 				if (unit != nullptr)
 					unit->SetCalWeight(calWeight->Weight);
 				else
-					CommandResponse(*unit, code, false);
+					CommandResponse(calWeight->GroupIndex, calWeight->NodeIndex, code, false);
 			}
 			else
 				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
@@ -337,7 +343,7 @@ namespace IntelliStorage
 		case SerializableObjects::CodeQueryConfig:
 		case SerializableObjects::CodeQuerySensorEnable:
 			BSON::Bson::Deserialize(stream, deviceDesc);
-			if (sensorEnable != nullptr)
+			if (deviceDesc != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(deviceDesc->GroupIndex, deviceDesc->NodeIndex));
 				if (unit != nullptr)
@@ -352,7 +358,7 @@ namespace IntelliStorage
 						unit->RequestSensorEnable();
 				}
 				else
-					CommandResponse(*unit, code, false);
+					CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
 			}
 			else
 				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
@@ -360,13 +366,13 @@ namespace IntelliStorage
 		
 		case SerializableObjects::CodeSetSensorConfig:
 			BSON::Bson::Deserialize(stream, scaleAttr);
-			if (sensorEnable != nullptr)
+			if (scaleAttr != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(scaleAttr->GroupIndex, scaleAttr->NodeIndex));
 				if (unit != nullptr)
 					unit->SetSensorConfig(scaleAttr);
 				else
-					CommandResponse(*unit, code, false);
+					CommandResponse(scaleAttr->GroupIndex, scaleAttr->NodeIndex, code, false);
 			}
 			else
 				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
@@ -377,7 +383,31 @@ namespace IntelliStorage
 			if (buffer!=nullptr && bufferSize>0)
 				tcp.SendData(SerializableObjects::CodeQueryInventory, buffer.get(), bufferSize);
 			break;
-			
+		case SerializableObjects::CodeSetInventoryInfo:
+			break;
+		case SerializableObjects::CodeLockControl:
+			BSON::Bson::Deserialize(stream, deviceDesc);
+			if (deviceDesc != nullptr)
+			{
+				if (!unitManager->Unlock(deviceDesc->GroupIndex))
+					CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
+			}
+			else
+				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
+			break;
+		case SerializableObjects::CodeGuide:
+			BSON::Bson::Deserialize(stream, directGuide);
+			if (directGuide != nullptr)
+			{
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(directGuide->GroupIndex, directGuide->NodeIndex));
+				if (unit != nullptr)
+					unit->SetNotice(directGuide->IsGuide? 1 : 0);
+				else
+					CommandResponse(directGuide->GroupIndex, directGuide->NodeIndex, code, false);
+			}
+			else
+				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
+			break;
 		case SerializableObjects::CodeWhoAmI:
 			WhoAmI();
 			break;

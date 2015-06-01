@@ -329,6 +329,21 @@ namespace SerializableObjects
 			int GroupIndex;
 			bool GateIsOpen;
 	};
+	
+	DECLARE_CLASS(DirectGuide)
+	{
+		public:
+			DirectGuide()
+			{
+				REGISTER_FIELD(GroupIndex);
+				REGISTER_FIELD(NodeIndex);
+				REGISTER_FIELD(IsGuide);
+			}
+			virtual ~DirectGuide() {}
+			int GroupIndex;
+			int NodeIndex;
+			bool IsGuide;
+	};
 
 	
 	class CommStructures

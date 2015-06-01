@@ -17,7 +17,7 @@ namespace IntelliStorage
 		private:
 			TcpClient tcp;
 			boost::scoped_ptr<UnitManager> &unitManager;
-			void CommandResponse(StorageUnit &unit, SerializableObjects::CodeType code, bool result);
+			void CommandResponse(std::uint8_t groupId, std::uint8_t nodeId, SerializableObjects::CodeType code, bool result);
 			void CommandResponse(StorageUnit &unit, DeviceAttribute attr, bool isWrite, bool result);
 			void TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size);
 			void WhoAmI();
