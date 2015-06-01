@@ -8,26 +8,27 @@
 #include "Driver_ETH_MAC.h"
 #include "Driver_ETH_PHY.h"
 
-//#define DEBUG_PRINT
-
 #define STATUS_PIN		GPIOC,GPIO_PIN_8
 
-extern ARM_DRIVER_CAN Driver_CAN1;
-extern ARM_DRIVER_USART Driver_USART1;
-extern ARM_DRIVER_USART Driver_USART3;
-extern ARM_DRIVER_ETH_PHY Driver_ETH_PHY0;
+extern ARM_DRIVER_CAN 				Driver_CAN1;
+extern ARM_DRIVER_USART 			Driver_USART1;
+extern ARM_DRIVER_USART 			Driver_USART3;
+extern ARM_DRIVER_ETH_PHY 		Driver_ETH_PHY0;
 
 extern RNG_HandleTypeDef RNGHandle;
 
-#define USER_ADDR 0x08100000
-//#define CARD_ADDR 0x080E8000
-#define BACK_ADDR 0x08104000
-#define USER_SIZE 0x4000
+#define USER_ADDR 				0x08100000
+#define BACK_ADDR 				0x08104000
+#define USER_SIZE 				0x4000
 
 #define SDRAM_BASE 				0xC0000000u
 #define IS42S16400J_SIZE	0x00800000u
 
-#define STATUS_PIN			GPIOC,GPIO_PIN_8
+#define CANEX_HOST 				0x001
+
+#define UNIT_TYPE_INDEPENDENT		0x80
+#define UNIT_TYPE_UNITY					0x81
+#define UNIT_TYPE_UNITY_RFID		0x82
 
 extern const uint8_t *UserFlash;
 

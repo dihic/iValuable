@@ -10,7 +10,7 @@ namespace IntelliStorage
 		protected:
 			float totalWeight;
 		public:
-			UnityUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
+			UnityUnit(StorageBasic &basic);
 			virtual ~UnityUnit() {}
 			float GetTotalWeight() const { return totalWeight; }
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;

@@ -13,9 +13,10 @@ using namespace std;
 namespace IntelliStorage
 {
 
-	StorageUnit::StorageUnit(CANExtended::CanEx &ex, uint16_t id, uint8_t sensorNum)
-		:	CanDevice(ex, id), SensorNum(sensorNum), IsLockController(IS_LC(id)), 
-			GroupId(OBTAIN_GROUP_ID(id)), NodeId(OBTAIN_NODE_ID(id))
+	StorageUnit::StorageUnit(StorageBasic &basic)
+		:	CanDevice(*(basic.CanEx), basic.DeviceId), 
+			Version(basic.Version), SensorNum(basic.SensorNum), IsLockController(IS_LC(basic.DeviceId)), 
+			GroupId(OBTAIN_GROUP_ID(basic.DeviceId)), NodeId(OBTAIN_NODE_ID(basic.DeviceId))
 	{
 	}
 	

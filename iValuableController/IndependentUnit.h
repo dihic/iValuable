@@ -18,7 +18,7 @@ namespace IntelliStorage
 	class IndependentUnit : public WeightBase<ScaleData>
 	{
 		public:
-			IndependentUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
+			IndependentUnit(StorageBasic &basic);
 			virtual ~IndependentUnit() {}
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
 	};

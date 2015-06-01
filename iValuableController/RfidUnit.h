@@ -29,7 +29,7 @@ namespace IntelliStorage
 			volatile RfidStatus cardState = CardLeft;
 			std::string cardId;
 		public:
-			RfidUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
+			RfidUnit(StorageBasic &basic);
 			virtual ~RfidUnit() {}
 			bool CardChanged() const { return cardChanged; }
 			bool IsEmpty() const { return (cardState == CardLeft); }

@@ -30,10 +30,6 @@ namespace boost
 	void throw_exception(const std::exception& ex) {}
 }
 
-#define UNIT_TYPE_INDEPENDENT		0x80
-#define UNIT_TYPE_UNITY					0x81
-#define UNIT_TYPE_UNITY_RFID		0x82
-
 extern volatile float CurrentTemperature;
 
 void HeatbeatTimer_Callback(void const *arg)
@@ -65,7 +61,8 @@ static void UpdateWorker (void const *argument)
 	{
 		if (ConfigComm::Instance() != nullptr)
 			ConfigComm::Instance()->DataReceiver();
-		CanEx->Poll();
+		if (CanEx != nullptr)
+			CanEx->Poll();
 		osThreadYield();
 	}
 }
@@ -98,16 +95,20 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 	auto unit = unitManager->FindUnit(sourceId&0x7f);
 	if (unit == nullptr)
 	{
+		StorageBasic basic(CanEx);
+		basic.DeviceId = sourceId;
+		basic.SensorNum = data[2];
+		basic.Version = (data[3]<<8)|data[4];
 		switch (data[1])
 		{
 			case UNIT_TYPE_INDEPENDENT:
-				unit.reset(new IndependentUnit(*CanEx, sourceId, data[2]));
+				unit.reset(new IndependentUnit(basic));
 				break;
 			case UNIT_TYPE_UNITY:
-				unit.reset(new UnityUnit(*CanEx, sourceId, data[2]));
+				unit.reset(new UnityUnit(basic));
 				break;
 			case UNIT_TYPE_UNITY_RFID:
-				unit.reset(new RfidUnit(*CanEx, sourceId, data[2]));
+				unit.reset(new RfidUnit(basic));
 				break;
 			default:
 				CanEx->Sync(sourceId, DeviceSync::SyncLive,  CANExtended::Trigger);
@@ -144,7 +145,7 @@ int main()
 #endif
 	
 	//Initialize CAN
-	CanEx.reset(new CANExtended::CanEx(Driver_CAN1, 0x001));
+	CanEx.reset(new CANExtended::CanEx(Driver_CAN1, CANEX_HOST));
 	CanEx->HeartbeatArrivalEvent.bind(&HeartbeatArrival);
 #ifdef DEBUG_PRINT
 	cout<<"CANBus Initialized"<<endl;
@@ -156,6 +157,7 @@ int main()
 	osThreadCreate(osThread(UpdateWorker), NULL);
 	osThreadCreate(osThread(Traversal), NULL);
 	
+	//Start collecting all devices
 	CanEx->SyncAll(DeviceSync::SyncLive, CANExtended::Trigger);
 	
 	while (1)

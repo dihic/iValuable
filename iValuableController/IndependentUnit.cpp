@@ -4,8 +4,8 @@ using namespace std;
 
 namespace IntelliStorage
 {			
-	IndependentUnit::IndependentUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum)
-		: WeightBase<ScaleData>(ex, id, sensorNum)
+	IndependentUnit::IndependentUnit(StorageBasic &basic)
+		: WeightBase<ScaleData>(basic)
 	{
 		
 	}

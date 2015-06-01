@@ -4,8 +4,8 @@ using namespace std;
 
 namespace IntelliStorage
 {		
-	UnityUnit::UnityUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum)
-		: WeightBase<std::uint8_t>(ex, id, sensorNum)
+	UnityUnit::UnityUnit(StorageBasic &basic)
+		: WeightBase<std::uint8_t>(basic)
 	{
 		
 	}

@@ -5,8 +5,8 @@ using namespace std;
 namespace IntelliStorage
 {	
 
-	RfidUnit::RfidUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum)
-		: UnityUnit(ex, id, sensorNum)
+	RfidUnit::RfidUnit(StorageBasic &basic)
+		: UnityUnit(basic)
 	{
 	}
 	

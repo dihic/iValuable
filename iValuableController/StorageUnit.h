@@ -33,6 +33,16 @@ namespace IntelliStorage
 		SyncLive			= 0x01ff,
 	};
 	
+	class StorageBasic
+	{
+		public:
+			boost::scoped_ptr<CANExtended::CanEx> &CanEx;
+			std::uint16_t DeviceId;
+			std::uint8_t SensorNum;
+			std::uint16_t Version;
+			StorageBasic(boost::scoped_ptr<CANExtended::CanEx> &ex)	: CanEx(ex) {}
+			~StorageBasic() {}
+	};
 	
 	class StorageUnit : public CanDevice
 	{
@@ -42,8 +52,9 @@ namespace IntelliStorage
 			volatile bool allStable = false;
 			volatile bool inventoryExpected = false;
 			volatile float deltaWeight = 0;
-			StorageUnit(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum);
+			StorageUnit(StorageBasic &basic);
 		public:		
+			const std::uint16_t Version;
 			const std::uint8_t SensorNum;
 			const bool IsLockController : 1;
 			const std::uint8_t GroupId 	: 4;
@@ -131,10 +142,10 @@ namespace IntelliStorage
 	{
 		protected:
 			boost::shared_ptr<T[]> scaleList; 
-			WeightBase<T>(CANExtended::CanEx &ex, std::uint16_t id, std::uint8_t sensorNum)
-				:StorageUnit(ex, id, sensorNum)
+			WeightBase<T>(StorageBasic &basic)
+				:StorageUnit(basic)
 			{
-				scaleList = boost::make_shared<T[]>(sensorNum);
+				scaleList = boost::make_shared<T[]>(basic.SensorNum);
 			}
 		public:
 			virtual ~WeightBase() {}

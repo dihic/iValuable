@@ -63,6 +63,23 @@ namespace IntelliStorage
 		}
 	}
 	
+	bool UnitManager::Unlock(std::uint8_t groupId)
+	{
+		auto groupIt = groupList.find(groupId);
+		if (groupIt == groupList.end())
+			return false;
+		if (groupIt->second->IsOpen())
+			return true;
+		bool result = false;
+		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
+			if (it->second->IsLockController && it->second->GroupId == groupId)
+			{
+				it->second->LockControl(true);
+				result = true;
+			}
+		return result;
+	}
+	
 	boost::shared_ptr<RfidUnit> UnitManager::FindUnit(const std::string &cardId)
 	{
 		boost::shared_ptr<RfidUnit> result;
