@@ -19,7 +19,7 @@ namespace IntelliStorage
 			SensorEnable				= 0x8008,   //RW
 			Temperature					= 0x8009,   //W
 			InventoryQuantity		= 0x800A,   //RW
-			QueryInventory			= 0x800B,		//W
+			NoticeInventory			= 0x800B,		//W
 			Notice 							= 0x9000,   //W
 			Locker							= 0x9002,   //W
 	};
@@ -90,9 +90,11 @@ namespace IntelliStorage
 			void SetNotice(std::uint8_t level);
 			void LockControl(bool open);
 			void SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr);
-			void SetInventoryInfo(boost::shared_ptr<SerializableObjects::SuppliesItem> &info);
-			void SetInventoryQuantity(std::uint8_t index, std::uint16_t q);
-			void QueryInventoryById(std::uint64_t id, bool notice);
+			void ClearAllInventoryInfo();
+			void SetInventoryInfo(SerializableObjects::SuppliesItem &info);
+			//void SetInventoryQuantity(std::uint8_t index, std::uint16_t q);
+			void SetInventoryQuantities(Array<SerializableObjects::InventoryQuantity> &quantities);
+			void NoticeInventoryById(std::uint64_t id, bool notice);
 			
 			void RequestSensorConfig()
 			{

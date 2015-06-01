@@ -73,7 +73,10 @@ static void Traversal(void const *argument)  //Prevent missing status
 	static bool forceReport = true;
 	while(1)
 	{
-		if (ethEngine==nullptr || !ethEngine->IsConnected())
+		if (ethEngine==nullptr)
+			continue;
+		ethEngine->Process();
+		if (!ethEngine->IsConnected())
 		{
 			forceReport = true;
 			continue;
@@ -163,7 +166,6 @@ int main()
 	while (1)
 	{
 		net_main();
-		ethEngine->Process();
 //		osThreadYield();
 	}
 }

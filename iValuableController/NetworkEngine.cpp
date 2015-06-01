@@ -101,8 +101,11 @@ namespace IntelliStorage
 				code = SerializableObjects::CodeQueryRamp;
 				break;
 			case DeviceAttribute::InventoryInfo:
-				code = isWrite ? 
-					SerializableObjects::CodeSetInventoryInfo : SerializableObjects::CodeQueryInventoryInfo;
+				if (isWrite)	//No need response here for writing,
+					return;			//Bacause reponse already just after sending 
+				code = SerializableObjects::CodeQueryInventoryInfo;
+//				code = isWrite ? 
+//					SerializableObjects::CodeSetInventoryInfo : SerializableObjects::CodeQueryInventoryInfo;
 				break;
 			case DeviceAttribute::CalWeight:
 				if (!isWrite)
@@ -264,11 +267,7 @@ namespace IntelliStorage
 	
 
 //		CodeSetInventoryInfo		= 0x0C,
-//		CodeQueryInventoryInfo	= 0x0D,
 //		CodeSetInventory				= 0x0E,
-//		CodeLockControl					= 0x0F,
-//		CodeGuide								= 0x10,
-
 //		CodeQueryInventory			= 0xF2,
 	
 	void NetworkEngine::TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size)
@@ -342,6 +341,8 @@ namespace IntelliStorage
 		case SerializableObjects::CodeQueryRamp:
 		case SerializableObjects::CodeQueryConfig:
 		case SerializableObjects::CodeQuerySensorEnable:
+		case SerializableObjects::CodeQueryInventoryInfo:
+		case SerializableObjects::CodeQueryInventory:
 			BSON::Bson::Deserialize(stream, deviceDesc);
 			if (deviceDesc != nullptr)
 			{
@@ -356,6 +357,10 @@ namespace IntelliStorage
 						unit->RequestSensorConfig();
 					else if (code == SerializableObjects::CodeQuerySensorEnable)
 						unit->RequestSensorEnable();
+					else if (code == SerializableObjects::CodeQueryInventoryInfo)
+						unit->RequestInventoryInfos();
+					else if (code == SerializableObjects::CodeQueryInventory)
+						unit->RequestInventoryQuantities();
 				}
 				else
 					CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
@@ -381,9 +386,45 @@ namespace IntelliStorage
 			dataCollection = unitManager->PrepareData();
 			buffer = BSON::Bson::Serialize(dataCollection, bufferSize);
 			if (buffer!=nullptr && bufferSize>0)
-				tcp.SendData(SerializableObjects::CodeQueryInventory, buffer.get(), bufferSize);
+				tcp.SendData(code, buffer.get(), bufferSize);
 			break;
 		case SerializableObjects::CodeSetInventoryInfo:
+			BSON::Bson::Deserialize(stream, suppliesList);
+			if (suppliesList != nullptr)
+			{
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(suppliesList->GroupIndex, suppliesList->NodeIndex));
+				if (unit == nullptr)
+				{
+					CommandResponse(suppliesList->GroupIndex, suppliesList->NodeIndex, code, false);
+					break;
+				}
+				if (suppliesList->AllMaterialInfos.Count() == 0) //Clear
+					unit->ClearAllInventoryInfo();
+				else		//Set or modify
+				{
+					for (auto i=0; i<suppliesList->AllMaterialInfos.Count(); ++i)
+						unit->SetInventoryInfo(suppliesList->AllMaterialInfos[i]);
+					//Response once for all
+					CommandResponse(suppliesList->GroupIndex, suppliesList->NodeIndex, code, true);	
+				}
+			}
+			else
+				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
+			break;
+		case SerializableObjects::CodeSetInventory:
+			BSON::Bson::Deserialize(stream, quantityList);
+			if (suppliesList != nullptr)
+			{
+				auto unit = unitManager->FindUnit(StorageUnit::GetId(quantityList->GroupIndex, quantityList->NodeIndex));
+				if (unit == nullptr || quantityList->AllMaterialAmounts.Count() == 0)
+				{
+					CommandResponse(quantityList->GroupIndex, quantityList->NodeIndex, code, false);
+					break;
+				}
+				unit->SetInventoryQuantities(quantityList->AllMaterialAmounts);
+			}
+			else
+				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
 			break;
 		case SerializableObjects::CodeLockControl:
 			BSON::Bson::Deserialize(stream, deviceDesc);
