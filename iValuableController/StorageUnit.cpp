@@ -19,6 +19,13 @@ namespace IntelliStorage
 	{
 	}
 	
+	void StorageUnit::SetTemperature(CANExtended::CanEx &ex, float t)
+	{
+		CANExtended::OdEntry entry(DeviceAttribute::Temperature, 1);
+		entry.SetVal(reinterpret_cast<uint8_t *>(&t), sizeof(float));
+		ex.Broadcast(entry);
+	}
+	
 	void StorageUnit::SetZero(std::uint8_t flags, bool tare)
 	{
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(2);
@@ -55,13 +62,6 @@ namespace IntelliStorage
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(sizeof(float));
 		memcpy(data.get(), &weight, sizeof(float));
     WriteAttribute(DeviceAttribute::CalWeight, data, sizeof(float));
-	}
-	
-	void StorageUnit::SetTemperature(float t)
-	{
-		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(sizeof(float));
-		memcpy(data.get(), &t, sizeof(float));
-    WriteAttribute(DeviceAttribute::Temperature, data, sizeof(float));
 	}
 	
 	void StorageUnit::SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr)

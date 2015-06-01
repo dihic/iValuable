@@ -46,7 +46,11 @@ void HeatbeatTimer_Callback(void const *arg)
 	if (++hbcount>20)	// 20*500ms = 10s/hb
 	{
 		RequestTemperature();
+#ifdef DEBUG_PRINT
 		cout<<"Current Temperature: "<<CurrentTemperature<<endl;
+#endif
+		if (CanEx != nullptr)
+			StorageUnit::SetTemperature(*CanEx, CurrentTemperature);
 		hbcount = 0;
 		if (ethEngine.get()!=NULL) 
 			ethEngine->SendHeartBeat();

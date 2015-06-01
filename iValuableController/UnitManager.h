@@ -55,8 +55,7 @@ namespace IntelliStorage
 			//std::map<std::uint8_t, boost::shared_ptr<LockGroup> > &GetLockGroups() { return groupList; }
 			
 			void Traversal(bool forceReport);
-			
-			void UpdateLatest(boost::shared_ptr<CanDevice> &unit);
+		
 			boost::shared_ptr<RfidUnit> FindUnit(const std::string &cardId);
 			boost::shared_ptr<StorageUnit> FindUnit(std::uint16_t id);
 			boost::shared_ptr<SerializableObjects::UnitEntry> FindUnitEntry(std::uint16_t id);

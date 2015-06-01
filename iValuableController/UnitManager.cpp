@@ -63,21 +63,6 @@ namespace IntelliStorage
 		}
 	}
 	
-	void UnitManager::UpdateLatest(boost::shared_ptr<CanDevice> &unit)
-	{
-//		string cardId = unit->GetCardId();
-//		for (UnitIterator it = unitList.begin(); it != unitList.end(); ++it)
-//		{
-//			if (it->second->IsEmpty() || it->second==unit)
-//				continue;
-//			if (it->second->IsLatest() && cardId == it->second->GetCardId())
-//			{
-//				it->second->latest = false;
-//				it->second->IndicatorOff();
-//			}
-//		}
-	}
-	
 	boost::shared_ptr<RfidUnit> UnitManager::FindUnit(const std::string &cardId)
 	{
 		boost::shared_ptr<RfidUnit> result;

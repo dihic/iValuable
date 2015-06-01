@@ -56,6 +56,8 @@ namespace IntelliStorage
 			{
 				return ((groupId&0xf)<<3)|(nodeId&0x7);
 			}
+			
+			static void SetTemperature(CANExtended::CanEx &ex, float t);
 				
 			virtual ~StorageUnit() {}
 			
@@ -74,7 +76,6 @@ namespace IntelliStorage
 			void SetAutoRamp(std::uint8_t flags);
 			void SetSensorEnable(std::uint8_t flags);
 			void SetCalWeight(float weight);
-			void SetTemperature(float t);
 			void SetNotice(std::uint8_t level);
 			void LockControl(bool open);
 			void SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr);
