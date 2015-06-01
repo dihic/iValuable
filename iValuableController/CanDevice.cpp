@@ -17,7 +17,7 @@ CanDevice::CanDevice(CANExtended::CanEx &canex, std::uint16_t deviceId)
 		WorkThreadDef.reset(new osThreadDef_t);
 		WorkThreadDef->pthread = WorkThread;
 		WorkThreadDef->tpriority = osPriorityNormal;
-		WorkThreadDef->instances = 1;
+		WorkThreadDef->instances = 4;
 		WorkThreadDef->stacksize = 0;
 	}
 }
