@@ -64,6 +64,7 @@ class DataProcessor
 		void SetRamp(std::uint8_t ch, float ramp);
 		void SetZero(std::uint8_t ch, bool tare);
 		bool SetQuantity(std::uint8_t index, std::int32_t num);
+		bool SetQuantityById(std::uint64_t id, std::int32_t num);
 		
 		void SetConfig(const std::uint8_t *buf);
 		void SetTemperature(float t);

@@ -272,6 +272,14 @@ bool DataProcessor::SetQuantity(std::uint8_t index, std::int32_t num)
 	return true;
 }
 
+bool DataProcessor::SetQuantityById(std::uint64_t id, std::int32_t num)
+{
+	uint8_t index = 0xff;
+	if (FindSuppliesId(id, index))
+		return SetQuantity(index, num);
+	return false;
+}
+
 float DataProcessor::CalculateInventoryWeight(float &min, float &max)
 {
 	float total = 0;
@@ -307,7 +315,7 @@ bool DataProcessor::AddSupplies(const SuppliesInfo &info)
 
 void DataProcessor::RemoveSupplies(std::uint8_t index)
 {
-	memset(pSupplies[index], 0 ,sizeof(SuppliesInfo));
+	memset(pSupplies[index], 0, sizeof(SuppliesInfo));
 	if (WriteNV)
 		WriteNV(ADDR_INFO + index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
 }

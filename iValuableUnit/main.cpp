@@ -185,6 +185,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	uint8_t i;
 	float f, d;
 	uint64_t id;
+	uint16_t q;
 	bool result;
 	SuppliesInfo info;
 //	const uint8_t *data;
@@ -279,6 +280,17 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_UNIT_INFO:
+			if (entry->subindex==1 && entry->entrytype_len>=1 && entry->val[0] == 0xff)	//Clear All
+			{
+				for(i=0;i<SUPPLIES_NUM;++i)
+				{
+					Processor->RemoveSupplies(i);
+					SuppliesDisplay::DeleteString(i);
+				}
+				*(response->val)=0;
+				ForceDisplay = true;
+				break;
+			}
 			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
 					break;
 			if (entry->subindex==0)	//Read
@@ -313,13 +325,6 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				*(response->val)=0;
 				ForceDisplay = true;
 			}
-			else	//Remove above 2
-			{
-				Processor->RemoveSupplies(entry->val[0]);
-				SuppliesDisplay::DeleteString(entry->val[0]);
-				*(response->val)=0;
-				ForceDisplay = true;
-			}
 			break;
 		case OP_QUANTITY:
 			if (entry->subindex==0)	//Read quantities
@@ -345,8 +350,15 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			{
 				if (entry->val[0]==0 || entry->val[0]>SUPPLIES_NUM)
 					break;
-				for(i=0;i<entry->val[0];++i)
-					Processor->SetQuantity(entry->val[(i<<1)+1], entry->val[(i<<1)+2]);
+				uint8_t *ptr = entry->val;
+				for(i=0; i<entry->val[0]; ++i)
+				{
+					memcpy(&id, ptr, sizeof(uint64_t));
+					ptr += sizeof(uint64_t);
+					memcpy(&q, ptr, sizeof(uint16_t));
+					ptr += sizeof(uint16_t);
+					Processor->SetQuantityById(id, q);
+				}
 				Weights.Inventory = Processor->CalculateWeight(f, d);
 				Weights.Min = f;
 				Weights.Max = d;
@@ -402,7 +414,10 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case OP_NOTICE:
 			if (entry->subindex==1)
 			{
-				NoticeLogic::NoticeCommand = NOTICE_GUIDE;
+				if (entry->val[0] ==0)
+					NoticeLogic::NoticeCommand = NOTICE_CLEAR;
+				else if (entry->val[0] ==1)
+					NoticeLogic::NoticeCommand = NOTICE_GUIDE;
 				*(response->val)=0;
 			}
 			break;
