@@ -132,7 +132,7 @@ int main()
 	
 	SerializableObjects::CommStructures::Register();
 	
-	unitManager.reset(new UnitManager);
+	unitManager.reset(new UnitManager(Driver_USART3));
 	ethConfig.reset(new NetworkConfig(Driver_USART3));
 	
 	//Ethernet Init

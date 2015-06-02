@@ -2,14 +2,14 @@
 
 using namespace std;
 
-
-const std::uint8_t ConfigComm::dataHeader[3] = {0xfe, 0xfc, 0xfd};
+const std::uint8_t ConfigComm::dataHeader[5] = {0xfe, 0xfc, 0xfd, 0xfa, 0xfb};
 
 boost::shared_ptr<ConfigComm> ConfigComm::instance;
 
 boost::shared_ptr<ConfigComm> &ConfigComm::CreateInstance(ARM_DRIVER_USART &u)
 {
-	instance.reset(new ConfigComm(u));
+	if (instance == nullptr || &instance->uart != &u)
+		instance.reset(new ConfigComm(u));
 	return instance;
 }
 
@@ -45,7 +45,7 @@ extern "C"
 }
 
 ConfigComm::ConfigComm(ARM_DRIVER_USART &u)
-	:uart(u)
+	:uart(u), isStarted(false)
 {
 	uart.Initialize(UARTCallback);
 	uart.PowerControl(ARM_POWER_FULL);
@@ -64,6 +64,8 @@ ConfigComm::~ConfigComm()
 
 inline void ConfigComm::Start()
 {
+	if (isStarted)
+		return;
 	uart.Control(ARM_USART_CONTROL_TX, 1);
 	uart.Control(ARM_USART_CONTROL_RX, 1);
 	dataState = StateDelimiter1;
@@ -72,13 +74,17 @@ inline void ConfigComm::Start()
 	readRound = 0;
 	processRound = 0;
 	uart.Receive(buffer, CONFIG_BUFFER_SIZE);
+	isStarted = true;
 }
 	
 inline void ConfigComm::Stop()
 {
+	if (!isStarted)
+		return;
 	uart.Control(ARM_USART_CONTROL_TX, 0);
 	uart.Control(ARM_USART_CONTROL_RX, 0);
 	uart.Control(ARM_USART_ABORT_TRANSFER, 0);
+	isStarted = false;
 }
 
 void ConfigComm::DataReceiver()
@@ -101,6 +107,11 @@ void ConfigComm::DataReceiver()
 			case StateDelimiter2:
 				if (buffer[head] == dataHeader[1])
 					dataState = StateCommand;
+				else if (buffer[head] == dataHeader[3])
+				{
+					checksum = dataHeader[0] + dataHeader[3];
+					dataState = StateFileCommand;
+				}
 				else
 					dataState = StateDelimiter1;
 				break;
@@ -134,6 +145,41 @@ void ConfigComm::DataReceiver()
 					dataState = StateDelimiter1;
 				}
 				break;
+			case StateFileCommand:
+				checksum += (command = buffer[head]);
+				lenIndex = 0;
+				dataState = StateFileDataLength;
+				parameterLen = 0;
+				break;
+			case StateFileDataLength:
+				checksum += buffer[head];
+				parameterLen |= (buffer[head]<<(lenIndex<<3));
+				if (++lenIndex>1)
+				{
+					if (parameterLen == 0)
+					{
+						parameters.reset();
+						dataState = StateChecksum;
+					}
+					else
+					{
+						parameters = boost::make_shared<uint8_t[]>(parameterLen);
+						parameterIndex = 0;
+						dataState = StateFileData;
+					}
+				}
+				break;
+			case StateFileData:
+				checksum += (parameters[parameterIndex++] = buffer[head]);
+				if (parameterIndex >= parameterLen)
+					dataState = StateChecksum;
+				break;
+			case StateChecksum:
+				if ((checksum == buffer[head]) && OnFileCommandArrivalEvent)
+						OnFileCommandArrivalEvent(command,parameters.get(),parameterLen);
+				parameters.reset();
+				dataState = StateDelimiter1;
+				return;
 			default:
 				break;
 		}
@@ -171,6 +217,29 @@ bool ConfigComm::SendData(uint8_t command,const uint8_t *data,size_t len)
 		Sync();
 		uart.Send(data,len);
 	}
+	return true;
+}
+
+bool ConfigComm::SendFileData(uint8_t command,const uint8_t *data, size_t len)
+{
+	if (len>0xffff)
+		return false;
+	uint8_t pre[5]={ dataHeader[0], dataHeader[4], command, 
+									 static_cast<uint8_t>(len&0xff), static_cast<uint8_t>((len>>8)&0xff) };
+	uint8_t checksum = 0;
+	for(int i=0;i<5;i++)
+		checksum += pre[i];
+	for(int i=0;i<len;i++)
+		checksum += data[i];
+	Sync();
+	uart.Send(pre, 5);
+	if (len>0)
+	{
+		Sync();
+		uart.Send(data, len);
+	}
+	Sync();
+	uart.Send(&checksum, 1);
 	return true;
 }
 

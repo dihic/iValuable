@@ -498,6 +498,22 @@ void EraseFlash(void)
 	HAL_FLASHEx_Erase((FLASH_EraseInitTypeDef *)(&EraseInitTypeCurrent), &error);
 }
 
+static const uint32_t CODE_SECTORS[] = 
+	{FLASH_SECTOR_20, FLASH_SECTOR_21, FLASH_SECTOR_22, FLASH_SECTOR_23};
+
+void EraseCodeFlash(uint8_t num)
+{
+	uint32_t error;
+	FLASH_EraseInitTypeDef eraseInit = {
+		TYPEERASE_SECTORS,
+		FLASH_BANK_2,
+		CODE_SECTORS[num],
+		1,
+		VOLTAGE_RANGE_3
+	};
+	HAL_FLASHEx_Erase(&eraseInit, &error);
+}
+
 void PrepareWriteFlash(uint32_t addr, uint32_t size)
 {
 	uint32_t error;

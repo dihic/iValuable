@@ -33,8 +33,8 @@ static const uint8_t *MacRom = (const uint8_t *)(USER_ADDR+MAC_ADDRESS);
 //extern ARM_DRIVER_USART Driver_UART1;
 	
 NetworkConfig::NetworkConfig(ARM_DRIVER_USART &u)
+ :comm(ConfigComm::CreateInstance(u))
 {
-	comm = ConfigComm::CreateInstance(u).get();
 	comm->OnCommandArrivalEvent.bind(this, &NetworkConfig::CommandArrival);
 	Init();
 	comm->Start();

@@ -27,7 +27,7 @@ class NetworkConfig
 {
 	private:
 		uint8_t serviceEndpoint[6];
-		ConfigComm *comm;
+		const boost::shared_ptr<ConfigComm> &comm;
 		void GenerateMacAddress();
 		void CommandArrival(std::uint8_t command,std::uint8_t *parameters,std::size_t len);
 		void Init();

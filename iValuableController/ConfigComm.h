@@ -15,12 +15,13 @@ using namespace fastdelegate;
 class ConfigComm : public ISerialComm
 {
 	protected:
-		static const std::uint8_t dataHeader[3];
+		static const std::uint8_t dataHeader[5];
 		static boost::shared_ptr<ConfigComm> instance;
 		static void UARTCallback(uint32_t event);
 	
 		const ARM_DRIVER_USART &uart;
 		ConfigComm(ARM_DRIVER_USART &u);
+		bool isStarted;
 	private:
 		
 		enum StateType
@@ -30,6 +31,10 @@ class ConfigComm : public ISerialComm
 			StateCommand,
 			StateParameterLength,
 			StateParameters,
+			StateFileCommand,
+			StateFileDataLength,
+			StateFileData,
+			StateChecksum
 		};
 		
 		uint8_t buffer[CONFIG_BUFFER_SIZE];
@@ -40,6 +45,7 @@ class ConfigComm : public ISerialComm
 		
 		StateType dataState;
 		uint8_t checksum;
+		uint8_t lenIndex;
 		uint8_t command;
 		uint16_t parameterLen;
 		uint16_t parameterIndex;
@@ -53,13 +59,15 @@ class ConfigComm : public ISerialComm
 	
 		typedef FastDelegate3<std::uint8_t, std::uint8_t *, std::size_t> CommandArrivalHandler;
 		CommandArrivalHandler OnCommandArrivalEvent;
+		CommandArrivalHandler OnFileCommandArrivalEvent;
 		
 		virtual ~ConfigComm();
-		virtual void Start();
-		virtual void Stop();
-		virtual void DataReceiver();
-		virtual bool SendData(const std::uint8_t *data,std::size_t len);
-		virtual bool SendData(std::uint8_t command, const std::uint8_t *data,std::size_t len);
+		virtual void Start() override;
+		virtual void Stop() override;
+		virtual void DataReceiver() override;
+		virtual bool SendData(const std::uint8_t *data,std::size_t len) override;
+		virtual bool SendData(std::uint8_t command, const std::uint8_t *data,std::size_t len) override;
+		bool SendFileData(uint8_t command,const uint8_t *data, size_t len);
 };
 
 #endif

@@ -10,6 +10,7 @@
 #include "RfidUnit.h"
 #include "FastDelegate.h"
 #include "CommStructures.h"
+#include "ConfigComm.h"
 
 using namespace fastdelegate;
 
@@ -34,6 +35,27 @@ namespace IntelliStorage
 					bool IsChanged() const { return changed; }
 			};
 		private:
+			enum CommandType
+			{
+				CommandAccess				= 0xc2,
+				CommandWrite 				= 0xc4,
+				CommandWriteInfo		=	0xce,
+				CommandReadInfo 		= 0xcf,
+				CommandUpdate				= 0xd0,
+				CommandStatus				= 0xfe
+			};
+			enum ErrorType
+			{
+				NoError						= 0x00,
+				ErrorUnknown			= 0x01,
+				ErrorParameter		= 0x02,
+				ErrorChecksum			= 0x03,
+				ErrorFailure 			= 0x04,
+				ErrorBusy   			= 0x05,
+				ErrorLength   		= 0x06,
+				ErrorGeneric			= 0xff
+			};
+			const boost::shared_ptr<ConfigComm> &comm;
 			std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > unitList;
 			std::map<std::uint16_t, boost::shared_ptr<SerializableObjects::UnitEntry> > entryList;
 			std::map<std::uint8_t, boost::shared_ptr<LockGroup> > groupList;
@@ -42,13 +64,16 @@ namespace IntelliStorage
 			
 			boost::shared_ptr<LockGroup> ObtainGroup(std::uint8_t id);
 			void OnDoorChanged(std::uint8_t groupId, bool open);
+			void CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len);
+			static boost::scoped_ptr<osThreadDef_t> UpdateThreadDef;
+			static void UpdateThread(void const *arg);
 		public:
 			typedef FastDelegate1<boost::shared_ptr<RfidUnit> &> ReportRfidDataHandler;
 			typedef FastDelegate2<std::uint8_t, bool> ReportDoorDataHandler;
 			ReportRfidDataHandler ReportRfidDataEvent;
 			ReportDoorDataHandler ReportDoorDataEvent;
 		
-			UnitManager();
+			UnitManager(ARM_DRIVER_USART &u);
 			~UnitManager() {}
 			void Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			//std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > &GetList() { return unitList; }

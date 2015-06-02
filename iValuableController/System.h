@@ -32,6 +32,14 @@ extern RNG_HandleTypeDef RNGHandle;
 
 extern const uint8_t *UserFlash;
 
+#define CODE_TAG1		0xAA
+#define CODE_TAG2		0xBB
+
+static const uint32_t CODE_BASE[] = 
+	{0x08180000, 0x081A0000, 0x081C0000, 0x081E0000};
+
+#define CODE_SPACE_SIZE		0x00020000
+
 #ifdef __cplusplus
 extern "C" {
 #endif  /* __cplusplus */
@@ -40,6 +48,7 @@ void HAL_MspInit(void);
 
 void RequestTemperature(void);
 	
+void EraseCodeFlash(uint8_t num);
 void EraseFlash(void);
 void PrepareWriteFlash(uint32_t addr, uint32_t size);
 	

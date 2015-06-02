@@ -12,7 +12,7 @@ boost::scoped_ptr<osThreadDef_t> CanDevice::WorkThreadDef;
 CanDevice::CanDevice(CANExtended::CanEx &canex, std::uint16_t deviceId)
 	: CANExtended::ICanDevice(canex,deviceId), busy(false)
 {		
-	if (WorkThreadDef.get()==NULL)
+	if (WorkThreadDef == nullptr)
 	{
 		WorkThreadDef.reset(new osThreadDef_t);
 		WorkThreadDef->pthread = WorkThread;
