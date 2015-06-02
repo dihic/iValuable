@@ -1,4 +1,5 @@
 #include "RfidUnit.h"
+#include "System.h"
 
 using namespace std;
 
@@ -6,7 +7,7 @@ namespace IntelliStorage
 {	
 
 	RfidUnit::RfidUnit(StorageBasic &basic)
-		: UnityUnit(basic)
+		: UnityUnit(UNIT_TYPE_UNITY_RFID, basic)
 	{
 	}
 	

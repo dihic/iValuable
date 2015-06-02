@@ -9,6 +9,7 @@ namespace IntelliStorage
 	{
 		protected:
 			float totalWeight;
+			UnityUnit(std::uint8_t typeCode, StorageBasic &basic);
 		public:
 			UnityUnit(StorageBasic &basic);
 			virtual ~UnityUnit() {}

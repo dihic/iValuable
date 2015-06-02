@@ -52,8 +52,9 @@ namespace IntelliStorage
 			volatile bool allStable = false;
 			volatile bool inventoryExpected = false;
 			volatile float deltaWeight = 0;
-			StorageUnit(StorageBasic &basic);
+			StorageUnit(std::uint8_t typeCode, StorageBasic &basic);
 		public:		
+			const std::uint8_t TypeCode;
 			const std::uint16_t Version;
 			const std::uint8_t SensorNum;
 			const bool IsLockController : 1;
@@ -144,8 +145,8 @@ namespace IntelliStorage
 	{
 		protected:
 			boost::shared_ptr<T[]> scaleList; 
-			WeightBase<T>(StorageBasic &basic)
-				:StorageUnit(basic)
+			WeightBase<T>(std::uint8_t typeCode, StorageBasic &basic)
+				:StorageUnit(typeCode, basic)
 			{
 				scaleList = boost::make_shared<T[]>(basic.SensorNum);
 			}

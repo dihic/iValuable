@@ -1,11 +1,12 @@
 #include "IndependentUnit.h"
+#include "System.h"
 
 using namespace std;
 
 namespace IntelliStorage
 {			
 	IndependentUnit::IndependentUnit(StorageBasic &basic)
-		: WeightBase<ScaleData>(basic)
+		: WeightBase<ScaleData>(UNIT_TYPE_INDEPENDENT, basic)
 	{
 		
 	}

@@ -1,11 +1,19 @@
 #include "UnityUnit.h"
+#include "System.h"
+
 
 using namespace std;
 
 namespace IntelliStorage
 {		
 	UnityUnit::UnityUnit(StorageBasic &basic)
-		: WeightBase<std::uint8_t>(basic)
+		: WeightBase<std::uint8_t>(UNIT_TYPE_UNITY, basic)
+	{
+		
+	}
+	
+	UnityUnit::UnityUnit(std::uint8_t typeCode, StorageBasic &basic)
+		: WeightBase<std::uint8_t>(typeCode, basic)
 	{
 		
 	}
