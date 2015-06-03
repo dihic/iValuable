@@ -98,7 +98,8 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 	if (state != CANExtended::Operational)
 		return;
 	auto unit = unitManager->FindUnit(sourceId&0x7f);
-	if (unit == nullptr)
+	bool updated = (unit!=nullptr) && (unit->UpdateStatus()==StorageUnit::Updated);
+	if (unit == nullptr || updated)
 	{
 		StorageBasic basic(CanEx);
 		basic.DeviceId = sourceId;
@@ -121,12 +122,10 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		}
 		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
 		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
-		unitManager->Add(sourceId&0x7f, unit);
-	}
-	else
-	{
-		if (unit->UpdateStatus() == StorageUnit::Updated)
+		if (updated)
 			unitManager->Recover(sourceId&0x7f, unit);
+		else
+			unitManager->Add(sourceId&0x7f, unit);
 	}
 	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
 }
