@@ -44,3 +44,6 @@ JLinkLog.txt
 
 **/objects/
 **/boost/
+**/obj/
+**/bin/
+*.suo
