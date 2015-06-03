@@ -44,16 +44,28 @@ namespace IntelliStorage
 			~StorageBasic() {}
 	};
 	
+	class UnitManager;
+	
 	class StorageUnit : public CanDevice
 	{
+		public:
+			friend class UnitManager;
+			enum UpdateState
+			{
+				Idle,
+				Updating,
+				Updated,
+			};
 		protected:
 			volatile std::uint8_t sensorFlags = 0xff;
 			volatile bool isDoorOpen = false;
 			volatile bool allStable = false;
 			volatile bool inventoryExpected = false;
 			volatile float deltaWeight = 0;
+			volatile UpdateState updateStatus = UpdateState::Idle;
 			StorageUnit(std::uint8_t typeCode, StorageBasic &basic);
 		public:		
+			
 			const std::uint8_t TypeCode;
 			const std::uint16_t Version;
 			const std::uint8_t SensorNum;
@@ -134,8 +146,11 @@ namespace IntelliStorage
 			
 			void EnterCanISP()
 			{
+				updateStatus = UpdateState::Updating;
 				canex.Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
 			}
+			
+			UpdateState UpdateStatus() const { return updateStatus; }
 			
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
 	};

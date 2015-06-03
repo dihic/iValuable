@@ -11,6 +11,7 @@
 #include "FastDelegate.h"
 #include "CommStructures.h"
 #include "ConfigComm.h"
+#include "ISPProgram.h"
 
 using namespace fastdelegate;
 
@@ -55,7 +56,23 @@ namespace IntelliStorage
 				ErrorLength   		= 0x06,
 				ErrorGeneric			= 0xff
 			};
+			
+			enum UpdateType
+			{
+				UpdateAll,
+				UpdateType,
+				UpdateSingle,
+			};
+			
+			struct UpdateThreadArgs
+			{
+				UnitManager *Manager;
+				std::uint8_t Routine;
+				std::uint8_t UnitType;
+				std::uint8_t Id;
+			};
 			const boost::shared_ptr<ConfigComm> &comm;
+			const boost::scoped_ptr<ISPProgram> &updater;
 			std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > unitList;
 			std::map<std::uint16_t, boost::shared_ptr<SerializableObjects::UnitEntry> > entryList;
 			std::map<std::uint8_t, boost::shared_ptr<LockGroup> > groupList;
@@ -66,6 +83,7 @@ namespace IntelliStorage
 			void OnDoorChanged(std::uint8_t groupId, bool open);
 			void CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len);
 			static boost::scoped_ptr<osThreadDef_t> UpdateThreadDef;
+			static bool UpdateOne(UnitManager *manager, boost::shared_ptr<StorageUnit> &unit, std::uint8_t type=0x00);
 			static void UpdateThread(void const *arg);
 		public:
 			typedef FastDelegate1<boost::shared_ptr<RfidUnit> &> ReportRfidDataHandler;
@@ -73,8 +91,9 @@ namespace IntelliStorage
 			ReportRfidDataHandler ReportRfidDataEvent;
 			ReportDoorDataHandler ReportDoorDataEvent;
 		
-			UnitManager(ARM_DRIVER_USART &u);
+			UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp);
 			~UnitManager() {}
+			void Recover(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			void Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			//std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > &GetList() { return unitList; }
 			//std::map<std::uint8_t, boost::shared_ptr<LockGroup> > &GetLockGroups() { return groupList; }

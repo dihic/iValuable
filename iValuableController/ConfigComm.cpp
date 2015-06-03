@@ -62,7 +62,7 @@ ConfigComm::~ConfigComm()
 	uart.Uninitialize();
 }
 
-inline void ConfigComm::Start()
+void ConfigComm::Start()
 {
 	if (isStarted)
 		return;
@@ -77,7 +77,7 @@ inline void ConfigComm::Start()
 	isStarted = true;
 }
 	
-inline void ConfigComm::Stop()
+void ConfigComm::Stop()
 {
 	if (!isStarted)
 		return;

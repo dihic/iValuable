@@ -538,6 +538,16 @@
               <FileType>8</FileType>
               <FilePath>.\IndependentUnit.cpp</FilePath>
             </File>
+            <File>
+              <FileName>ISPComm.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\ISPComm.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ISPProgram.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\ISPProgram.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

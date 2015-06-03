@@ -36,8 +36,8 @@ namespace IntelliStorage
 			LockOne();
 	}
 	
-	UnitManager::UnitManager(ARM_DRIVER_USART &u)
-		:comm(ConfigComm::CreateInstance(u))
+	UnitManager::UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp)
+		:comm(ConfigComm::CreateInstance(u)), updater(isp)
 	{
 		dataCollection.reset(new SerializableObjects::UnitEntryCollection);
 		if (UpdateThreadDef == nullptr)
@@ -46,16 +46,100 @@ namespace IntelliStorage
 		comm->Start();
 	}
 	
+	bool UnitManager::UpdateOne(UnitManager *manager, boost::shared_ptr<StorageUnit> &unit, std::uint8_t type)
+	{
+		//Determine FW data and size
+		const uint8_t *ptr = NULL;
+		uint16_t size = 0;
+		if (type==0)
+			type = unit->TypeCode;
+		uint8_t i;
+		for(i=0; i<4; ++i)
+		{
+			ptr = (const uint8_t *)(CODE_BASE[i]);
+			if (ptr[0]!=CODE_TAG1 || ptr[1]!=CODE_TAG2 || ptr[3]!=0x00)
+				continue;
+			if (ptr[2]==type)
+			{
+				size = ptr[6]|(ptr[7]<<8);
+				ptr += 8;
+				break;
+			}
+		}
+		if (i>=4)		//Unfound
+			return false;
+		
+		//Make unit entering ISP mode
+		unit->EnterCanISP();
+		osDelay(100);
+		
+		if (!manager->updater->FindDevice())
+			return false;
+		if (!manager->updater->Format())
+			return false;
+		
+		//Program 
+		for(i=0;i<(size>>8);++i)
+		{
+			if (!manager->updater->ProgramData(i, ptr, 0x100))
+				return false;
+			ptr+=0x100;
+		}
+		if (size&0xff)
+			if (!manager->updater->ProgramData(i, ptr, size&0xff))
+				return false;
+		
+		unit->updateStatus = StorageUnit::Updated;
+		
+		if (!manager->updater->RestartDevice())
+			return false;
+		osDelay(100);
+		
+		unit->canex.Sync(unit->DeviceId, DeviceSync::SyncLive, CANExtended::Trigger);
+		return true;
+	}
+	
 	void UnitManager::UpdateThread(void const *arg)
 	{
-		auto manager = reinterpret_cast<UnitManager *>(const_cast<void *>(arg));
-		if (manager==NULL)
+		if (arg==NULL)
 			return;
-		for(auto it=manager->unitList.begin() ; it!=manager->unitList.end(); ++it)
+		auto updater = reinterpret_cast<UpdateThreadArgs *>(const_cast<void *>(arg));
+		auto manager = updater->Manager;
+		boost::shared_ptr<StorageUnit> unit;
+		
+		uint8_t status[2];
+		switch (updater->Routine)
 		{
-			it->second->EnterCanISP();
-			//Request for updating
+			case UpdateAll:
+				for(auto it=manager->unitList.begin() ; it!=manager->unitList.end(); ++it)
+				{
+					status[0] = it->second->DeviceId & 0x7f;
+					status[1] = UpdateOne(manager, it->second);
+					manager->comm->SendFileData(CommandUpdate, status, 2);
+				}
+				break;
+			case UpdateType:
+				for(auto it=manager->unitList.begin() ; it!=manager->unitList.end(); ++it)
+				{
+					if (it->second->TypeCode != updater->UnitType)
+						continue;
+					status[0] = it->second->DeviceId & 0x7f;
+					status[1] = UpdateOne(manager, it->second);
+					manager->comm->SendFileData(CommandUpdate, status, 2);
+				}
+				break;
+			case UpdateSingle:
+				status[0] = updater->Id;
+				status[1] = 0;
+				unit = manager->FindUnit(updater->Id);
+				if (unit != nullptr)
+					status[1] = UpdateOne(manager, unit, updater->UnitType);
+				manager->comm->SendFileData(CommandUpdate, status, 2);
+				break;
+			default:
+				break;
 		}
+		delete updater;
 	}
 	
 	void UnitManager::CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len)
@@ -66,8 +150,9 @@ namespace IntelliStorage
 		boost::shared_ptr<uint8_t[]> data;
 		uint16_t dataLen, temp;
 		uint32_t word;
-		uint8_t *ptr;
+		const uint8_t *ptr;
 		osThreadId tid;
+		UpdateThreadArgs *args;
 		
 		switch (command)
 		{
@@ -90,7 +175,7 @@ namespace IntelliStorage
 					break;
 				}
 				dataLen = parameters[0] | (parameters[1]<<8);
-				ptr = (uint8_t *)(CODE_BASE[index]+6);
+				ptr = (const uint8_t *)(CODE_BASE[index]+6);
 				memcpy(&temp, ptr, 2);	//File size
 				if ((dataLen!=len-2) || (offset+dataLen-8>temp))	//If current transmit length mismatch or over total file size
 				{
@@ -98,7 +183,7 @@ namespace IntelliStorage
 					comm->SendFileData(CommandStatus, status, 2);
 					break;
 				}
-				status[0] = (offset+dataLen-8 == temp); //Is file completed
+				status[0] = (offset+dataLen-8 == temp); //If file completed
 					
 				ptr = parameters+2;
 				for(auto i=0;i<(dataLen>>2);++i)
@@ -172,12 +257,22 @@ namespace IntelliStorage
 				}
 				break;
 			case CommandUpdate:
-				tid = osThreadCreate(UpdateThreadDef.get(), this);
+				if (len<3)
+				{
+					status[1] = ErrorParameter;
+					comm->SendFileData(CommandStatus, status, 2);
+					break;
+				}
+				args = new UpdateThreadArgs { this, parameters[0], parameters[1], parameters[2] };
+				
+				tid = osThreadCreate(UpdateThreadDef.get(), args);
 				if (tid==NULL)
 				{
+					delete args;
 					status[1] = ErrorBusy;
 					comm->SendFileData(CommandStatus, status, 2);
 				}
+				
 				break;
 			default:
 				status[1] = ErrorUnknown;
@@ -286,6 +381,13 @@ namespace IntelliStorage
 			groupList[groupId]->UnlockOne();
 		else
 			groupList[groupId]->LockOne();
+	}
+	
+	void UnitManager::Recover(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit) 
+	{
+		unitList.erase(id);
+		unit->OnDoorChangedEvent.bind(this, &UnitManager::OnDoorChanged);
+		unitList[id] = unit; 
 	}
 	
 	void UnitManager::Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit) 

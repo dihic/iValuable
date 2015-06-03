@@ -122,15 +122,6 @@ namespace IntelliStorage
 		WriteAttribute(DeviceAttribute::InventoryInfo, data, 1);
 	}
 	
-//	void StorageUnit::SetInventoryQuantity(std::uint8_t index, std::uint16_t q)
-//	{
-//		boost::shared_ptr<std::uint8_t[]> data = boost::make_shared<std::uint8_t[]>(3);
-//		data[0] = index;
-//		data[1] = q&0xff;
-//		data[2] = q>>8;
-//		WriteAttribute(DeviceAttribute::InventoryQuantity, data, 3);
-//	}
-	
 	void StorageUnit::SetInventoryQuantities(Array<SerializableObjects::InventoryQuantity> &quantities)
 	{
 		const size_t size = (sizeof(uint64_t)+2)*quantities.Count()+1;
