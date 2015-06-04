@@ -4,6 +4,7 @@ using System.Configuration;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Threading;
 
 namespace FWUpdater
 {
@@ -87,6 +88,14 @@ namespace FWUpdater
                 return;
             }
 
+            if (file.Length > 32768)
+            {
+                file.Close();
+                Console.WriteLine("File Too Large >32KB!");
+                return;
+            }
+            Console.WriteLine("File Size: "+file.Length+" bytes");
+
             comm.SendCommand(CommandType.Access, new[] {index});
             Console.Write("Writing Info .");
             comm.SendCommand(CommandType.WriteInfo, Helper.PrepareInfo(type, version, file.Length));
@@ -105,16 +114,22 @@ namespace FWUpdater
                     Helper.ValidateCode(buffer);
                     first = false;
                 }
-                try
+                var count = 3;
+                while (count > 0)
                 {
-                    comm.SendCommand(CommandType.Write, buffer);
+                    try
+                    {
+                        comm.SendCommand(CommandType.Write, buffer);
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        if (count-- != 0) continue;
+                        file.Close();
+                        throw;
+                    }
                 }
-                catch (Exception)
-                {
-                    file.Close();
-                    throw;
-                }
-                //Thread.Sleep(500);
+                //Thread.Sleep(100);
             } while (file.Position < file.Length);
             file.Close();
         }
@@ -208,7 +223,14 @@ namespace FWUpdater
                         Console.WriteLine("Invalid Version Format!");
                         return;
                     }
-                    program.SendFile(index, type, ver, args[4]);
+                    try
+                    {
+                        program.SendFile(index, type, ver, args[4]);
+                    }
+                    catch (IOException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
                     break;
                 case CommandType.Info:
                     if (args.Length > 2)
