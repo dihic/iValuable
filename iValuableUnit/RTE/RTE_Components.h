@@ -4,7 +4,7 @@
  *      *** Do not modify ! ***
  *
  * Project: 'iValuableUnit' 
- * Target:  'Debug' 
+ * Target:  'Independent' 
  */
 
 #ifndef RTE_COMPONENTS_H
