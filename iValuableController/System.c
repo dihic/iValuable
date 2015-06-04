@@ -511,7 +511,9 @@ void EraseCodeFlash(uint8_t num)
 		1,
 		VOLTAGE_RANGE_3
 	};
+	HAL_FLASH_Unlock();
 	HAL_FLASHEx_Erase(&eraseInit, &error);
+	HAL_FLASH_Lock();
 }
 
 void PrepareWriteFlash(uint32_t addr, uint32_t size)

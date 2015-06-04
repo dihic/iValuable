@@ -140,6 +140,9 @@ namespace IntelliStorage
 				break;
 		}
 		delete updater;
+		status[0] = 0xff;
+		status[1] = 0;
+		manager->comm->SendFileData(CommandUpdate, status, 2);
 	}
 	
 	void UnitManager::CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len)
@@ -148,7 +151,7 @@ namespace IntelliStorage
 		static uint8_t index = 0; 
 		uint8_t status[2] = {command, NoError};
 		boost::shared_ptr<uint8_t[]> data;
-		uint16_t dataLen, temp;
+		uint16_t size;
 		uint32_t word;
 		const uint8_t *ptr;
 		osThreadId tid;
@@ -158,14 +161,18 @@ namespace IntelliStorage
 		{
 			case CommandAccess:
 				if (len<1 || parameters[0]>=4)
+				{
 					status[1] = ErrorParameter;
+					comm->SendFileData(CommandStatus, status, 2);
+				}
 				else
 				{
 					index = parameters[0];
 					offset = 0;
 					EraseCodeFlash(index);
+					status[0] = index;
+					comm->SendFileData(command, status, 1);
 				}
-				comm->SendFileData(CommandStatus, status, 2);
 				break;
 			case CommandWrite:
 				if (len<=2)
@@ -174,35 +181,36 @@ namespace IntelliStorage
 					comm->SendFileData(CommandStatus, status, 2);
 					break;
 				}
-				dataLen = parameters[0] | (parameters[1]<<8);
 				ptr = (const uint8_t *)(CODE_BASE[index]+6);
-				memcpy(&temp, ptr, 2);	//File size
-				if ((dataLen!=len-2) || (offset+dataLen-8>temp))	//If current transmit length mismatch or over total file size
+				memcpy(&size, ptr, 2);	//File size
+				if (offset+len-8>size)	//If current transmit length over total file size
 				{
 					status[1] = ErrorLength;
 					comm->SendFileData(CommandStatus, status, 2);
 					break;
 				}
-				status[0] = (offset+dataLen-8 == temp); //If file completed
+				status[0] = (offset+len-8 == size); //If file completed
 					
 				ptr = parameters+2;
-				for(auto i=0;i<(dataLen>>2);++i)
+				HAL_FLASH_Unlock();
+				for(auto i=0;i<(len>>2);++i)
 				{
 					memcpy(&word, ptr, 4);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
 					offset+=4;
 					ptr+=4;
 				}
-				dataLen&=0x3;
-				if (dataLen)
+				len&=0x3;
+				if (len)
 				{
 					word=0;
-					memcpy(&word, ptr, dataLen);
+					memcpy(&word, ptr, len);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
-					offset+=dataLen;
+					offset+=len;
 				}
 				if (status[0])
 					HAL_FLASH_Program(TYPEPROGRAM_BYTE, CODE_BASE[index]+3, 0x00);	//Tag for file completed
+				HAL_FLASH_Lock();
 				comm->SendFileData(command, status, 1);	//Return if file completed or not
 				break;
 			case CommandWriteInfo:
@@ -215,22 +223,28 @@ namespace IntelliStorage
 				if (len<8)
 				{
 					status[1] = ErrorParameter;
+					comm->SendFileData(CommandStatus, status, 2);
 				}
 				else
 				{
 					if (parameters[0]==CODE_TAG1 && parameters[1]==CODE_TAG2)
 					{
+						HAL_FLASH_Unlock();
 						parameters[3] = 0xff;	//Incompleted
 						memcpy(&word, parameters, 4);
 						HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index], word);
 						memcpy(&word, parameters+4, 4);
 						HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+4, word);
+						HAL_FLASH_Lock();
 						offset = 8;
+						comm->SendFileData(command, status+1, 1);
 					}
 					else
+					{
 						status[1] = ErrorParameter;
+						comm->SendFileData(CommandStatus, status, 2);
+					}
 				}
-				comm->SendFileData(CommandStatus, status, 2);
 				break;
 			case CommandReadInfo:
 				if (len>0 && parameters[0]>=4)
@@ -241,14 +255,14 @@ namespace IntelliStorage
 				}
 				if (len==0)
 				{
-					dataLen = 32;
-					data = boost::make_shared<uint8_t[]>(dataLen);
+					size = 32;
+					data = boost::make_shared<uint8_t[]>(size);
 					for(auto i=0; i<4; ++i)
 					{
-						ptr = (uint8_t *)(CODE_BASE[parameters[0]]);
+						ptr = (uint8_t *)(CODE_BASE[i]);
 						memcpy(data.get()+i*8, ptr, 8);
 					}
-					comm->SendFileData(command, data.get(), dataLen);
+					comm->SendFileData(command, data.get(), size);
 				}
 				else
 				{
