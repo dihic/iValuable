@@ -349,14 +349,14 @@ typedef struct
 #define ADC_CHANNEL_17          ((uint32_t)(ADC_CR1_AWDCH_4 | ADC_CR1_AWDCH_0))
 #define ADC_CHANNEL_18          ((uint32_t)(ADC_CR1_AWDCH_4 | ADC_CR1_AWDCH_1))
 
-#if defined(STM32F405xx) || defined(STM32F415xx) || defined(STM32F407xx) || defined(STM32F417xx) || defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx)
+#if defined(STM32F405xx) || defined(STM32F415xx) || defined(STM32F407xx) || defined(STM32F417xx)
 #define ADC_CHANNEL_TEMPSENSOR  ((uint32_t)ADC_CHANNEL_16)
 #endif /* STM32F405xx || STM32F415xx || STM32F407xx || STM32F417xx || STM32F427xx || STM32F437xx || STM32F429xx || STM32F439xx */
  
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx)
 #define ADC_CHANNEL_TEMPSENSOR  ((uint32_t)ADC_CHANNEL_18)
 #endif /* STM32F427xx || STM32F437xx || STM32F429xx || STM32F439xx */
-
+	
 #define ADC_CHANNEL_VREFINT     ((uint32_t)ADC_CHANNEL_17)
 #define ADC_CHANNEL_VBAT        ((uint32_t)ADC_CHANNEL_18)
 
