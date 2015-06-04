@@ -1,4 +1,6 @@
-﻿using System.IO.Ports;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.IO.Ports;
 using System.Threading;
 
 namespace FWUpdater
@@ -15,6 +17,7 @@ namespace FWUpdater
 
     class SerialComm
     {
+        public delegate void DataArrival(CommandType code, byte[] data);
         private enum StateType : byte
         {
             Delimiter1,
@@ -26,9 +29,9 @@ namespace FWUpdater
         };
 
         private readonly SerialPort serial;
-        //public event DataArrival DataArrivalEvent;
-        private CommandType resultCommand;
-        private byte[] resultData;
+        public event DataArrival DataArrivalEvent;
+       // private CommandType resultCommand;
+       // private byte[] resultData;
 
         public SerialComm(string port)
         {
@@ -52,6 +55,12 @@ namespace FWUpdater
 
         private byte[] recieveData;
 
+        private CommandType? syncCommand;
+
+        private readonly Queue<KeyValuePair<CommandType, byte[]>> messageQueue = 
+            new Queue<KeyValuePair<CommandType, byte[]>>(); 
+
+        // ReSharper disable once FunctionComplexityOverflow
         private void SerialDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             var count = serial.BytesToRead;
@@ -104,26 +113,46 @@ namespace FWUpdater
                             dataState = StateType.Checksum;
                         break;
                     case StateType.Checksum:
+                        dataState = StateType.Delimiter1;
                         if (sumcheck == b)
                         {
-                            resultCommand = (CommandType)command;
-                            resultData = recieveData;
-                            syncEvent.Set();
-                            //if (DataArrivalEvent != null)
-                            //    DataArrivalEvent((CommandType) command, recieveData);
+                            if (syncCommand == null)
+                            {
+                                if (DataArrivalEvent != null)
+                                    DataArrivalEvent((CommandType)command, recieveData);
+                            }
+                            else
+                            {
+                                var resultData = new byte[recieveData.Length];
+                                recieveData.CopyTo(resultData, 0);
+                                messageQueue.Enqueue(new KeyValuePair<CommandType, byte[]>((CommandType) command,
+                                    resultData));
+                                syncEvent.Set();
+                            }
                         }
-                        dataState = StateType.Delimiter1;
                         break;
                 }
                 count--;
             }
         }
 
-        public byte[] SendCommand(CommandType code, byte[] data = null)
+        public void SendCommand(CommandType code, byte[] data, bool async = false)
         {
+            if (!async)
+            {
+                syncEvent.Reset();
+                syncCommand = code;
+            }
             Send(code, data);
-            syncEvent.WaitOne(Timeout.Infinite);
-            return resultCommand == code ? resultData : null;
+            if (async)
+                return;
+            
+            if (!syncEvent.WaitOne(2000))
+                throw new IOException("Communication No Response!");
+            syncCommand = null;
+            var message = messageQueue.Dequeue();
+            if (DataArrivalEvent != null)
+                DataArrivalEvent(message.Key, message.Value);
         }
 
         private void Send(CommandType com, byte[] data)
