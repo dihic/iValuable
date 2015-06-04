@@ -29,7 +29,7 @@ namespace FWUpdater
 
         public static bool ParseInfo(IReadOnlyList<byte> info, int offset)
         {
-            if (offset + 8 >= info.Count)
+            if (offset + 8 > info.Count)
                 return false;
             if (info[offset] != 0xAA || info[offset + 1] != 0xBB)
                 return false;
