@@ -233,6 +233,7 @@ namespace FWUpdater
                 Console.WriteLine("Available commands: ");
                 Console.WriteLine(" Write (index) (type) (version) (filepath)");
                 Console.WriteLine(" Info [(index)]");
+                Console.WriteLine(" Devices");
                 Console.WriteLine(" Update All");
                 Console.WriteLine(" Update (type)");
                 Console.WriteLine(" Update (id) [(type)]");
