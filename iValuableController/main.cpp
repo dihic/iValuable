@@ -127,7 +127,8 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		else
 			unitManager->Add(sourceId&0x7f, unit);
 	}
-	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
+	//CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
+	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::Trigger);
 }
 
 
