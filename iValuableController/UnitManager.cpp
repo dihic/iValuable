@@ -154,6 +154,7 @@ namespace IntelliStorage
 		uint16_t size;
 		uint32_t word;
 		const uint8_t *ptr;
+		uint8_t *p;
 		osThreadId tid;
 		UpdateThreadArgs *args;
 		
@@ -286,7 +287,26 @@ namespace IntelliStorage
 					status[1] = ErrorBusy;
 					comm->SendFileData(CommandStatus, status, 2);
 				}
-				
+				break;
+			case CommandDevices:
+				size = unitList.size()*4;
+				data = boost::make_shared<uint8_t[]>(size+1);
+				data[0] = unitList.size();
+				if (size==0)
+				{
+					comm->SendFileData(command, data.get(), 1);
+					break;
+				}
+				p = data.get()+1;
+				for(auto it=unitList.begin() ; it!=unitList.end(); ++it)
+				{
+					p[0] = it->second->DeviceId & 0xff;
+					p[1] = it->second->TypeCode;
+					p[2] = it->second->Version>>8;
+					p[3] = it->second->Version&0xff;
+					p += 4;
+				}
+				comm->SendFileData(command, data.get(), size);
 				break;
 			default:
 				status[1] = ErrorUnknown;

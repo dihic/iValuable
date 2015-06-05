@@ -43,6 +43,7 @@ namespace IntelliStorage
 				CommandWriteInfo		=	0xce,
 				CommandReadInfo 		= 0xcf,
 				CommandUpdate				= 0xd0,
+				CommandDevices			= 0xd1,
 				CommandStatus				= 0xfe
 			};
 			enum ErrorType
