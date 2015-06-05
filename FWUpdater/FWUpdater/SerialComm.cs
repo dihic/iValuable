@@ -12,12 +12,15 @@ namespace FWUpdater
         WriteInfo = 0xce,
         Info = 0xcf,
         Update = 0xd0,
+        Devices = 0xd1,
         Status = 0xfe
     };
 
     class SerialComm
     {
         public delegate void DataArrival(CommandType code, byte[] data);
+        public event DataArrival DataArrivalEvent;
+
         private enum StateType : byte
         {
             Delimiter1,
@@ -29,9 +32,12 @@ namespace FWUpdater
         };
 
         private readonly SerialPort serial;
-        public event DataArrival DataArrivalEvent;
-       // private CommandType resultCommand;
-       // private byte[] resultData;
+
+        private const int DefaultTimeout = 100;
+        private int timeout = DefaultTimeout;
+
+        public int Timeout { set { timeout = value; } }
+        public void TimeoutDefault() { timeout = DefaultTimeout; }
 
         public SerialComm(string port)
         {
@@ -147,7 +153,7 @@ namespace FWUpdater
             if (async)
                 return;
             
-            if (!syncEvent.WaitOne(2000))
+            if (!syncEvent.WaitOne(timeout))
                 throw new IOException("Communication No Response!");
             syncCommand = null;
             var message = messageQueue.Dequeue();

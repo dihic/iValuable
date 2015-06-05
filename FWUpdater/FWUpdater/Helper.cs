@@ -6,6 +6,7 @@ namespace FWUpdater
 {
     public enum UnitType : byte
     {
+        Same = 0,
         Indpt = 0x80,
         Unity = 0x81,
         Rfid = 0x82

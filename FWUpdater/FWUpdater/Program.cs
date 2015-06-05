@@ -11,6 +11,9 @@ namespace FWUpdater
     class Program
     {
         private readonly SerialComm comm;
+        private int updateTotal;
+        private int updateCount;
+        private readonly AutoResetEvent updatedEvent = new AutoResetEvent(false);
 
         enum ErrorType
         {
@@ -58,11 +61,45 @@ namespace FWUpdater
                     }
                     break;
                 case CommandType.Update:
+                    if (data[0] == 0xff)
+                        updatedEvent.Set();
+                    else
+                    {
+                        ++updateTotal;
+                        if (data[1] != 0)
+                            ++updateCount;
+                        Console.WriteLine(" #Device 0x" + data[0].ToString("x2") +
+                                          ((data[1] == 0) ? " Update Failed!" : "Updated"));
+                    }
+                    break;
+                case CommandType.Devices:
+                    if (data.Length == 0 || data[0]*4 + 1 != data.Length)
+                    {
+                        Console.WriteLine("Response Error!");
+                        break;
+                    }
+                    if (data[0] == 0)
+                    {
+                        Console.WriteLine("No Device Connected!");
+                        break;
+                    }
+                    Console.WriteLine("There " + ((data[0] == 1) ? "is only one device":"are "+(int)data[0]+" devices") + " connected.");
+                    for (var i = 0; i < data[0]; ++i)
+                    {
+                        Console.WriteLine(" #Device 0x" + (data[i*4 + 1]&0x7f).ToString("x2"));
+                        Console.WriteLine("  Lock Control: "+ ((data[i*4+1]&0x80)!=0 ? "Enable":"Disable"));
+                        Console.WriteLine("  Unit Type: " + (UnitType) data[i*4 + 2]);
+                        Console.WriteLine("  FW Version: " + (int) data[i*4 + 3] + "." + (int) data[i*4 + 4]);
+                    }
                     break;
                 case CommandType.Status:
                     var errorCommand = (CommandType) data[0];
                     var errorCode = (ErrorType) data[1];
-                    throw new Exception(errorCommand + " Error: " + errorCode);
+                    //if (updating)
+                    //    Console.WriteLine(errorCommand + " Error: " + errorCode);
+                    //else
+                        throw new Exception(errorCommand + " Error: " + errorCode);
+//                    break;
                 default:
                     throw new ArgumentOutOfRangeException("code");
             }
@@ -95,8 +132,9 @@ namespace FWUpdater
                 return;
             }
             Console.WriteLine("File Size: "+file.Length+" bytes");
-
+            comm.Timeout = 2000;
             comm.SendCommand(CommandType.Access, new[] {index});
+            comm.TimeoutDefault();
             Console.Write("Writing Info .");
             comm.SendCommand(CommandType.WriteInfo, Helper.PrepareInfo(type, version, file.Length));
            
@@ -129,9 +167,30 @@ namespace FWUpdater
                         throw;
                     }
                 }
-                //Thread.Sleep(100);
             } while (file.Position < file.Length);
             file.Close();
+        }
+
+        public void UpdateAll()
+        {
+            Console.WriteLine("Updating Started...");
+            comm.SendCommand(CommandType.Update, new byte[] {0, 0, 0}, true);
+            updatedEvent.WaitOne(Timeout.Infinite);
+            if (updateTotal==0)
+                Console.WriteLine("None Updated");
+            else
+                Console.WriteLine(updateCount+" of "+updateTotal+" Devices Updated Successfully");
+        }
+
+        public void Update(UnitType type, byte id = 0xff)
+        {
+            Console.WriteLine("Updating Started...");
+            comm.SendCommand(CommandType.Update, new[] {(byte) (id == 0xff ? 1 : 2), (byte) type, id}, true);
+            updatedEvent.WaitOne(Timeout.Infinite);
+            if (updateTotal == 0)
+                Console.WriteLine("None Updated");
+            else
+                Console.WriteLine(updateCount + " of " + updateTotal + " Devices Updated Successfully");
         }
 
         public Program()
@@ -141,7 +200,6 @@ namespace FWUpdater
             if (ports.Length == 0)
             {
                 Console.WriteLine("No available comm port!");
-                //Console.ReadLine();
                 return;
             }
             if (port == "AUTO")
@@ -149,7 +207,6 @@ namespace FWUpdater
             if (ports.All(p => p != port))
             {
                 Console.WriteLine("No available comm port!");
-                //Console.ReadLine();
                 return;
             }
             comm = new SerialComm(port);
@@ -163,7 +220,12 @@ namespace FWUpdater
             comm.SendCommand(CommandType.Info, index == 0xff ? null : new[] {index});
         }
 
-        static void Main(string[] args)
+        private void ReadDevices()
+        {
+            comm.SendCommand(CommandType.Devices, null);
+        }
+
+        private static void Main(string[] args)
         {
             if (args.Length == 0)
             {
@@ -193,68 +255,130 @@ namespace FWUpdater
             }
             byte index;
             UnitType type;
-             
-            switch (command)
+
+            try
             {
-                case CommandType.Write:
-                    if (args.Length != 5)
-                    {
-                        Console.WriteLine("Invalid Parameters!");
-                        return;
-                    }
-                    if (!byte.TryParse(args[1], out index))
-                    {
-                        Console.WriteLine("Invalid Index!");
-                        return;
-                    }
-                    if (index >= 4)
-                    {
-                        Console.WriteLine("Index Out of Range!");
-                        return;
-                    }
-                    if (!Enum.TryParse(args[2], true, out type))
-                    {
-                        Console.WriteLine("Invalid Type!");
-                        return;
-                    }
-                    var ver = Helper.ConvertVersion(args[3]);
-                    if (ver == null)
-                    {
-                        Console.WriteLine("Invalid Version Format!");
-                        return;
-                    }
-                    try
-                    {
-                        program.SendFile(index, type, ver, args[4]);
-                    }
-                    catch (IOException ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-                    break;
-                case CommandType.Info:
-                    if (args.Length > 2)
-                    {
-                        Console.WriteLine("Invalid Parameters!");
-                        return;
-                    }
-                    if (args.Length == 2)
-                    {
+                switch (command)
+                {
+                    case CommandType.Write:
+                        if (args.Length != 5)
+                        {
+                            Console.WriteLine("Invalid Parameters!");
+                            return;
+                        }
                         if (!byte.TryParse(args[1], out index))
                         {
                             Console.WriteLine("Invalid Index!");
                             return;
                         }
-                        program.ReadInfo(index);
-                    }
-                    else
-                        program.ReadInfo();
-                    break;
-                case CommandType.Update:
-                    break;
-                default:
-                    Console.WriteLine("Invalid Command!");
-                    return;
+                        if (index >= 4)
+                        {
+                            Console.WriteLine("Index Out of Range!");
+                            return;
+                        }
+                        if (!Enum.TryParse(args[2], true, out type))
+                        {
+                            Console.WriteLine("Invalid Type!");
+                            return;
+                        }
+                        if (type == UnitType.Same)
+                        {
+                            Console.WriteLine("Invalid Type!");
+                            return;
+                        }
+                        var ver = Helper.ConvertVersion(args[3]);
+                        if (ver == null)
+                        {
+                            Console.WriteLine("Invalid Version Format!");
+                            return;
+                        }
+                        program.SendFile(index, type, ver, args[4]);
+                        break;
+                    case CommandType.Info:
+                        if (args.Length > 2)
+                        {
+                            Console.WriteLine("Invalid Parameters!");
+                            return;
+                        }
+                        if (args.Length == 2)
+                        {
+                            if (!byte.TryParse(args[1], out index))
+                            {
+                                Console.WriteLine("Invalid Index!");
+                                return;
+                            }
+                            program.ReadInfo(index);
+                        }
+                        else
+                            program.ReadInfo();
+                        break;
+                    case CommandType.Devices:
+                        if (args.Length > 1)
+                        {
+                            Console.WriteLine("Invalid Parameters!");
+                            return;
+                        }
+                        program.ReadDevices();
+                        break;
+                    case CommandType.Update:
+                        if (args.Length < 2)
+                        {
+                            Console.WriteLine("Invalid Parameters!");
+                            return;
+                        }
+                        if (args[1].ToLower() == "all")
+                            program.UpdateAll();
+                        else
+                        {
+                            if (Enum.TryParse(args[1], true, out type))
+                            {
+                                if (type == UnitType.Same)
+                                {
+                                    Console.WriteLine("Invalid Type!");
+                                    return;
+                                }
+                                if (args.Length > 2)
+                                {
+                                    Console.WriteLine("Invalid Parameters!");
+                                    return;
+                                }
+                                program.Update(type);
+                            }
+                            else
+                            {
+                                int id;
+                                if (args.Length > 3 || !int.TryParse(args[1], out id))
+                                {
+                                    Console.WriteLine("Invalid Parameters!");
+                                    return;
+                                }
+                                if (id < 0 || id > 127)
+                                {
+                                    Console.WriteLine("Id Out of Range!");
+                                    return;
+                                }
+                                if (args.Length == 3)
+                                {
+                                    if (!Enum.TryParse(args[2], true, out type))
+                                    {
+                                        Console.WriteLine("Invalid Type!");
+                                        return;
+                                    }
+                                    program.Update(type, (byte) id);
+                                }
+                                else
+                                    program.Update(UnitType.Same, (byte) id);
+                            }
+                        }
+                        break;
+                    default:
+                        Console.WriteLine("Invalid Command!");
+                        return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
     }
