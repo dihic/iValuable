@@ -306,7 +306,7 @@ namespace IntelliStorage
 					p[3] = it->second->Version&0xff;
 					p += 4;
 				}
-				comm->SendFileData(command, data.get(), size);
+				comm->SendFileData(command, data.get(), size+1);
 				break;
 			default:
 				status[1] = ErrorUnknown;
