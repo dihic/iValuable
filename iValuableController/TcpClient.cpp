@@ -2,15 +2,11 @@
 #include <cstring>
 #include <Driver_ETH_PHY.h>
 
-#define TCP_SEGMENT_SIZE   1460
-
-#define TCP_WINDOW_SIZE    4380
-
 using namespace std;
 
-#define TCP_BUFFER_NUM 16
+#define TCP_BUFFER_NUM 32
 
-osMailQDef(MailSendTcp   , TCP_BUFFER_NUM*2, TcpBuffer);
+osMailQDef(MailSendTcp   , TCP_BUFFER_NUM, TcpBuffer);
 osMailQDef(MailReceiveTcp, TCP_BUFFER_NUM  , TcpBuffer);
 osSemaphoreDef(SemaphoreSendTcp);
 osSemaphoreDef(SemaphoreReceiveTcp);
@@ -23,7 +19,7 @@ const std::uint8_t TcpClient::DataHeader[2] = {0xAA, 0x44};
 
 map<std::int32_t,TcpClient *> TcpClient::tcp_table;
 
-//std::uint32_t TcpClient::windowSize = TCP_WINDOW_SIZE;
+//std::uint32_t TcpClient::windowSize = TCP_RECEIVE_WIN_SIZE;
  
 TcpClient::TcpClient(const std::uint8_t *endpoint)
 	: serverPort(endpoint[4]|(endpoint[5]<<8)),
@@ -32,13 +28,13 @@ TcpClient::TcpClient(const std::uint8_t *endpoint)
 {
 	mailSid 		 = osMailCreate(osMailQ(MailSendTcp), NULL);
 	mailRid 		 = osMailCreate(osMailQ(MailReceiveTcp), NULL);
-	semaphoreSid = osSemaphoreCreate(osSemaphore(SemaphoreSendTcp), TCP_BUFFER_NUM*2);
+	semaphoreSid = osSemaphoreCreate(osSemaphore(SemaphoreSendTcp), TCP_BUFFER_NUM);
 	semaphoreRid = osSemaphoreCreate(osSemaphore(SemaphoreReceiveTcp), TCP_BUFFER_NUM);
 	memcpy(serverIp, endpoint, 4);
 	//Driver_ETH_PHY0.SetMode(ARM_ETH_PHY_SPEED_10M|ARM_ETH_PHY_DUPLEX_FULL);
 	Driver_ETH_PHY0.SetMode(ARM_ETH_PHY_AUTO_NEGOTIATE);
 	osDelay(50);
-	txCount = TCP_BUFFER_NUM*2;
+	txCount = TCP_BUFFER_NUM;
 	rxCount = TCP_BUFFER_NUM;
 	Start();
 }
@@ -194,10 +190,10 @@ extern "C"
 					osMailPut(client->mailRid, mptr);
 				}
 //				windowSize -= len;
-//				if (windowSize < TCP_SEGMENT_SIZE)
+//				if (windowSize < TCP_MAX_SEG_SIZE)
 //				{
 //					tcp_reset_window(socket);
-//					windowSize = TCP_WINDOW_SIZE;
+//					windowSize = TCP_RECEIVE_WIN_SIZE;
 //				}
 				break;
 		}
@@ -353,7 +349,7 @@ void TcpClient::AbortConnection()
 		osSemaphoreRelease(semaphoreSid);
 		evt = osMailGet(mailSid, 0);
 	}
-	txCount = TCP_BUFFER_NUM*2;
+	txCount = TCP_BUFFER_NUM;
 #ifdef DEBUG_PRINT
 	cout<<"TX all Released "<<txCount<<endl;
 #endif
