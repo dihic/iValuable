@@ -178,7 +178,7 @@ CAN_ERROR CAN_hw_init (U32 ctrl, U32 baudrate)
 	hCAN->Init.RFLM = DISABLE;
 	
 	if (baudrate <= 1000000)
-    hCAN->Init.Prescaler = (CAN_CLK / 7) / baudrate;
+    hCAN->Init.Prescaler = (CAN_CLK / 10) / baudrate;
 	else
 		return CAN_BAUDRATE_ERROR;
 	
@@ -186,9 +186,9 @@ CAN_ERROR CAN_hw_init (U32 ctrl, U32 baudrate)
 //	hCAN->Init.BS2 = CAN_BS2_2TQ;
 //	hCAN->Init.SJW = CAN_SJW_1TQ;
 	
-	hCAN->Init.BS1 = CAN_BS1_4TQ;
-	hCAN->Init.BS2 = CAN_BS2_2TQ;
-	hCAN->Init.SJW = CAN_SJW_3TQ;
+	hCAN->Init.BS1 = CAN_BS1_8TQ;
+	hCAN->Init.BS2 = CAN_BS2_1TQ;
+	hCAN->Init.SJW = CAN_SJW_1TQ;
 
 	if (HAL_CAN_Init(hCAN) != HAL_OK)
 		return CAN_INIT_ERROR;
