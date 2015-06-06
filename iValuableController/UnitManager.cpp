@@ -53,7 +53,7 @@ namespace IntelliStorage
 		uint16_t size = 0;
 		if (type==0)
 			type = unit->TypeCode;
-		uint8_t i;
+		uint8_t i,j;
 		for(i=0; i<4; ++i)
 		{
 			ptr = (const uint8_t *)(CODE_BASE[i]);
@@ -81,13 +81,21 @@ namespace IntelliStorage
 		//Program 
 		for(i=0;i<(size>>8);++i)
 		{
-			if (!manager->updater->ProgramData(i, ptr, 0x100))
+			for(j=0;j<3;++j)
+				if (manager->updater->ProgramData(i, ptr, 0x100))
+					break;
+			if (j>=3)
 				return false;
 			ptr+=0x100;
 		}
 		if (size&0xff)
-			if (!manager->updater->ProgramData(i, ptr, size&0xff))
+		{
+			for(j=0;j<3;++j)
+				if (!manager->updater->ProgramData(i, ptr, size&0xff))
+					break;
+			if (j>=3)	
 				return false;
+		}
 		
 		unit->updateStatus = StorageUnit::Updated;
 		
