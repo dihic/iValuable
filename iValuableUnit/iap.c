@@ -79,7 +79,7 @@ void ReinvokeISP(int can)
   while (!(LPC_SYSCON->MAINCLKUEN & 0x01));       /* Wait Until Updated       */
 	
 	GPIOSetDir(PORT0, 3, E_IO_OUTPUT);
-	GPIOSetValue(PORT0, 3, can!=0);
+	GPIOSetValue(PORT0, 3, can==0);
 	iap_command_param[0] = IAP_COMMAND_REINVOKE_ISP;
 	iap_entry(iap_command_param, iap_status_result);
 }
