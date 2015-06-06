@@ -50,7 +50,7 @@ void HeatbeatTimer_Callback(void const *arg)
 		if (CanEx != nullptr)
 			StorageUnit::SetTemperature(*CanEx, CurrentTemperature);
 		hbcount = 0;
-		if (ethEngine.get()!=NULL) 
+		if (ethEngine!= nullptr) 
 			ethEngine->SendHeartBeat();
 	}
 }
@@ -63,11 +63,11 @@ static void DataReceiver(void const *argument)
 	{
 		if (ConfigComm::Instance() != nullptr)
 			ConfigComm::Instance()->DataReceiver();
-		if (ISPComm::Instance() != nullptr)
-			ISPComm::Instance()->DataReceiver();
+//		if (ISPComm::Instance() != nullptr)
+//			ISPComm::Instance()->DataReceiver();
 //		if (CanEx != nullptr)
 //			CanEx->Poll();
-		osThreadYield();
+//		osThreadYield();
 	}
 }
 osThreadDef(DataReceiver, osPriorityNormal, 1, 0);
