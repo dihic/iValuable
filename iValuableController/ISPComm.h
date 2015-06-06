@@ -5,7 +5,7 @@
 
 using namespace fastdelegate;
 
-#define ISPCOMM_BUFFER_SIZE	0x100
+#define ISPCOMM_BUFFER_SIZE	0x400
 
 class ISPComm : public UartComm
 {
@@ -27,7 +27,7 @@ class ISPComm : public UartComm
 			StateChecksum,
 		};
 		
-		StateType dataState = StateDelimiter1;
+		volatile StateType dataState = StateDelimiter1;
 		uint16_t checksum;
 		uint8_t command;
 		uint16_t parameterLen;
@@ -45,7 +45,6 @@ class ISPComm : public UartComm
 		virtual ~ISPComm();
 
 		virtual void DataProcess(std::uint8_t byte) override;
-		virtual void PostOverflow() override;
 		virtual bool SendData(const std::uint8_t *data,std::size_t len) override;
 		virtual bool SendData(std::uint8_t command, const std::uint8_t *data, std::size_t len) override;
 };

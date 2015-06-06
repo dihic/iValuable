@@ -22,14 +22,17 @@ extern "C"
 		{    
 			case ARM_USART_EVENT_RECEIVE_COMPLETE:
 			case ARM_USART_EVENT_TRANSFER_COMPLETE:
-				osSignalSet(instance->tid, 0x01);
+				instance->tail = 0;
+				instance->uart.Receive(instance->buffer.get(), instance->bufferSize);
 				break;
 			case ARM_USART_EVENT_SEND_COMPLETE:    
 			case ARM_USART_EVENT_TX_COMPLETE:      
 				break;     
 			case ARM_USART_EVENT_RX_TIMEOUT:         
 				break;     
-			case ARM_USART_EVENT_RX_OVERFLOW:    
+			case ARM_USART_EVENT_RX_OVERFLOW:
+				instance->dataState = StateDelimiter1;
+				break;
 			case ARM_USART_EVENT_TX_UNDERFLOW:        
 				break;    
 		}
@@ -109,12 +112,6 @@ void ISPComm::DataProcess(std::uint8_t byte)
 		default:
 			break;
 	}
-}
-
-void ISPComm::PostOverflow()
-{
-	parameters.reset();
-	dataState = StateDelimiter1;
 }
 
 bool ISPComm::SendData(const uint8_t *data, size_t len)

@@ -57,21 +57,6 @@ void HeatbeatTimer_Callback(void const *arg)
 
 osTimerDef(HeatbeatTimer, HeatbeatTimer_Callback);
 
-static void DataReceiver(void const *argument)  
-{
-	while(1)
-	{
-		if (ConfigComm::Instance() != nullptr)
-			ConfigComm::Instance()->DataReceiver();
-//		if (ISPComm::Instance() != nullptr)
-//			ISPComm::Instance()->DataReceiver();
-//		if (CanEx != nullptr)
-//			CanEx->Poll();
-//		osThreadYield();
-	}
-}
-osThreadDef(DataReceiver, osPriorityNormal, 1, 0);
-
 static void CanPollWorker(void const *argument)  
 {
 	while(1)
@@ -179,7 +164,6 @@ int main()
 	osTimerId heartbeat = osTimerCreate(osTimer(HeatbeatTimer), osTimerPeriodic, NULL);
 	osTimerStart(heartbeat, 500);
 	
-	osThreadCreate(osThread(DataReceiver), NULL);
 	osThreadCreate(osThread(CanPollWorker), NULL);
 	osThreadCreate(osThread(Traversal), NULL);
 	

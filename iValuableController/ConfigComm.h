@@ -5,7 +5,7 @@
 
 using namespace fastdelegate;
 
-#define CONFIG_BUFFER_SIZE	0x200
+#define CONFIG_BUFFER_SIZE	0x400
 
 class ConfigComm : public UartComm
 {
@@ -28,7 +28,7 @@ class ConfigComm : public UartComm
 			StateChecksum
 		};
 		
-		StateType dataState = StateDelimiter1;
+		volatile StateType dataState = StateDelimiter1;
 		uint8_t checksum;
 		uint8_t lenIndex;
 		uint8_t command;
@@ -44,7 +44,6 @@ class ConfigComm : public UartComm
 		virtual ~ConfigComm();
 
 		virtual void DataProcess(std::uint8_t byte) override;
-		virtual void PostOverflow() override;
 		virtual bool SendData(const std::uint8_t *data,std::size_t len) override;
 		virtual bool SendData(std::uint8_t command, const std::uint8_t *data,std::size_t len) override;
 		bool SendFileData(uint8_t command,const uint8_t *data, size_t len);

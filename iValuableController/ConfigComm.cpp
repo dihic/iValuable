@@ -21,14 +21,17 @@ extern "C"
 		{    
 			case ARM_USART_EVENT_RECEIVE_COMPLETE:
 			case ARM_USART_EVENT_TRANSFER_COMPLETE:
-				osSignalSet(instance->tid, 0x01);
+				instance->tail = 0;
+				instance->uart.Receive(instance->buffer.get(), instance->bufferSize);
 				break;
 			case ARM_USART_EVENT_SEND_COMPLETE:    
 			case ARM_USART_EVENT_TX_COMPLETE:      
 				break;     
 			case ARM_USART_EVENT_RX_TIMEOUT:         
 				break;     
-			case ARM_USART_EVENT_RX_OVERFLOW:    
+			case ARM_USART_EVENT_RX_OVERFLOW:
+				instance->dataState = StateDelimiter1;
+				break;
 			case ARM_USART_EVENT_TX_UNDERFLOW:        
 				break;    
 		}
@@ -133,12 +136,6 @@ void ConfigComm::DataProcess(std::uint8_t byte)
 	}
 }
 
-void ConfigComm::PostOverflow()
-{
-	parameters.reset();
-	dataState = StateDelimiter1;
-}
-
 bool ConfigComm::SendData(const uint8_t *data, size_t len)
 {
 	uint8_t pre[3]={ dataHeader[0],dataHeader[2], static_cast<uint8_t>(len) };
@@ -146,7 +143,7 @@ bool ConfigComm::SendData(const uint8_t *data, size_t len)
 	uart.Send(pre,3);
 	Sync();
 	uart.Send(data,len);
-	//Sync();
+	Sync();
 	return true;
 }
 
@@ -160,7 +157,7 @@ bool ConfigComm::SendData(uint8_t command,const uint8_t *data,size_t len)
 		Sync();
 		uart.Send(data,len);
 	}
-	//Sync();
+	Sync();
 	return true;
 }
 
@@ -184,7 +181,7 @@ bool ConfigComm::SendFileData(uint8_t command,const uint8_t *data, size_t len)
 	}
 	Sync();
 	uart.Send(&checksum, 1);
-	//Sync();
+	Sync();
 	return true;
 }
 
