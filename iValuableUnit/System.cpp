@@ -37,6 +37,8 @@ void SystemSetup()
 		id|=0x20;
 	if (GPIOGetValue(PORT1,11))
 		id|=0x40;
+	if (GPIOGetValue(ENABLE_LOCKER))
+		id|=0x80;
 	NodeId = 0x100 | id;
 	
 //	GPIOSetDir(LATCH_LE, E_IO_OUTPUT);
