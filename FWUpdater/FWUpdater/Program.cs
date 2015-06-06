@@ -160,13 +160,27 @@ namespace FWUpdater
                         comm.SendCommand(CommandType.Write, buffer);
                         break;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        if (count-- != 0) continue;
-                        file.Close();
-                        throw;
+                        Console.WriteLine(ex.Message);
+                        count--;
+                        Console.WriteLine("Retry");
+                        //if (count-- != 0)
+                        //{
+                        //    Console.WriteLine("Retry");
+                        //    continue;
+                        //}
+                        //file.Close();
+                        //Console.WriteLine("Fail!");
+                        //throw;
                     }
                 }
+                if (count <= 0)
+                {
+                    Console.WriteLine("Write Fail!");
+                    break;
+                }
+
             } while (file.Position < file.Length);
             file.Close();
         }
@@ -254,11 +268,11 @@ namespace FWUpdater
                 Console.WriteLine("Invalid Command!");
                 return;
             }
-            byte index;
-            UnitType type;
 
             try
             {
+                UnitType type;
+                byte index;
                 switch (command)
                 {
                     case CommandType.Write:
