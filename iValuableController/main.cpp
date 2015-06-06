@@ -57,27 +57,41 @@ void HeatbeatTimer_Callback(void const *arg)
 
 osTimerDef(HeatbeatTimer, HeatbeatTimer_Callback);
 
-static void UpdateWorker (void const *argument)  
+static void DataReceiver(void const *argument)  
 {
 	while(1)
 	{
 		if (ConfigComm::Instance() != nullptr)
 			ConfigComm::Instance()->DataReceiver();
-		if (CanEx != nullptr)
-			CanEx->Poll();
+		if (ISPComm::Instance() != nullptr)
+			ISPComm::Instance()->DataReceiver();
+//		if (CanEx != nullptr)
+//			CanEx->Poll();
 		osThreadYield();
 	}
 }
-osThreadDef(UpdateWorker, osPriorityNormal, 1, 0);
+osThreadDef(DataReceiver, osPriorityNormal, 1, 0);
+
+static void CanPollWorker(void const *argument)  
+{
+	while(1)
+	{
+		if (CanEx != nullptr)
+			CanEx->Poll();
+		osDelay(5);
+		//osThreadYield();
+	}
+}
+osThreadDef(CanPollWorker, osPriorityNormal, 1, 0);
 
 static void Traversal(void const *argument)  //Prevent missing status
 {
 	static bool forceReport = true;
 	while(1)
 	{
-		if (ethEngine==nullptr)
-			continue;
-		ethEngine->Process();
+//		if (ethEngine==nullptr)
+//			continue;
+//		ethEngine->Process();
 		if (!ethEngine->IsConnected())
 		{
 			forceReport = true;
@@ -165,7 +179,8 @@ int main()
 	osTimerId heartbeat = osTimerCreate(osTimer(HeatbeatTimer), osTimerPeriodic, NULL);
 	osTimerStart(heartbeat, 500);
 	
-	osThreadCreate(osThread(UpdateWorker), NULL);
+	osThreadCreate(osThread(DataReceiver), NULL);
+	osThreadCreate(osThread(CanPollWorker), NULL);
 	osThreadCreate(osThread(Traversal), NULL);
 	
 	//Start collecting all devices
@@ -174,6 +189,7 @@ int main()
 	while (1)
 	{
 		net_main();
-//		osThreadYield();
+		ethEngine->Process();
+		osThreadYield();
 	}
 }
