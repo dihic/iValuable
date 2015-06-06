@@ -204,6 +204,7 @@ bool ConfigComm::SendData(const uint8_t *data, size_t len)
 	uart.Send(pre,3);
 	Sync();
 	uart.Send(data,len);
+	Sync();
 	return true;
 }
 
@@ -217,6 +218,7 @@ bool ConfigComm::SendData(uint8_t command,const uint8_t *data,size_t len)
 		Sync();
 		uart.Send(data,len);
 	}
+	Sync();
 	return true;
 }
 
@@ -240,6 +242,7 @@ bool ConfigComm::SendFileData(uint8_t command,const uint8_t *data, size_t len)
 	}
 	Sync();
 	uart.Send(&checksum, 1);
+	Sync();
 	return true;
 }
 

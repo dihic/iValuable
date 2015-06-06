@@ -178,6 +178,7 @@ bool ISPComm::SendData(const uint8_t *data, size_t len)
 {
 	Sync();
 	uart.Send(data, len);
+	Sync();
 	return true;
 }
 
@@ -198,5 +199,6 @@ bool ISPComm::SendData(uint8_t command, const uint8_t *data, size_t len)
 	pre[1] = checksum >> 8;
 	Sync();
 	uart.Send(pre, 2);
+	Sync();
 	return true;
 }
