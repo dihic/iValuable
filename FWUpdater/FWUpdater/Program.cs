@@ -162,9 +162,9 @@ namespace FWUpdater
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex.Message);
+                        //Console.WriteLine(ex.Message);
                         count--;
-                        Console.WriteLine("Retry");
+                        //Console.WriteLine("Retry");
                         //if (count-- != 0)
                         //{
                         //    Console.WriteLine("Retry");
