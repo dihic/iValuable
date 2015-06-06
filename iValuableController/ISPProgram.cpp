@@ -33,7 +33,7 @@ void ISPProgram::CommandArrival(std::uint8_t command, std::uint8_t *parameters, 
 {
 	uint32_t val;
 #ifdef DEBUG_PRINT
-		cout<<"CAN-ISP Response: "<<command<<endl;
+		cout<<"CAN-ISP Response: "<<(int)command<<endl;
 #endif
 	switch (command)
 	{
