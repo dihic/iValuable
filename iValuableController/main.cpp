@@ -50,34 +50,33 @@ void HeatbeatTimer_Callback(void const *arg)
 		if (CanEx != nullptr)
 			StorageUnit::SetTemperature(*CanEx, CurrentTemperature);
 		hbcount = 0;
-		if (ethEngine.get()!=NULL) 
+		if (ethEngine!= nullptr) 
 			ethEngine->SendHeartBeat();
 	}
 }
 
 osTimerDef(HeatbeatTimer, HeatbeatTimer_Callback);
 
-static void UpdateWorker (void const *argument)  
+static void CanPollWorker(void const *argument)  
 {
 	while(1)
 	{
-		if (ConfigComm::Instance() != nullptr)
-			ConfigComm::Instance()->DataReceiver();
 		if (CanEx != nullptr)
 			CanEx->Poll();
-		osThreadYield();
+		osDelay(5);
+		//osThreadYield();
 	}
 }
-osThreadDef(UpdateWorker, osPriorityNormal, 1, 0);
+osThreadDef(CanPollWorker, osPriorityNormal, 1, 0);
 
 static void Traversal(void const *argument)  //Prevent missing status
 {
 	static bool forceReport = true;
 	while(1)
 	{
-		if (ethEngine==nullptr)
-			continue;
-		ethEngine->Process();
+//		if (ethEngine==nullptr)
+//			continue;
+//		ethEngine->Process();
 		if (!ethEngine->IsConnected())
 		{
 			forceReport = true;
@@ -127,7 +126,8 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		else
 			unitManager->Add(sourceId&0x7f, unit);
 	}
-	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
+	//CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
+	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::Trigger);
 }
 
 
@@ -164,7 +164,7 @@ int main()
 	osTimerId heartbeat = osTimerCreate(osTimer(HeatbeatTimer), osTimerPeriodic, NULL);
 	osTimerStart(heartbeat, 500);
 	
-	osThreadCreate(osThread(UpdateWorker), NULL);
+	osThreadCreate(osThread(CanPollWorker), NULL);
 	osThreadCreate(osThread(Traversal), NULL);
 	
 	//Start collecting all devices
@@ -173,6 +173,7 @@ int main()
 	while (1)
 	{
 		net_main();
-//		osThreadYield();
+		ethEngine->Process();
+		osThreadYield();
 	}
 }
