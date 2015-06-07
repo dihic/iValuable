@@ -11,6 +11,10 @@ RNG_HandleTypeDef RNGHandle = { RNG,
 																HAL_UNLOCKED,
 																HAL_RNG_STATE_RESET };
 
+CRC_HandleTypeDef CRCHandle = { CRC, 
+																HAL_UNLOCKED,
+																HAL_CRC_STATE_RESET };
+
 ADC_HandleTypeDef hAdc1;
 
 const uint8_t *UserFlash = (const uint8_t *)USER_ADDR;
@@ -268,6 +272,7 @@ void HAL_MspInit(void)
 	SystemClock_Config();
 	
 	HAL_RNG_Init(&RNGHandle);
+	HAL_CRC_Init(&CRCHandle);
 	
 	MX_GPIO_Init();
 	
@@ -281,6 +286,12 @@ void HAL_MspInit(void)
 void HAL_Delay(__IO uint32_t Delay)
 {
 	osDelay(Delay);
+}
+
+void HAL_CRC_MspInit(CRC_HandleTypeDef *hcrc)
+{
+	if(hcrc->Instance==CRC)
+		__CRC_CLK_ENABLE();
 }
 
 void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
@@ -575,6 +586,26 @@ void PrepareWriteFlash(uint32_t addr, uint32_t size)
 		HAL_FLASH_Program(TYPEPROGRAM_WORD, USER_ADDR+i, *word);
 		i+=4;
 	}
+}
+
+void CRCReset()
+{
+	HAL_CRC_Calculate(&CRCHandle, NULL, 0);
+}
+
+//uint32_t CRCPush(uint32_t *pBuffer, uint32_t BufferLength)
+//{
+//	 return HAL_CRC_Accumulate(&CRCHandle, pBuffer, BufferLength);
+//}
+
+uint32_t CRCPush(uint32_t word)
+{
+	 return HAL_CRC_Accumulate(&CRCHandle, &word, 1);
+}
+
+uint32_t GetCRCValue()
+{
+	return CRCHandle.Instance->DR ^ 0xffffffffu;
 }
 
 #ifdef __cplusplus

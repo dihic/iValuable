@@ -16,6 +16,7 @@ extern ARM_DRIVER_USART 			Driver_USART3;
 extern ARM_DRIVER_ETH_PHY 		Driver_ETH_PHY0;
 
 extern RNG_HandleTypeDef RNGHandle;
+extern CRC_HandleTypeDef CRCHandle;
 
 #define USER_ADDR 				0x08100000
 #define BACK_ADDR 				0x08104000
@@ -51,6 +52,11 @@ void RequestTemperature(void);
 void EraseCodeFlash(uint8_t num);
 void EraseFlash(void);
 void PrepareWriteFlash(uint32_t addr, uint32_t size);
+	
+void CRCReset();
+//uint32_t CRCPush(uint32_t *pBuffer, uint32_t BufferLength);
+uint32_t CRCPush(uint32_t word);
+uint32_t GetCRCValue();
 	
 #ifdef __cplusplus
 }

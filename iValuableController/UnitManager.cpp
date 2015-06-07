@@ -62,7 +62,8 @@ namespace IntelliStorage
 			if (ptr[2]==type)
 			{
 				size = ptr[6]|(ptr[7]<<8);
-				ptr += 8;
+				//First 8 bytes of basic info, and 4 bytes for CRC
+				ptr += 12;
 				break;
 			}
 		}
@@ -179,6 +180,7 @@ namespace IntelliStorage
 					index = parameters[0];
 					offset = 0;
 					EraseCodeFlash(index);
+					CRCReset();
 					status[0] = index;
 					comm->SendFileData(command, status, 1);
 				}
@@ -200,25 +202,30 @@ namespace IntelliStorage
 				}
 				status[0] = (offset+len-8 == size); //If file completed
 					
-				ptr = parameters+2;
+				ptr = parameters;
 				HAL_FLASH_Unlock();
 				for(auto i=0;i<(len>>2);++i)
 				{
 					memcpy(&word, ptr, 4);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
+					CRCPush(word);
 					offset+=4;
 					ptr+=4;
 				}
 				len&=0x3;
 				if (len)
 				{
-					word=0;
+					word=0xffffffffu;
 					memcpy(&word, ptr, len);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
+					CRCPush(word);
 					offset+=len;
 				}
 				if (status[0])
+				{
 					HAL_FLASH_Program(TYPEPROGRAM_BYTE, CODE_BASE[index]+3, 0x00);	//Tag for file completed
+					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+8, GetCRCValue());	//Write CRC Value
+				}
 				HAL_FLASH_Lock();
 				comm->SendFileData(command, status, 1);	//Return if file completed or not
 				break;
@@ -245,7 +252,8 @@ namespace IntelliStorage
 						memcpy(&word, parameters+4, 4);
 						HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+4, word);
 						HAL_FLASH_Lock();
-						offset = 8;
+						//Reserve 4 bytes for CRC
+						offset = 12;
 						comm->SendFileData(command, status+1, 1);
 					}
 					else
