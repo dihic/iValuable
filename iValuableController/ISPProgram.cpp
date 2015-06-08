@@ -11,7 +11,8 @@
 osMessageQDef(MsgBox, 8, uint32_t);               // Define message queue
 
 #define ISP_ERROR		0xffffffffu
-#define ISP_SYNC_TIME 100
+#define ISP_SYNC_TIME			200
+#define ISP_FORMAT_TIME		500
 
 using namespace std;
 
@@ -65,7 +66,7 @@ bool ISPProgram::Format()
 {
 	static const uint8_t ISPSectorEraseString[8] = {0x5a, 0xa5, 0x04, 0x01, 0x00, 0x01, 0x06, 0x00};
 	comm->SendData(ISPSectorEraseString, 8);
-	osEvent result = osMessageGet(MsgId, ISP_SYNC_TIME);
+	osEvent result = osMessageGet(MsgId, ISP_FORMAT_TIME);
 	if (result.status != osEventMessage)
 		return false;
 	return (result.value.v != ISP_ERROR);
