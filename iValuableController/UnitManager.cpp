@@ -11,6 +11,8 @@ namespace IntelliStorage
 {
 	boost::scoped_ptr<osThreadDef_t> UnitManager::UpdateThreadDef;
 	
+	volatile bool UnitManager::updating = false;
+	
 	bool UnitManager::LockGroup::LockOne() 
 	{ 
 		if (count==num) //error state
@@ -55,7 +57,7 @@ namespace IntelliStorage
 		uint16_t size = 0;
 		if (type==0)
 			type = unit->TypeCode;
-		uint8_t i,j;
+		uint8_t i;
 		for(i=0; i<4; ++i)
 		{
 			ptr = (const uint8_t *)(CODE_BASE[i]);
@@ -72,42 +74,63 @@ namespace IntelliStorage
 		if (i>=4)		//Unfound
 			return false;
 		
+		updating = true;
+		
 		//Make unit entering ISP mode
 		unit->EnterCanISP();
 		osDelay(100);
 		
 		if (!manager->updater->FindDevice())
+		{
+			updating = false;
 			return false;
+		}
 		if (!manager->updater->Format())
+		{
+			updating = false;
 			return false;
+		}
 		
 		//Program 
 		for(i=0;i<(size>>8);++i)
 		{
-			for(j=0;j<3;++j)
-				if (manager->updater->ProgramData(i, ptr, 0x100))
-					break;
-			if (j>=3)
+			if (!manager->updater->ProgramData(i, ptr, 0x100))
+			{
+				updating = false;
 				return false;
+			}
 			ptr+=0x100;
 		}
 		if (size&0xff)
 		{
-			for(j=0;j<3;++j)
-				if (!manager->updater->ProgramData(i, ptr, size&0xff))
-					break;
-			if (j>=3)	
+			if (!manager->updater->ProgramData(i, ptr, size&0xff))
+			{
+				updating = false;
 				return false;
+			}
 		}
 		
 		unit->updateStatus = StorageUnit::Updated;
 		
 		if (!manager->updater->RestartDevice())
+		{
+			updating = false;
 			return false;
+		}
+		
+		updating = false;
 		osDelay(100);
 		
+		osSignalClear(osThreadGetId(), 0x01);
 		unit->canex.Sync(unit->DeviceId, DeviceSync::SyncLive, CANExtended::Trigger);
-		return true;
+		osEvent evt = osSignalWait(0x01, 1000);
+		return (evt.status == osEventSignal);
+	}
+	
+	void UnitManager::SyncUpdate()
+	{
+		if (tid!=NULL)
+			osSignalSet(tid, 0x01);
 	}
 	
 	void UnitManager::UpdateThread(void const *arg)
@@ -166,7 +189,6 @@ namespace IntelliStorage
 		uint32_t word;
 		const uint8_t *ptr;
 		uint8_t *p;
-		osThreadId tid;
 		UpdateThreadArgs *args;
 		
 		switch (command)

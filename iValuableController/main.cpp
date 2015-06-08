@@ -47,7 +47,7 @@ void HeatbeatTimer_Callback(void const *arg)
 #ifdef DEBUG_PRINT
 		cout<<"Current Temperature: "<<CurrentTemperature<<endl;
 #endif
-		if (CanEx != nullptr)
+		if (CanEx != nullptr && !UnitManager::IsUpdating())
 			StorageUnit::SetTemperature(*CanEx, CurrentTemperature);
 		hbcount = 0;
 		if (ethEngine!= nullptr) 
@@ -128,6 +128,8 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 	}
 	//CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
 	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::Trigger);
+	if (updated)
+		unitManager->SyncUpdate();
 }
 
 

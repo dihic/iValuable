@@ -32,7 +32,7 @@ ISPProgram::ISPProgram(ARM_DRIVER_USART &u)
 
 void ISPProgram::CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len)
 {
-	uint32_t val;
+	uint32_t val = 0;
 #ifdef DEBUG_PRINT
 		cout<<"CAN-ISP Response: "<<(int)command<<endl;
 #endif
@@ -45,6 +45,9 @@ void ISPProgram::CommandArrival(std::uint8_t command, std::uint8_t *parameters, 
 			memcpy(&val, parameters, len<4?len:4);
 			break;
 	  case ISPErrorCode:
+#ifdef DEBUG_PRINT
+		cout<<"CAN-ISP Error: "<<(int)parameters[0]<<endl;
+#endif
 			val = ISP_ERROR;
 		default:
 			break;
@@ -86,9 +89,12 @@ bool ISPProgram::ProgramData(uint8_t page, const uint8_t *data, size_t len)
 {
 	buf[0] = page;
 	memcpy(buf+1, data, len);
-	comm->SendData(ISPPagePorgramData, buf, len+1);
-	osEvent result = osMessageGet(MsgId, ISP_SYNC_TIME);
-	if (result.status != osEventMessage)
-		return false;
-	return (result.value.v != ISP_ERROR);
+	for(auto j=0;j<3;++j)
+	{
+		comm->SendData(ISPPagePorgramData, buf, len+1);
+		osEvent result = osMessageGet(MsgId, ISP_SYNC_TIME);
+		if (result.status == osEventMessage)
+			return (result.value.v != ISP_ERROR);
+	}
+	return false;
 }

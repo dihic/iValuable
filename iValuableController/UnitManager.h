@@ -84,9 +84,12 @@ namespace IntelliStorage
 			void OnDoorChanged(std::uint8_t groupId, bool open);
 			void CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len);
 			static boost::scoped_ptr<osThreadDef_t> UpdateThreadDef;
+			static volatile bool updating;
 			static bool UpdateOne(UnitManager *manager, boost::shared_ptr<StorageUnit> &unit, std::uint8_t type=0x00);
 			static void UpdateThread(void const *arg);
+			osThreadId tid = NULL;
 		public:
+			static bool IsUpdating() { return UnitManager::updating; }
 			typedef FastDelegate1<boost::shared_ptr<RfidUnit> &> ReportRfidDataHandler;
 			typedef FastDelegate2<std::uint8_t, bool> ReportDoorDataHandler;
 			ReportRfidDataHandler ReportRfidDataEvent;
@@ -94,6 +97,7 @@ namespace IntelliStorage
 		
 			UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp);
 			~UnitManager() {}
+			void SyncUpdate();
 			void Recover(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			void Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			//std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > &GetList() { return unitList; }
