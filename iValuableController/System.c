@@ -605,7 +605,7 @@ uint32_t CRCPush(uint32_t word)
 
 uint32_t GetCRCValue()
 {
-	return CRCHandle.Instance->DR ^ 0xffffffffu;
+	return CRCHandle.Instance->DR ^ 0x0u;
 }
 
 #ifdef __cplusplus

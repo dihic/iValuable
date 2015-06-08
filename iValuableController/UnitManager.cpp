@@ -5,6 +5,8 @@
 
 using namespace std;
 
+#define FILE_HEADER_SIZE	12
+
 namespace IntelliStorage
 {
 	boost::scoped_ptr<osThreadDef_t> UnitManager::UpdateThreadDef;
@@ -63,7 +65,7 @@ namespace IntelliStorage
 			{
 				size = ptr[6]|(ptr[7]<<8);
 				//First 8 bytes of basic info, and 4 bytes for CRC
-				ptr += 12;
+				ptr += FILE_HEADER_SIZE;
 				break;
 			}
 		}
@@ -158,7 +160,7 @@ namespace IntelliStorage
 	{
 		static uint16_t offset = 0;
 		static uint8_t index = 0; 
-		uint8_t status[2] = {command, NoError};
+		uint8_t status[5] = {command, NoError};
 		boost::shared_ptr<uint8_t[]> data;
 		uint16_t size;
 		uint32_t word;
@@ -194,13 +196,13 @@ namespace IntelliStorage
 				}
 				ptr = (const uint8_t *)(CODE_BASE[index]+6);
 				memcpy(&size, ptr, 2);	//File size
-				if (offset+len-8>size)	//If current transmit length over total file size
+				if (offset+len-FILE_HEADER_SIZE>size)	//If current transmit length over total file size
 				{
 					status[1] = ErrorLength;
 					comm->SendFileData(CommandStatus, status, 2);
 					break;
 				}
-				status[0] = (offset+len-8 == size); //If file completed
+				status[0] = (offset+len-FILE_HEADER_SIZE == size); //If file completed
 					
 				ptr = parameters;
 				HAL_FLASH_Unlock();
@@ -208,7 +210,7 @@ namespace IntelliStorage
 				{
 					memcpy(&word, ptr, 4);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
-					CRCPush(word);
+					CRCPush(__REV(word));
 					offset+=4;
 					ptr+=4;
 				}
@@ -218,16 +220,19 @@ namespace IntelliStorage
 					word=0xffffffffu;
 					memcpy(&word, ptr, len);
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+offset, word);
-					CRCPush(word);
+					CRCPush(__REV(word));
 					offset+=len;
 				}
 				if (status[0])
 				{
 					HAL_FLASH_Program(TYPEPROGRAM_BYTE, CODE_BASE[index]+3, 0x00);	//Tag for file completed
 					HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+8, GetCRCValue());	//Write CRC Value
+					memcpy(status+1, (uint8_t *)(CODE_BASE[index]+8), 4);
+					comm->SendFileData(command, status, 5);
 				}
+				else
+					comm->SendFileData(command, status, 1);	//Return if file completed or not
 				HAL_FLASH_Lock();
-				comm->SendFileData(command, status, 1);	//Return if file completed or not
 				break;
 			case CommandWriteInfo:
 				//Firmware tags 0xAA 0xBB
@@ -253,7 +258,7 @@ namespace IntelliStorage
 						HAL_FLASH_Program(TYPEPROGRAM_WORD, CODE_BASE[index]+4, word);
 						HAL_FLASH_Lock();
 						//Reserve 4 bytes for CRC
-						offset = 12;
+						offset = FILE_HEADER_SIZE;
 						comm->SendFileData(command, status+1, 1);
 					}
 					else

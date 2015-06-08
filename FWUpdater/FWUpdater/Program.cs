@@ -11,6 +11,7 @@ namespace FWUpdater
     class Program
     {
         private readonly SerialComm comm;
+        private readonly Crc32 crc = new Crc32();
         private int updateTotal;
         private int updateCount;
         private readonly AutoResetEvent updatedEvent = new AutoResetEvent(false);
@@ -39,7 +40,10 @@ namespace FWUpdater
                     if (data[0] == 0)
                         Console.Write(".");
                     else
+                    {
                         Console.WriteLine("Done");
+                        Console.WriteLine("CRC Validation: "+(BitConverter.ToUInt32(data, 1) == crc.Value ? "Pass" : "Failed"));
+                    }
                     break;
                 case CommandType.WriteInfo:
                     Console.WriteLine("Done");
@@ -139,6 +143,7 @@ namespace FWUpdater
             comm.SendCommand(CommandType.WriteInfo, Helper.PrepareInfo(type, version, file.Length));
            
             Console.Write("Uploading File");
+            crc.Init();
             var first = true;
             do
             {
@@ -152,6 +157,13 @@ namespace FWUpdater
                     Helper.ValidateCode(buffer);
                     first = false;
                 }
+                foreach (var b in buffer)
+                {
+                    crc.UpdateByte(b);
+                }
+                
+
+                //Console.WriteLine(((uint)crc.Value).ToString("x8"));
                 var count = 3;
                 while (count > 0)
                 {
@@ -162,17 +174,7 @@ namespace FWUpdater
                     }
                     catch (Exception ex)
                     {
-                        //Console.WriteLine(ex.Message);
                         count--;
-                        //Console.WriteLine("Retry");
-                        //if (count-- != 0)
-                        //{
-                        //    Console.WriteLine("Retry");
-                        //    continue;
-                        //}
-                        //file.Close();
-                        //Console.WriteLine("Fail!");
-                        //throw;
                     }
                 }
                 if (count <= 0)
@@ -182,6 +184,11 @@ namespace FWUpdater
                 }
 
             } while (file.Position < file.Length);
+
+            var left = 4 - (file.Length & 3);
+            if (left!=4)
+                for (var i = 0; i < left; ++i)
+                    crc.UpdateByte(0xff);
             file.Close();
         }
 
