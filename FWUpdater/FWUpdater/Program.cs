@@ -73,7 +73,7 @@ namespace FWUpdater
                         if (data[1] != 0)
                             ++updateCount;
                         Console.WriteLine(" #Device 0x" + data[0].ToString("x2") +
-                                          ((data[1] == 0) ? " Update Failed!" : "Updated"));
+                                          ((data[1] == 0) ? " Update Failed!" : " Updated"));
                     }
                     break;
                 case CommandType.Devices:
@@ -352,24 +352,10 @@ namespace FWUpdater
                             program.UpdateAll();
                         else
                         {
-                            if (Enum.TryParse(args[1], true, out type))
+                            int id;
+                            if (int.TryParse(args[1], out id))
                             {
-                                if (type == UnitType.Same)
-                                {
-                                    Console.WriteLine("Invalid Type!");
-                                    return;
-                                }
-                                if (args.Length > 2)
-                                {
-                                    Console.WriteLine("Invalid Parameters!");
-                                    return;
-                                }
-                                program.Update(type);
-                            }
-                            else
-                            {
-                                int id;
-                                if (args.Length > 3 || !int.TryParse(args[1], out id))
+                                if (args.Length > 3)
                                 {
                                     Console.WriteLine("Invalid Parameters!");
                                     return;
@@ -386,10 +372,24 @@ namespace FWUpdater
                                         Console.WriteLine("Invalid Type!");
                                         return;
                                     }
-                                    program.Update(type, (byte) id);
+                                    program.Update(type, (byte)id);
                                 }
                                 else
-                                    program.Update(UnitType.Same, (byte) id);
+                                    program.Update(UnitType.Same, (byte)id);
+                            }
+                            else if (Enum.TryParse(args[1], true, out type))
+                            {
+                                if (type == UnitType.Same)
+                                {
+                                    Console.WriteLine("Invalid Type!");
+                                    return;
+                                }
+                                if (args.Length > 2)
+                                {
+                                    Console.WriteLine("Invalid Parameters!");
+                                    return;
+                                }
+                                program.Update(type);
                             }
                         }
                         break;
