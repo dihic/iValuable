@@ -671,7 +671,7 @@ int main(void)
 	SystemCoreClockUpdate();
   LEDinit();
 	
-	UARTInit(115200);//115200
+	UARTInit(1000000);//115200
 	
 	UartRece.frame_head=0;
 	UartRece.current_frame_len=0;
