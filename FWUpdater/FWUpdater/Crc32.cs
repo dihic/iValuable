@@ -77,9 +77,9 @@ namespace FWUpdater
             value = KInitial;
         }
 
-        public int Value
+        public uint Value
         {
-            get { return (int)value; }
+            get { return value; }
             //get { return (int)(value^KInitial); }
         }
 
