@@ -149,9 +149,9 @@ void UpdateWeight()
 void TIMER32_1_IRQHandler()		//100Hz
 {
 	static int counter=0;
-	static int cd = 0;
-	static bool refresh = false;
-	static bool shown = false;
+	static int cd = 0;							//Display time counter
+	static bool refresh = false;		//Need auto show page by page
+	static bool shown = false;			//Trigger as display-off
 	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
@@ -188,10 +188,10 @@ void TIMER32_1_IRQHandler()		//100Hz
 		switch (DisplayState)
 		{
 			case DisplayNormal:
+				shown = true;
 				if (refresh && ++cd==300) // Interval 3s
 				{
 					cd = 0;
-					shown = true;
 					refresh = Processor->UpdateDisplay();
 				}
 				break;
@@ -207,6 +207,7 @@ void TIMER32_1_IRQHandler()		//100Hz
 				{
 					Display::DisplayOnOff(false);
 					shown = false;
+					refresh = false;
 				}
 				break;
 			default:

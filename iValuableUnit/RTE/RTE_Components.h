@@ -4,7 +4,7 @@
  *      *** Do not modify ! ***
  *
  * Project: 'iValuableUnit' 
- * Target:  'UnityRfid' 
+ * Target:  'Independent' 
  */
 
 #ifndef RTE_COMPONENTS_H
