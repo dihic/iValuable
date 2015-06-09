@@ -44,8 +44,8 @@ class DataProcessor
 #endif
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 		uint8_t *pCardId;
-		volatile float boxWeight;
 #endif
+		volatile float boxWeight;
 	public:
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
 		static WriteNVHandler WriteNV;
@@ -97,6 +97,8 @@ class DataProcessor
 		const std::uint8_t *GetCardId() { return pCardId; }
 		void SetCardId(const std::uint8_t *id);
 #endif
+		
+		float GetBoxWeight() const { return boxWeight; }
 		
 		std::uint64_t GetSuppliesId(std::uint8_t index) const { return pSupplies[index]->Uid; }
 		bool FindSuppliesId(std::uint64_t id, std::uint8_t &index) const;

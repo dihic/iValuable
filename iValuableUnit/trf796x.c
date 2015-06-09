@@ -12,6 +12,10 @@
 * *
 *
 ****************************************************************/
+
+#include "UnitType.h"
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+
 #include "trf796x.h"
 #include "ssp.h"
 #include "delay.h"
@@ -811,3 +815,6 @@ Trf796xWriteSingle(uint8_t *pbuf, uint8_t length)
 	}
 	SSP_EndTransaction(RFID_SSP);
 }
+
+#endif
+

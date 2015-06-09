@@ -1,3 +1,6 @@
+#include "UnitType.h"
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+
 #include "iso15693.h"
 #include "delay.h"
 #include <string.h>
@@ -742,3 +745,5 @@ void TRF796xCheckRXWaitTime(void)
 	MyRegisters[29] = COLLISION_POSITION;				// next slot counter
 	Trf796xReadSingle (&MyRegisters[29], 1);
 	*/
+	
+	#endif

@@ -135,7 +135,7 @@ void UpdateWeight()
 	{
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 		Weights.Total = total;
-#elseif UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+#elif UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 		Weights.Total = total - Processor->GetTareWeight() - Processor->GetBoxWeight();
 #else
 		Weights.Total = total - Processor->GetTareWeight();

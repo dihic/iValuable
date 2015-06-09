@@ -11,9 +11,7 @@ DataProcessor *DataProcessor::Singleton = NULL;
 DataProcessor::WriteNVHandler DataProcessor::WriteNV = NULL;
 
 DataProcessor::DataProcessor()
-#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 	:boxWeight(0)
-#endif
 {
 	memset(currentAD, 0, SENSOR_NUM*sizeof(int32_t));
 	memset(reinterpret_cast<void *>(MemBuffer), 0, MEM_BUFSIZE);

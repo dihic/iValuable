@@ -1,3 +1,6 @@
+#include "UnitType.h"
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+
 #include "RfidProcessor.h"
 #include "trf796x.h"
 #include "iso15693.h"
@@ -115,4 +118,5 @@ void RfidProcessor::UpdateRfid()
 	DELAY(2000);
 }
 
+#endif
 
