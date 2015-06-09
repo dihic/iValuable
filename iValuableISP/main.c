@@ -21,54 +21,39 @@ uint8_t led_status_flag;
 
 extern CAN_MSG_OBJ *canRxMsg;
 
-#define RECE_UART_FRAME_CHECKSUM_BYTE_LEN 2
-#define RECE_UART_FRAME_FRONT_CODE_LEN 5
-
-//#define MAX_UART_BUFF_LEN  0x400 //(6+256+2)*2
-#define MAX_RECE_FRAME_LEN 256+1+1
-#define MAX_RECE_CMD_FRAME_LEN MAX_RECE_FRAME_LEN+8
-#define MAX_SEND_FRAME_LEN 20
-
 #define FLASH_PAGE_SIZE 256
 
 #define MAX_LPC11C24_FLASH_PAGE_NUMBER 96//128 //page=256byte,128Page*256=32K
 
-typedef struct _tagUartRece
+enum StateType
 {
-	uint32_t frame_head;
-	uint32_t current_frame_len;
-	uint32_t current_checksum;
-	uint32_t frame_active_len;
+	StateDelimiter1,
+	StateDelimiter2,
+	StateCommand,
+	StateParameterLength,
+	StateParameters,
+	StateChecksum,
+};
 
-	uint8_t is_vaild_frame;
-	uint8_t frame_status;
-	uint8_t curCMDbuff[MAX_RECE_CMD_FRAME_LEN];
-	uint8_t sendbuff[MAX_SEND_FRAME_LEN];
-} tagUartRece;
-tagUartRece UartRece;
+volatile uint8_t dataState = StateDelimiter1;
+static uint8_t command=0;
+static uint16_t parameterLen=0;
+uint8_t parameters[300];
 
-//UartRece.is_vaild_frame
+uint8_t uartCMDBuff[300];
+static uint8_t uartcommand=0;
+uint8_t is_vaild_frame;
+uint8_t UARTSendbuff[100];
+
+//is_vaild_frame
 enum
 {
 	IS_INVAILD,
 	IS_VAILD
 };
 
-//UartRece.frame_status
-enum
-{
-	START_BYTE_STATUS,
-	FRAME_START_BYTE_0X5A_STATUS,
-	FRAME_START_BYTE_0XA5_STATUS,
-	CMD_BYTE_STATUS,
-	LENGTH_LOW_BYTE_STATUS,
-	LENGTH_HIGH_BYTE_STATUS
-};
-
 #define FRAME_START_BYTE_0X5A 0x5A
 #define FRAME_START_BYTE_0XA5 0xA5
-
-#define FRAME_CMD_BYTE_POS 2
 
 enum
 {
@@ -78,7 +63,6 @@ enum
   FRAME_PROGRAM_DATA_CMD, //0x03
   FRAME_ERASE_CHIP_CMD, //0x04
   FRAME_MASTER_GO_CMD, //0x05
-  FRAME_FIRMWARE_VERSION_CMD, //0x06
   FRAME_CMD_LIMIT
 };
 
@@ -90,27 +74,10 @@ enum
 
 const uint8_t JumpCodeTable[] = 
 {
-#if 0
-0x40, 0xBA, 0x70, 0x47, 0xC0, 0xBA, 0x70, 0x47, 
-0x13, 0x48, 0x12, 0x49, 0x02, 0x68, 0x01, 0x23, 
-0x1B, 0x04, 0x1A, 0x43, 0x02, 0x60, 0x03, 0x68, 
-0x40, 0x22, 0x13, 0x43, 0x03, 0x60, 0x0F, 0x48, 
-0x03, 0x68, 0x13, 0x43, 0x03, 0x60, 0x02, 0x68, 
-0xFF, 0x23, 0x01, 0x33, 0x1A, 0x43, 0x02, 0x60, 
-0x0B, 0x4A, 0x00, 0x20, 0x10, 0x60, 0x0B, 0x4A, 
-0x10, 0x60, 0x00, 0xE0, 0x00, 0xBF, 0x49, 0x1E, 
-0x00, 0x29, 0xFB, 0xDC, 0xBF, 0xF3, 0x4F, 0x8F, 
-0x08, 0x49, 0x07, 0x48, 0xC8, 0x60, 0xBF, 0xF3, 
-0x4F, 0x8F, 0xFE, 0xE7, 0xF0, 0x49, 0x02, 0x00, 
-0x80, 0x80, 0x04, 0x40, 0x00, 0x80, 0x02, 0x50, 
-0x00, 0x01, 0x02, 0x50, 0x00, 0x04, 0x02, 0x50, 
-0x04, 0x00, 0xFA, 0x05, 0x00, 0xED, 0x00, 0xE0
-#else
-0x40, 0xBA, 0x70, 0x47, 0xC0, 0xBA, 0x70, 0x47, 
-0xBF, 0xF3, 0x4F, 0x8F, 0x03, 0x49, 0x02, 0x48, 
-0xC8, 0x60, 0xBF, 0xF3, 0x4F, 0x8F, 0xFE, 0xE7, 
-0x04, 0x00, 0xFA, 0x05, 0x00, 0xED, 0x00, 0xE0
-#endif
+	0x40, 0xBA, 0x70, 0x47, 0xC0, 0xBA, 0x70, 0x47, 
+	0xBF, 0xF3, 0x4F, 0x8F, 0x03, 0x49, 0x02, 0x48, 
+	0xC8, 0x60, 0xBF, 0xF3, 0x4F, 0x8F, 0xFE, 0xE7, 
+	0x04, 0x00, 0xFA, 0x05, 0x00, 0xED, 0x00, 0xE0
 };
 
 void ReflashISPLED(uint8_t led_on_off)
@@ -141,56 +108,14 @@ const uint8_t SLAVE_ACK_PAGE_DOWNLOAD_INFO[] = {0x33,0xCC,0x03,0x01,0x00,0x00,0x
 const uint8_t SLAVE_ACK_ERASE_CHIP_INFO[] = {0x33,0xCC,0x04,0x01,0x00,0x01,0x06,0x00};
 const uint8_t SLAVE_ACK_GO_INFO[] = {0x33,0xCC,0x05,0x01,0x00,0x01,0x07,0x00};
 
-//const uint8_t SLAVE_ACK_FIRMWARE_VERSION_INFO[] = {0x33,0xCC,0x06,0x04,0x00,'V', '1', '.', '0', 0x00,0x00};
-
-void Buffercpy(uint8_t* pSBuffer, uint8_t* pDBuffer, uint16_t BufferLength)  
-{  
-  while(BufferLength--)  
-  {
-  	*pDBuffer = *pSBuffer;
-  	pDBuffer++;
-  	pSBuffer++;
-  }  
-}
-
-void moveReceTailPointer(uint32_t move_len)
-{
-	uint32_t i;
-	for(i=0; i<move_len; i++)
-	{
-		UARTPostion++;
-		if (UARTPostion == UART_BUFSIZE)
-		{
-			UARTPostion = 0;		/* buffer overflow */
-		}
-	}
-}
-
 void modifyVaildFrame(uint8_t is_flag)
 {
-	UartRece.is_vaild_frame=is_flag;
+	is_vaild_frame=is_flag;
 }
 
 uint8_t getVaildFrame(void)
 {
-	return UartRece.is_vaild_frame;
-}
-
-void modifyReceFrameStatus(uint8_t status)
-{
-	UartRece.frame_status = status;
-}
-
-uint8_t getReceFrameStatus(void)
-{
-	return UartRece.frame_status;
-}
-
-void resetReceStatus(void)
-{
-	modifyReceFrameStatus(START_BYTE_STATUS);
-	UARTPostion = UARTCount;
-	UartRece.frame_head = UARTPostion;
+	return is_vaild_frame;
 }
 
 uint16_t calcCheckSum(uint8_t *pbuff, uint32_t len)
@@ -207,36 +132,6 @@ uint16_t calcCheckSum(uint8_t *pbuff, uint32_t len)
     check_sum += *pcheckData++;
   }
 	return check_sum;
-}
-
-void copyCurrentCMDDataToBuff(uint32_t len)
-{
-	uint32_t i,length;
-	uint16_t rece_checksum,calc_checksum;
-	
-	memset(UartRece.curCMDbuff, 0, MAX_RECE_CMD_FRAME_LEN);
-	length = len+RECE_UART_FRAME_FRONT_CODE_LEN;
-	length %= MAX_RECE_CMD_FRAME_LEN;
-	UartRece.frame_active_len = length;
-	for(i=0; i<length; i++)
-	{
-		UartRece.curCMDbuff[i] = UARTBuffer[UartRece.frame_head++];
-		if(UartRece.frame_head == UART_BUFSIZE) UartRece.frame_head=0;
-	}
-	calc_checksum = calcCheckSum(UartRece.curCMDbuff, (UartRece.frame_active_len-4));
-	rece_checksum = UartRece.curCMDbuff[UartRece.frame_active_len-1];
-	rece_checksum <<= 8;
-	rece_checksum |= UartRece.curCMDbuff[UartRece.frame_active_len-2];
-	UartRece.curCMDbuff[UartRece.frame_active_len-1] = 0;
-	UartRece.curCMDbuff[UartRece.frame_active_len-2] = 0;
-	
-	#ifdef to_debug_part
-	if(calc_checksum==rece_checksum) uartSendByte('1');
-	else uartSendByte('2');
-	#else
-	if(calc_checksum==rece_checksum) modifyVaildFrame(IS_VAILD);
-	else uartSendStr(SLAVE_CHECKSUM_ERROR_INFO, sizeof(SLAVE_CHECKSUM_ERROR_INFO));
-	#endif
 }
 
 void canErrorForceReset(void)
@@ -259,7 +154,7 @@ void handleUartReceFrame(void)
 	if(getVaildFrame()==IS_VAILD)
 	{
 		modifyVaildFrame(IS_INVAILD);
-		_cmd = UartRece.curCMDbuff[FRAME_CMD_BYTE_POS];
+		_cmd = uartcommand;
 		if(_cmd == FRAME_LOOK_FOR_DEVICE_CMD)
 		{
 			CanSTBEnable(); //enable CAN transmiter
@@ -277,15 +172,15 @@ void handleUartReceFrame(void)
 			}
       if(CANopen_SDOC_State == CANopen_SDOC_Succes)
       {
-        Buffercpy((uint8_t*)SLAVE_ACK_UID_INFO, UartRece.sendbuff, sizeof(SLAVE_ACK_UID_INFO));
-        UartRece.sendbuff[5] = canRxMsg->data[4];
-        UartRece.sendbuff[6] = canRxMsg->data[5];
-        UartRece.sendbuff[7] = canRxMsg->data[6];
-        UartRece.sendbuff[8] = canRxMsg->data[7];
-        calc_checksum = calcCheckSum(UartRece.sendbuff, 7);
-        UartRece.sendbuff[9] = (uint8_t)(calc_checksum);
-        UartRece.sendbuff[10] = (uint8_t)(calc_checksum>>8);
-        uartSendStr(UartRece.sendbuff, sizeof(SLAVE_ACK_UID_INFO));
+				memcpy(UARTSendbuff, (uint8_t*)SLAVE_ACK_UID_INFO, sizeof(SLAVE_ACK_UID_INFO));
+        UARTSendbuff[5] = canRxMsg->data[4];
+        UARTSendbuff[6] = canRxMsg->data[5];
+        UARTSendbuff[7] = canRxMsg->data[6];
+        UARTSendbuff[8] = canRxMsg->data[7];
+        calc_checksum = calcCheckSum(UARTSendbuff, 7);
+        UARTSendbuff[9] = (uint8_t)(calc_checksum);
+        UARTSendbuff[10] = (uint8_t)(calc_checksum>>8);
+        uartSendStr(UARTSendbuff, sizeof(SLAVE_ACK_UID_INFO));
       }
       // init parameter
       ispFlashCount.page = 0;
@@ -300,8 +195,7 @@ void handleUartReceFrame(void)
 			ReflashISPLED(led_status_flag);
 			
 			CANopen_SDOC_BuffCount = 0;			/* Clear buffer */
-			CANopen_SDOC_Buff = UartRece.curCMDbuff+RECE_UART_FRAME_FRONT_CODE_LEN+1;
-			//CANopen_SDOC_Seg_BuffSize = UartRece.current_frame_len - RECE_UART_FRAME_CHECKSUM_BYTE_LEN-1;
+			CANopen_SDOC_Buff = uartCMDBuff+1;
 			CANopen_SDOC_Seg_BuffSize = FLASH_PAGE_SIZE+4;//TBD
 			
 			fail=0;
@@ -403,12 +297,12 @@ void handleUartReceFrame(void)
 			}
 			DELAY(1000);
 			
-      Buffercpy((uint8_t*)SLAVE_ACK_PAGE_DOWNLOAD_INFO, UartRece.sendbuff, sizeof(SLAVE_ACK_PAGE_DOWNLOAD_INFO));
-			UartRece.sendbuff[5] = ispFlashCount.page;
-			calc_checksum = calcCheckSum(UartRece.sendbuff, 4);
-			UartRece.sendbuff[6] = (uint8_t)(calc_checksum);
-			UartRece.sendbuff[7] = (uint8_t)(calc_checksum>>8);
-			uartSendStr(UartRece.sendbuff, sizeof(SLAVE_ACK_PAGE_DOWNLOAD_INFO));
+			memcpy(UARTSendbuff, (uint8_t*)SLAVE_ACK_PAGE_DOWNLOAD_INFO, sizeof(SLAVE_ACK_PAGE_DOWNLOAD_INFO));
+			UARTSendbuff[5] = ispFlashCount.page;
+			calc_checksum = calcCheckSum(UARTSendbuff, 4);
+			UARTSendbuff[6] = (uint8_t)(calc_checksum);
+			UARTSendbuff[7] = (uint8_t)(calc_checksum>>8);
+			uartSendStr(UARTSendbuff, sizeof(SLAVE_ACK_PAGE_DOWNLOAD_INFO));
 			
 			ispFlashCount.page++;
 			if(ispFlashCount.page > MAX_LPC11C24_FLASH_PAGE_NUMBER)
@@ -465,12 +359,10 @@ void handleUartReceFrame(void)
 			led_status_flag = LED_ON;
 			ReflashISPLED(led_status_flag);
 			
-			memset(UartRece.curCMDbuff, 0, MAX_RECE_CMD_FRAME_LEN);
-			Buffercpy((uint8_t*)JumpCodeTable, UartRece.curCMDbuff, sizeof(JumpCodeTable));
+			memcpy(uartCMDBuff, (uint8_t*)JumpCodeTable, sizeof(JumpCodeTable));
 			CANopen_SDOC_BuffCount = 0;			/* Clear buffer */
-			CANopen_SDOC_Buff = UartRece.curCMDbuff;//+RECE_UART_FRAME_FRONT_CODE_LEN+1;
-			//CANopen_SDOC_Seg_BuffSize = UartRece.current_frame_len - RECE_UART_FRAME_CHECKSUM_BYTE_LEN-1;
-			CANopen_SDOC_Seg_BuffSize = sizeof(JumpCodeTable)+10;//FLASH_PAGE_SIZE;//TBD
+			CANopen_SDOC_Buff = uartCMDBuff;
+			CANopen_SDOC_Seg_BuffSize = sizeof(JumpCodeTable)+10;
 			
 			fail=0;
 			do
@@ -560,100 +452,87 @@ void handleUartReceFrame(void)
 			DELAY(1000);
 			CanSTBDisable(); //disable CAN transmiter
 		}
-//		else if(_cmd == FRAME_FIRMWARE_VERSION_CMD)
-//		{
-//			Buffercpy((uint8_t*)SLAVE_ACK_FIRMWARE_VERSION_INFO, UartRece.sendbuff, sizeof(SLAVE_ACK_FIRMWARE_VERSION_INFO));
-//      calc_checksum = calcCheckSum(UartRece.sendbuff, 7);
-//      UartRece.sendbuff[9] = (uint8_t)(calc_checksum);
-//      UartRece.sendbuff[10] = (uint8_t)(calc_checksum>>8);
-//      uartSendStr(UartRece.sendbuff, sizeof(SLAVE_ACK_FIRMWARE_VERSION_INFO));
-//		}
 	}
 }
 
 void uartReceDataAnalysis(void)
 {
+	uint8_t byte;
+	static uint8_t index;
+	static uint16_t parameterIndex;
+	static uint16_t checksum;
+	
 	while(UARTPostion != UARTCount)
   {
-  	if(getReceFrameStatus() == START_BYTE_STATUS)
-    {
-			if (UARTBuffer[UARTPostion] == FRAME_START_BYTE_0X5A)
+		byte=UARTBuffer[UARTPostion++];
+		if (UARTPostion>=UART_BUFSIZE)
+			UARTPostion=0;
+	  	switch (dataState)
 			{
-				UartRece.frame_head = UARTPostion;
-			  moveReceTailPointer(1);
-			  modifyReceFrameStatus(FRAME_START_BYTE_0X5A_STATUS);
+				case StateDelimiter1:
+					if (byte==FRAME_START_BYTE_0X5A)
+						dataState = StateDelimiter2;
+					break;
+				case StateDelimiter2:
+					if (byte == FRAME_START_BYTE_0XA5)
+						dataState = StateCommand;
+					else
+						dataState = StateDelimiter1;
+					break;
+				case StateCommand:
+					checksum = byte;
+				  command = byte;
+					index = 0;
+          parameterLen = 0;
+					dataState = StateParameterLength;
+					break;
+				case StateParameterLength:
+					checksum += byte;
+					parameterLen |= (byte<<(index++*8));
+					if (index>=2)
+					{
+						if (parameterLen == 0)
+						{
+							dataState = StateDelimiter1;
+						}
+						else
+						{
+							parameterIndex = 0;
+							dataState = StateParameters;
+						}
+					}
+					break;
+				case StateParameters:
+					checksum += byte;
+					parameters[parameterIndex++] = byte;
+					if (parameterIndex >= parameterLen)
+					{
+						index = 0;
+						parameterIndex = 0;
+						dataState = StateChecksum;
+					}
+					break;
+				case StateChecksum:
+					parameterIndex |= (byte<<(index++*8));
+					if (index>=2)
+					{
+						if (parameterIndex==checksum)
+						{
+							memset(uartCMDBuff, 0, parameterLen+1);
+							memcpy(uartCMDBuff, parameters, parameterLen);
+							uartcommand=command;
+							modifyVaildFrame(IS_VAILD);
+						}
+						else
+						{
+							uartSendStr(SLAVE_CHECKSUM_ERROR_INFO, sizeof(SLAVE_CHECKSUM_ERROR_INFO)); //check sum error
+						}
+						dataState = StateDelimiter1;
+					}
+					break;
+				default:
+					break;
 			}
-			else
-			{
-				resetReceStatus();
-			}
-	  }
-	  else if(getReceFrameStatus() == FRAME_START_BYTE_0X5A_STATUS)
-	  {
-			if (UARTBuffer[UARTPostion] == FRAME_START_BYTE_0XA5)
-			{
-			  moveReceTailPointer(1);
-				modifyReceFrameStatus(FRAME_START_BYTE_0XA5_STATUS);
-			}
-			else
-			{
-				resetReceStatus();
-			}
-		}
-		else if(getReceFrameStatus() == FRAME_START_BYTE_0XA5_STATUS)
-		{
-			if (UARTBuffer[UARTPostion] < FRAME_CMD_LIMIT)
-			{
-				modifyReceFrameStatus(CMD_BYTE_STATUS);
-				moveReceTailPointer(1);
-			}
-			else
-			{
-				resetReceStatus();
-			}
-		}
-		else if(getReceFrameStatus() == CMD_BYTE_STATUS)
-		{
-			UartRece.current_frame_len = UARTBuffer[UARTPostion];
-			moveReceTailPointer(1);
-			modifyReceFrameStatus(LENGTH_LOW_BYTE_STATUS);
-		}
-		else if(getReceFrameStatus() == LENGTH_LOW_BYTE_STATUS)
-		{
-			UartRece.current_frame_len |= (UARTBuffer[UARTPostion]<<8);
-			UartRece.current_frame_len += RECE_UART_FRAME_CHECKSUM_BYTE_LEN; //TBD
-			if((UartRece.current_frame_len > 0) ||
-				 (UartRece.current_frame_len < MAX_RECE_FRAME_LEN))
-		  {
-			  moveReceTailPointer(1);
-			  modifyReceFrameStatus(LENGTH_HIGH_BYTE_STATUS);
-			}
-			else
-			{
-				resetReceStatus();
-			}
-		}
-		else if(getReceFrameStatus() == LENGTH_HIGH_BYTE_STATUS) //receive, timeout
-		{
-			if(UARTCount > UARTPostion)
-			{
-				if(UARTCount >= (UARTPostion+UartRece.current_frame_len))
-				{
-					moveReceTailPointer(UartRece.current_frame_len);
-					copyCurrentCMDDataToBuff(UartRece.current_frame_len);
-					modifyReceFrameStatus(START_BYTE_STATUS);
-				}
-			}
-			else
-			{
-				if((UARTCount+UART_BUFSIZE) >= (UARTPostion+UartRece.current_frame_len))
-				{
-					moveReceTailPointer(UartRece.current_frame_len);
-					copyCurrentCMDDataToBuff(UartRece.current_frame_len);//TBD,last data is not handled
-					modifyReceFrameStatus(START_BYTE_STATUS);
-				}
-			}
-		}
 	}
 }
 
@@ -671,11 +550,8 @@ int main(void)
 	SystemCoreClockUpdate();
   LEDinit();
 	
-	UARTInit(1000000);//115200
-	
-	UartRece.frame_head=0;
-	UartRece.current_frame_len=0;
-	modifyReceFrameStatus(START_BYTE_STATUS);
+	UARTInit(1000000);
+
 	modifyVaildFrame(IS_INVAILD);
 
 	CANInit(100); 
