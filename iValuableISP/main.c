@@ -40,10 +40,9 @@ static uint8_t command=0;
 static uint16_t parameterLen=0;
 uint8_t parameters[300];
 
+uint8_t UARTSendbuff[100];
 uint8_t uartCMDBuff[300];
 static uint8_t uartcommand=0;
-uint8_t is_vaild_frame;
-uint8_t UARTSendbuff[100];
 
 //is_vaild_frame
 enum
@@ -51,6 +50,17 @@ enum
 	IS_INVAILD,
 	IS_VAILD
 };
+volatile uint8_t is_vaild_frame=IS_INVAILD;
+
+enum
+{
+	ISP_UPDATE_SUCCES,
+	ISP_UPDATING,
+	ISP_UPDATE_FAIL
+};
+volatile uint8_t ISPUpdate_State=ISP_UPDATE_SUCCES;
+static uint16_t ISPUpdate_Timeout=0;
+#define MAX_ISP_UPDATE_OVERTIME 300 //10ms*300=3s
 
 #define FRAME_START_BYTE_0X5A 0x5A
 #define FRAME_START_BYTE_0XA5 0xA5
@@ -107,6 +117,20 @@ const uint8_t SLAVE_FLASH_PAGE_OVERFLOW_INFO[] = {0x33,0xCC,0x02,0x01,0x00,0xE4,
 const uint8_t SLAVE_ACK_PAGE_DOWNLOAD_INFO[] = {0x33,0xCC,0x03,0x01,0x00,0x00,0xE6,0x00};
 const uint8_t SLAVE_ACK_ERASE_CHIP_INFO[] = {0x33,0xCC,0x04,0x01,0x00,0x01,0x06,0x00};
 const uint8_t SLAVE_ACK_GO_INFO[] = {0x33,0xCC,0x05,0x01,0x00,0x01,0x07,0x00};
+
+void ISPUpdate_10ms_tick(void)
+{
+	if(ISPUpdate_State == ISP_UPDATING)
+	{
+		if(ISPUpdate_Timeout-- == 0)
+			ISPUpdate_State = ISP_UPDATE_FAIL;		/* change status to fail on timeout */
+	}
+}
+
+void setISPUpdateTimeOut(uint16_t time)
+{
+	ISPUpdate_Timeout = time;
+}
 
 void modifyVaildFrame(uint8_t is_flag)
 {
@@ -186,10 +210,15 @@ void handleUartReceFrame(void)
       ispFlashCount.page = 0;
 			led_status_flag = LED_ON;
 			ReflashISPLED(led_status_flag);
+			
+      ISPUpdate_State = ISP_UPDATING;
+			setISPUpdateTimeOut(MAX_ISP_UPDATE_OVERTIME);
+			
 		}
 		else if(_cmd == FRAME_PROGRAM_DATA_CMD)
     {
 			CanSTBEnable(); //enable CAN transmiter
+			
 			if(led_status_flag == LED_ON) led_status_flag = LED_OFF;
 			else led_status_flag = LED_ON;
 			ReflashISPLED(led_status_flag);
@@ -307,6 +336,8 @@ void handleUartReceFrame(void)
 			ispFlashCount.page++;
 			if(ispFlashCount.page > MAX_LPC11C24_FLASH_PAGE_NUMBER)
 				uartSendStr(SLAVE_FLASH_PAGE_OVERFLOW_INFO, sizeof(SLAVE_FLASH_PAGE_OVERFLOW_INFO));
+			
+			setISPUpdateTimeOut(MAX_ISP_UPDATE_OVERTIME);
 		}
 		else if(_cmd == FRAME_ERASE_CHIP_CMD)
 		{
@@ -351,6 +382,8 @@ void handleUartReceFrame(void)
 			uartSendStr(SLAVE_ACK_ERASE_CHIP_INFO, sizeof(SLAVE_ACK_ERASE_CHIP_INFO));
 			// init parameter
       ispFlashCount.page = 0;
+			
+			setISPUpdateTimeOut(MAX_ISP_UPDATE_OVERTIME);
 		}
 		else if(_cmd == FRAME_MASTER_GO_CMD)
 		{
@@ -447,10 +480,12 @@ void handleUartReceFrame(void)
 				uartSendStr(SLAVE_ISP_TARGET_TIMEOUT_INFO1, sizeof(SLAVE_ISP_TARGET_TIMEOUT_INFO1));
 				return;
 			}
-			
-			uartSendStr(SLAVE_ACK_GO_INFO, sizeof(SLAVE_ACK_GO_INFO));
-			DELAY(1000);
 			CanSTBDisable(); //disable CAN transmiter
+			uartSendStr(SLAVE_ACK_GO_INFO, sizeof(SLAVE_ACK_GO_INFO));
+			
+			ISPUpdate_State = ISP_UPDATE_SUCCES;
+			
+			DELAY(1000);
 		}
 	}
 }
@@ -542,6 +577,7 @@ void TIMER32_0_IRQHandler() //10ms
   {    
     LPC_TMR32B0->IR = 1; /* clear interrupt flag */
 		CANopen_10ms_tick();
+		ISPUpdate_10ms_tick();
   }
 }
 
@@ -549,29 +585,23 @@ int main(void)
 {
 	SystemCoreClockUpdate();
   LEDinit();
-	
 	UARTInit(1000000);
-
-	modifyVaildFrame(IS_INVAILD);
-
 	CANInit(100); 
 	LPC_SYSCON->PRESETCTRL |= (0x1<<0);
-	
 	//timeout,use timer work. 
 	init_timer32(0, TIME_INTERVAL(100));	//	10ms
 	enable_timer32(0);
-	
   while(1)
   {
-//		while (UARTPostion!=UARTCount) //TO debug Uart receive
-//	  {
-//			UARTSend(&UARTBuffer[UARTPostion++], 1);
-//			if (UARTPostion == UART_BUFSIZE)
-//      {
-//        UARTPostion = 0;		/* buffer overflow */
-//      }
-//		} 
 		uartReceDataAnalysis();
 		handleUartReceFrame();
+		
+		if(ISPUpdate_State == ISP_UPDATE_FAIL)
+		{
+			CanSTBDisable(); //disable CAN transmiter
+			canErrorForceReset();
+			ISPUpdate_State = ISP_UPDATE_SUCCES;
+			//NVIC_SystemReset();
+		}
   }
 }
