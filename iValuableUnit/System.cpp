@@ -36,7 +36,7 @@ void SystemSetup()
 	
 	//Obtain NodeId
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
-	uint8_t id = LPC_GPIO[PORT2]->MASKED_ACCESS[0x7];
+	uint8_t id = LPC_GPIO[PORT1]->MASKED_ACCESS[0x7];
 	if (GPIOGetValue(PORT1,4))
 		id|=0x08;
 	if (GPIOGetValue(PORT1,5))
