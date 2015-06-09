@@ -11,11 +11,18 @@ using namespace fastdelegate;
 #define ADDR_SENSOR_ENABLE	0x00F
 #define ADDR_CAL_WEIGHT			0x010
 #define ADDR_TEMP						0x014
+
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 	#define ADDR_TARE_SUM				0x018
 #endif
+
 #define ADDR_CONFIG  				0x020
 #define ADDR_SCALE  				0x040
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	#define ADDR_RFID						0x090
+#endif
+
 #define ADDR_QUANTITY				0x0A0
 #define ADDR_INFO						0x0D0
 
@@ -34,6 +41,10 @@ class DataProcessor
 		static DataProcessor *Singleton;
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 		float *pTareSum;
+#endif
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		uint8_t *pCardId;
+		volatile float boxWeight;
 #endif
 	public:
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
@@ -73,12 +84,18 @@ class DataProcessor
 		
 		bool SensorEnable(std::uint8_t ch) const;
 		ScaleAttribute *GetConfig() { return pConfig; }
-		float GetCalWeight() const;
+		float GetCalWeight() const {	return *pCalWeight; }
 		float GetRamp(std::uint8_t ch) const;
 		std::uint8_t GetEnable() const { return *pSensorEnable; }
 		std::int32_t GetQuantity(std::uint8_t index) const { return *pQuantity[index]; }
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 		float GetTareWeight() const { return *pTareSum; }
+#endif
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		void SetBoxWeight(const std::uint8_t *w) { memcpy((void *)(&boxWeight), w, sizeof(float)); }
+		const std::uint8_t *GetCardId() { return pCardId; }
+		void SetCardId(const std::uint8_t *id);
 #endif
 		
 		std::uint64_t GetSuppliesId(std::uint8_t index) const { return pSupplies[index]->Uid; }

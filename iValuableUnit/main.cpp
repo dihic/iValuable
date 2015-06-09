@@ -21,6 +21,12 @@
 #include "SuppliesDisplay.h"
 #include "NoticeLogic.h"
 
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+#include "RfidProcessor.h"
+static bool RfidTimeup = true;	// for power saving
+static bool RfidPending = false;
+#endif
+
 using namespace std; 
 using namespace fastdelegate;
 
@@ -44,10 +50,23 @@ void TIMER32_0_IRQHandler()		//1000Hz
 {
 	static uint32_t hbCount = HeartbeatInterval;
 	static uint32_t syncCount = SyncInterval;
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	static uint32_t RfidCount = 0;
+#endif
 	
 	if ( LPC_TMR32B0->IR & 0x01 )
   {    
 		LPC_TMR32B0->IR = 1;			/* clear interrupt flag */
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		if (!RfidTimeup)
+			if (RfidCount++>=RFID_TIME_INTERVAL)
+			{
+				RfidTimeup =true;
+				RfidCount = 0;
+			}
+#endif
 		
 		//Timeout to re-lock after last unlock
 		if (LockCount!=0xffff && IS_LOCKER_ON)
@@ -116,6 +135,8 @@ void UpdateWeight()
 	{
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 		Weights.Total = total;
+#elseif UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		Weights.Total = total - Processor->GetTareWeight() - Processor->GetBoxWeight();
 #else
 		Weights.Total = total - Processor->GetTareWeight();
 #endif
@@ -534,6 +555,39 @@ void ReportDoorState()
 	CANEXBroadcast(&syncEntry);
 }
 
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+
+uint8_t RfidBytes[9];
+
+void ReportRfid()
+{
+	syncEntry.index = SYNC_RFID;
+	syncEntry.subindex = 0;
+	syncEntry.val = RfidBytes;
+	syncEntry.entrytype_len = 9;
+	CANEXBroadcast(&syncEntry);
+}
+
+void RfidChanged(uint8_t cardType, const uint8_t *id)
+{
+	RfidBytes[0] = cardType;
+	memcpy(RfidBytes+1, id, 8);
+	
+	if (cardType==0)
+	{
+		//TBD: Remove current inventory config
+	}
+	if (Connected && Registered)
+	{
+		RfidPending = false;
+		ReportRfid();
+	}
+	else
+		RfidPending = true;
+}
+#endif
+
 int main()
 {
 	SystemCoreClockUpdate();
@@ -562,6 +616,10 @@ int main()
 	
 	DataProcessor::WriteNV.bind(&FRAM::WriteMemory);
 	SensorArray::Instance(Processor->GetConfig());
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID	
+	RfidProcessor::RfidChangedEvent.bind(&RfidChanged);
+#endif
 	
 	UARTInit(230400);
 	Display::OnAckReciever.bind(&AckReciever);
@@ -605,5 +663,18 @@ int main()
 			ReportDoorState();
 			DoorChangedEvent = false;
 		}
+		
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		if (RfidTimeup)
+		{
+			RfidProcessor::UpdateRfid();
+			RfidTimeup = false;
+		}
+		if (Connected && Registered && RfidPending)
+		{
+			ReportRfid();
+			RfidPending = false;
+		}
+#endif
 	}
 }
