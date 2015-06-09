@@ -55,6 +55,8 @@ namespace IntelliStorage
 		//Determine FW data and size
 		const uint8_t *ptr = NULL;
 		uint16_t size = 0;
+		uint8_t status = 0;
+		
 		if (type==0)
 			type = unit->TypeCode;
 		uint8_t i;
@@ -99,6 +101,7 @@ namespace IntelliStorage
 				updating = false;
 				return false;
 			}
+			manager->comm->SendFileData(CommandWrite, &status, 1);
 			ptr+=0x100;
 		}
 		if (size&0xff)
@@ -108,6 +111,8 @@ namespace IntelliStorage
 				updating = false;
 				return false;
 			}
+			status = 1;	//Program Completed
+			manager->comm->SendFileData(CommandWrite, &status, 1);
 		}
 		
 		unit->updateStatus = StorageUnit::Updated;
@@ -355,6 +360,18 @@ namespace IntelliStorage
 				status[1] = ErrorUnknown;
 				comm->SendFileData(CommandStatus, status, 2);
 				break;
+		}
+	}
+	
+	void UnitManager::SyncAllData()
+	{
+		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
+		{
+			if (!updating && it->second->UpdateStatus() != StorageUnit::Updating)
+			{
+				it->second->SyncUnitData();
+				osDelay(20);
+			}
 		}
 	}
 	

@@ -97,6 +97,7 @@ namespace IntelliStorage
 		
 			UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp);
 			~UnitManager() {}
+			void SyncAllData();
 			void SyncUpdate();
 			void Recover(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);
 			void Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit);

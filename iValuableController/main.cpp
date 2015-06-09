@@ -27,6 +27,8 @@ boost::scoped_ptr<NetworkEngine> ethEngine;
 boost::scoped_ptr<UnitManager> unitManager;
 boost::scoped_ptr<ISPProgram> ispUpdater;
 
+osTimerId syncDataTimerId = NULL;
+
 namespace boost
 {
 	void throw_exception(const std::exception& ex) {}
@@ -34,7 +36,7 @@ namespace boost
 
 extern volatile float CurrentTemperature;
 
-void HeatbeatTimer_Callback(void const *arg)
+void HeatbeatTimerCallback(void const *arg)
 {
 	static uint8_t hbcount = 20;
 	
@@ -55,7 +57,23 @@ void HeatbeatTimer_Callback(void const *arg)
 	}
 }
 
-osTimerDef(HeatbeatTimer, HeatbeatTimer_Callback);
+osTimerDef(HeatbeatTimer, HeatbeatTimerCallback);
+
+void SyncDataTimerCallback(void const *arg)
+{
+	if (unitManager != nullptr)
+		unitManager->SyncAllData();
+}
+
+osTimerDef(SyncDataTimer, SyncDataTimerCallback);
+
+void SyncDataLauncher(void const *argument)
+{
+	osDelay(3000);
+	syncDataTimerId = osTimerCreate(osTimer(SyncDataTimer), osTimerPeriodic, NULL);
+	osTimerStart(syncDataTimerId, 1000);
+}
+osThreadDef(SyncDataLauncher, osPriorityNormal, 1, 0);
 
 static void CanPollWorker(void const *argument)  
 {
@@ -124,14 +142,16 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		if (updated)
 			unitManager->Recover(sourceId&0x7f, unit);
 		else
+		{
+			CanEx->AddDevice(unit);
 			unitManager->Add(sourceId&0x7f, unit);
+		}
 	}
 	//CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync
 	CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::Trigger);
 	if (updated)
 		unitManager->SyncUpdate();
 }
-
 
 int main()
 {
@@ -171,6 +191,8 @@ int main()
 	
 	//Start collecting all devices
 	CanEx->SyncAll(DeviceSync::SyncLive, CANExtended::Trigger);
+	
+	osThreadCreate(osThread(SyncDataLauncher), NULL);
 	
 	while (1)
 	{
