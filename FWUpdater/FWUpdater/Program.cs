@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
@@ -42,7 +43,8 @@ namespace FWUpdater
                     else
                     {
                         Console.WriteLine("Done");
-                        Console.WriteLine("CRC Validation: "+(BitConverter.ToUInt32(data, 1) == crc.Value ? "Pass" : "Failed"));
+                        if (data.Length>=5)
+                            Console.WriteLine("CRC Validation: "+(BitConverter.ToUInt32(data, 1) == crc.Value ? "Pass" : "Failed"));
                     }
                     break;
                 case CommandType.WriteInfo:
@@ -353,7 +355,11 @@ namespace FWUpdater
                         else
                         {
                             int id;
-                            if (int.TryParse(args[1], out id))
+                            var isNum = args[1].StartsWith("0x")
+                                ? int.TryParse(args[1].Substring(2), NumberStyles.HexNumber, new CultureInfo("en-US"),
+                                    out id)
+                                : int.TryParse(args[1], out id);
+                            if (isNum)
                             {
                                 if (args.Length > 3)
                                 {
@@ -391,6 +397,8 @@ namespace FWUpdater
                                 }
                                 program.Update(type);
                             }
+                            else
+                                Console.WriteLine("Invalid Parameters!");
                         }
                         break;
                     default:
