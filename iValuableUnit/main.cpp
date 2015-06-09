@@ -151,6 +151,7 @@ void TIMER32_1_IRQHandler()		//100Hz
 	static int counter=0;
 	static int cd = 0;
 	static bool refresh = false;
+	static bool shown = false;
 	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
@@ -184,19 +185,32 @@ void TIMER32_1_IRQHandler()		//100Hz
 		}
 		
 		//Logic of display into pages 
-		if (Processor)
+		switch (DisplayState)
 		{
-			if (ForceDisplay)
-			{
+			case DisplayNormal:
+				if (refresh && ++cd==300) // Interval 3s
+				{
+					cd = 0;
+					shown = true;
+					refresh = Processor->UpdateDisplay();
+				}
+				break;
+			case DisplayForce:
 				cd = 0;
-				ForceDisplay = false;
+				shown = true;
+				DisplayState = DisplayNormal;
+				Display::DisplayOnOff(true);
 				refresh = Processor->UpdateDisplay(true);
-			}
-			else if (refresh && ++cd==300) // Interval 3s
-			{
-				cd = 0;
-				refresh = Processor->UpdateDisplay();
-			}
+				break;
+			case DisplayOff:
+				if (shown)
+				{
+					Display::DisplayOnOff(false);
+					shown = false;
+				}
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -309,7 +323,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					SuppliesDisplay::DeleteString(i);
 				}
 				*(response->val)=0;
-				ForceDisplay = true;
+				DisplayState = DisplayForce;
 				break;
 			}
 			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
@@ -344,7 +358,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				Processor->SetQuantity(entry->val[0], 0);
 				SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
 				*(response->val)=0;
-				ForceDisplay = true;
+				DisplayState = DisplayForce;
 			}
 			break;
 		case OP_QUANTITY:
@@ -576,8 +590,19 @@ void RfidChanged(uint8_t cardType, const uint8_t *id)
 	
 	if (cardType==0)
 	{
-		//TBD: Remove current inventory config
+		DisplayState = DisplayOff;
 	}
+	else
+	{
+		if (Processor->IsSameCard(id))
+			DisplayState = DisplayForce;
+		else
+		{
+			Processor->SetCardId(id);
+			Processor->RemoveAllSupplies();
+		}
+	}
+	
 	if (Connected && Registered)
 	{
 		RfidPending = false;
@@ -630,7 +655,7 @@ int main()
 	DELAY(10);
 	enable_timer32(1);
 	
-	ForceDisplay = true;
+	DisplayState = DisplayForce;
 	
 	UnitSystemState = STATE_OPERATIONAL;
 	

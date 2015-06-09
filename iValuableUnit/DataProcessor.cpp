@@ -8,7 +8,7 @@ using namespace std;
 __align(16) std::uint8_t DataProcessor::MemBuffer[MEM_BUFSIZE];
 
 DataProcessor *DataProcessor::Singleton = NULL;
-DataProcessor::WriteNVHandler DataProcessor::WriteNV = NULL;
+DataProcessor::WriteNVHandler DataProcessor::WriteNV;
 
 DataProcessor::DataProcessor()
 	:boxWeight(0)
@@ -330,6 +330,13 @@ void DataProcessor::RemoveSupplies(std::uint8_t index)
 	memset(pSupplies[index], 0, sizeof(SuppliesInfo));
 	if (WriteNV)
 		WriteNV(ADDR_INFO + index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
+}
+
+void DataProcessor::RemoveAllSupplies()
+{
+	for(int i=0;i<SUPPLIES_NUM;++i)
+		if (pSupplies[i]->Uid != 0)
+			RemoveSupplies(i);
 }
 
 #define TEXT_POS_Y	5

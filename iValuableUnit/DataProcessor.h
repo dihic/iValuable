@@ -96,6 +96,7 @@ class DataProcessor
 		void SetBoxWeight(const std::uint8_t *w) { memcpy((void *)(&boxWeight), w, sizeof(float)); }
 		const std::uint8_t *GetCardId() { return pCardId; }
 		void SetCardId(const std::uint8_t *id);
+		bool IsSameCard(const std::uint8_t *id) { return std::memcmp(id, pCardId, 8)==0; }
 #endif
 		
 		float GetBoxWeight() const { return boxWeight; }
@@ -106,6 +107,7 @@ class DataProcessor
 		void SetSupplies(std::uint8_t index, const SuppliesInfo &info);
 		bool AddSupplies(const SuppliesInfo &info);
 		void RemoveSupplies(std::uint8_t index);
+		void RemoveAllSupplies();
 		
 		int PrepareRaw(std::uint8_t *buf);
 		bool UpdateDisplay(bool force=false);

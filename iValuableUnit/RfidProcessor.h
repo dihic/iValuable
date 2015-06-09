@@ -18,6 +18,7 @@ class RfidProcessor
 		typedef fastdelegate::FastDelegate2<std::uint8_t, const std::uint8_t *> RfidChangedHandler;
 		static RfidChangedHandler RfidChangedEvent;
 		static void UpdateRfid();
+		static std::uint8_t GetCardType() { return RfidCardType; }
 };
 
 #endif

@@ -33,7 +33,7 @@ void RfidProcessor::AfterRfidError()
 {
 	RfidCardType = 0x00;
 	memset(UIDlast, 0, 8);
-	DataProcessor::InstancePtr()->SetCardId(NULL);
+//	DataProcessor::InstancePtr()->SetCardId(NULL);
 	Trf796xCommunicationSetup();
 	Trf796xInitialSettings();
 }
@@ -68,7 +68,7 @@ void RfidProcessor::UpdateRfid()
 		if IS_NEW_CARD	//New card found
 		{
 			memcpy(UIDlast, UID, 8);
-			processor->SetCardId(UID);
+//			processor->SetCardId(UID);
 			
 			if (ReadSingleBlock(0, block))
 			{
@@ -109,7 +109,7 @@ void RfidProcessor::UpdateRfid()
 		{
 			RfidCardType = 0x00;
 			memset(UIDlast, 0, 8);
-			processor->SetCardId(NULL);
+//			processor->SetCardId(NULL);
 			if (RfidChangedEvent)
 				RfidChangedEvent(RfidCardType, UIDlast);
 		}
