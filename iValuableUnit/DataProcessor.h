@@ -11,11 +11,18 @@ using namespace fastdelegate;
 #define ADDR_SENSOR_ENABLE	0x00F
 #define ADDR_CAL_WEIGHT			0x010
 #define ADDR_TEMP						0x014
+
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 	#define ADDR_TARE_SUM				0x018
 #endif
+
 #define ADDR_CONFIG  				0x020
 #define ADDR_SCALE  				0x040
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	#define ADDR_RFID						0x090
+#endif
+
 #define ADDR_QUANTITY				0x0A0
 #define ADDR_INFO						0x0D0
 
@@ -35,6 +42,10 @@ class DataProcessor
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 		float *pTareSum;
 #endif
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		uint8_t *pCardId;
+#endif
+		volatile float boxWeight;
 	public:
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
 		static WriteNVHandler WriteNV;
@@ -73,13 +84,22 @@ class DataProcessor
 		
 		bool SensorEnable(std::uint8_t ch) const;
 		ScaleAttribute *GetConfig() { return pConfig; }
-		float GetCalWeight() const;
+		float GetCalWeight() const {	return *pCalWeight; }
 		float GetRamp(std::uint8_t ch) const;
 		std::uint8_t GetEnable() const { return *pSensorEnable; }
 		std::int32_t GetQuantity(std::uint8_t index) const { return *pQuantity[index]; }
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 		float GetTareWeight() const { return *pTareSum; }
 #endif
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		void SetBoxWeight(const std::uint8_t *w) { memcpy((void *)(&boxWeight), w, sizeof(float)); }
+		const std::uint8_t *GetCardId() { return pCardId; }
+		void SetCardId(const std::uint8_t *id);
+		bool IsSameCard(const std::uint8_t *id) { return std::memcmp(id, pCardId, 8)==0; }
+#endif
+		
+		float GetBoxWeight() const { return boxWeight; }
 		
 		std::uint64_t GetSuppliesId(std::uint8_t index) const { return pSupplies[index]->Uid; }
 		bool FindSuppliesId(std::uint64_t id, std::uint8_t &index) const;
@@ -87,6 +107,7 @@ class DataProcessor
 		void SetSupplies(std::uint8_t index, const SuppliesInfo &info);
 		bool AddSupplies(const SuppliesInfo &info);
 		void RemoveSupplies(std::uint8_t index);
+		void RemoveAllSupplies();
 		
 		int PrepareRaw(std::uint8_t *buf);
 		bool UpdateDisplay(bool force=false);

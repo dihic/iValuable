@@ -61,7 +61,14 @@ volatile bool Registered = false;		// Registered by host
 //volatile bool ForceSync = false;
 //volatile bool Gotcha = true;
 
-volatile bool ForceDisplay = false;
+enum DisplayMode
+{
+	DisplayNormal,
+	DisplayForce,
+	DisplayOff,
+};
+
+volatile DisplayMode DisplayState = DisplayNormal;
 
 
 #endif

@@ -24,15 +24,27 @@
 void SystemSetup()
 {
 	GPIOInit();
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	LPC_GPIO[PORT1]->DIR &= ~(0xC37); //ADDR0-6
+#else
 	LPC_GPIO[PORT2]->DIR &= ~(0xDC0); //ADDR0-4
 	GPIOSetDir(PORT1, 10, E_IO_INPUT);	//ADDR5
 	GPIOSetDir(PORT1, 11, E_IO_INPUT);	//ADDR6
+#endif
 	
 	GPIOSetDir(ENABLE_LOCKER, E_IO_INPUT); //ADDR7
 	
 	//Obtain NodeId
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	uint8_t id = LPC_GPIO[PORT1]->MASKED_ACCESS[0x7];
+	if (GPIOGetValue(PORT1,4))
+		id|=0x08;
+	if (GPIOGetValue(PORT1,5))
+		id|=0x10;
+#else
 	uint8_t id = (LPC_GPIO[PORT2]->MASKED_ACCESS[0x1C0])>>6;
 	id |= (LPC_GPIO[PORT2]->MASKED_ACCESS[0xC00])>>7;
+#endif
 	if (GPIOGetValue(PORT1,10))
 		id|=0x20;
 	if (GPIOGetValue(PORT1,11))

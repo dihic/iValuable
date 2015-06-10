@@ -21,6 +21,12 @@
 #include "SuppliesDisplay.h"
 #include "NoticeLogic.h"
 
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+#include "RfidProcessor.h"
+static bool RfidTimeup = true;	// for power saving
+static bool RfidPending = false;
+#endif
+
 using namespace std; 
 using namespace fastdelegate;
 
@@ -44,10 +50,23 @@ void TIMER32_0_IRQHandler()		//1000Hz
 {
 	static uint32_t hbCount = HeartbeatInterval;
 	static uint32_t syncCount = SyncInterval;
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	static uint32_t RfidCount = 0;
+#endif
 	
 	if ( LPC_TMR32B0->IR & 0x01 )
   {    
 		LPC_TMR32B0->IR = 1;			/* clear interrupt flag */
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		if (!RfidTimeup)
+			if (RfidCount++>=RFID_TIME_INTERVAL)
+			{
+				RfidTimeup =true;
+				RfidCount = 0;
+			}
+#endif
 		
 		//Timeout to re-lock after last unlock
 		if (LockCount!=0xffff && IS_LOCKER_ON)
@@ -116,6 +135,8 @@ void UpdateWeight()
 	{
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 		Weights.Total = total;
+#elif UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		Weights.Total = total - Processor->GetTareWeight() - Processor->GetBoxWeight();
 #else
 		Weights.Total = total - Processor->GetTareWeight();
 #endif
@@ -128,8 +149,9 @@ void UpdateWeight()
 void TIMER32_1_IRQHandler()		//100Hz
 {
 	static int counter=0;
-	static int cd = 0;
-	static bool refresh = false;
+	static int cd = 0;							//Display time counter
+	static bool refresh = false;		//Need auto show page by page
+	static bool shown = false;			//Trigger as display-off
 	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
@@ -163,19 +185,33 @@ void TIMER32_1_IRQHandler()		//100Hz
 		}
 		
 		//Logic of display into pages 
-		if (Processor)
+		switch (DisplayState)
 		{
-			if (ForceDisplay)
-			{
+			case DisplayNormal:
+				shown = true;
+				if (refresh && ++cd==300) // Interval 3s
+				{
+					cd = 0;
+					refresh = Processor->UpdateDisplay();
+				}
+				break;
+			case DisplayForce:
 				cd = 0;
-				ForceDisplay = false;
+				shown = true;
+				DisplayState = DisplayNormal;
+				Display::DisplayOnOff(true);
 				refresh = Processor->UpdateDisplay(true);
-			}
-			else if (refresh && ++cd==300) // Interval 3s
-			{
-				cd = 0;
-				refresh = Processor->UpdateDisplay();
-			}
+				break;
+			case DisplayOff:
+				if (shown)
+				{
+					Display::DisplayOnOff(false);
+					shown = false;
+					refresh = false;
+				}
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -288,7 +324,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					SuppliesDisplay::DeleteString(i);
 				}
 				*(response->val)=0;
-				ForceDisplay = true;
+				DisplayState = DisplayForce;
 				break;
 			}
 			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
@@ -323,7 +359,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				Processor->SetQuantity(entry->val[0], 0);
 				SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
 				*(response->val)=0;
-				ForceDisplay = true;
+				DisplayState = DisplayForce;
 			}
 			break;
 		case OP_QUANTITY:
@@ -534,6 +570,55 @@ void ReportDoorState()
 	CANEXBroadcast(&syncEntry);
 }
 
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+
+uint8_t RfidBytes[9];
+
+void ReportRfid()
+{
+	syncEntry.index = SYNC_RFID;
+	syncEntry.subindex = 0;
+	syncEntry.val = RfidBytes;
+	syncEntry.entrytype_len = 9;
+	CANEXBroadcast(&syncEntry);
+}
+
+void RfidChanged(uint8_t cardType, const uint8_t *id)
+{
+	RfidBytes[0] = cardType;
+	
+	if (cardType==0)
+	{
+		DisplayState = DisplayOff;
+	}
+	else
+	{
+		memcpy(RfidBytes+1, id, 8);
+		if (Processor->IsSameCard(id))
+			DisplayState = DisplayForce;
+		else
+		{
+			Processor->SetCardId(id);
+			Processor->RemoveAllSupplies();
+		}
+	}
+	
+	if (Connected && Registered)
+	{
+		RfidPending = false;
+		ReportRfid();
+	}
+	else
+	{
+		if (cardType!=0)
+			RfidPending = true;
+	}
+	if (cardType==0)
+		memset(RfidBytes+1, 0, 8);
+}
+#endif
+
 int main()
 {
 	SystemCoreClockUpdate();
@@ -562,6 +647,10 @@ int main()
 	
 	DataProcessor::WriteNV.bind(&FRAM::WriteMemory);
 	SensorArray::Instance(Processor->GetConfig());
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID	
+	RfidProcessor::RfidChangedEvent.bind(&RfidChanged);
+#endif
 	
 	UARTInit(230400);
 	Display::OnAckReciever.bind(&AckReciever);
@@ -572,7 +661,7 @@ int main()
 	DELAY(10);
 	enable_timer32(1);
 	
-	ForceDisplay = true;
+	DisplayState = DisplayForce;
 	
 	UnitSystemState = STATE_OPERATIONAL;
 	
@@ -605,5 +694,18 @@ int main()
 			ReportDoorState();
 			DoorChangedEvent = false;
 		}
+		
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		if (RfidTimeup)
+		{
+			RfidProcessor::UpdateRfid();
+			RfidTimeup = false;
+		}
+		if (Connected && Registered && RfidPending)
+		{
+			ReportRfid();
+			RfidPending = false;
+		}
+#endif
 	}
 }

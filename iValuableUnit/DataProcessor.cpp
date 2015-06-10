@@ -8,9 +8,10 @@ using namespace std;
 __align(16) std::uint8_t DataProcessor::MemBuffer[MEM_BUFSIZE];
 
 DataProcessor *DataProcessor::Singleton = NULL;
-DataProcessor::WriteNVHandler DataProcessor::WriteNV = NULL;
+DataProcessor::WriteNVHandler DataProcessor::WriteNV;
 
 DataProcessor::DataProcessor()
+	:boxWeight(0)
 {
 	memset(currentAD, 0, SENSOR_NUM*sizeof(int32_t));
 	memset(reinterpret_cast<void *>(MemBuffer), 0, MEM_BUFSIZE);
@@ -38,6 +39,10 @@ DataProcessor::DataProcessor()
 
 #if UNIT_TYPE!=UNIT_TYPE_INDEPENDENT
 	pTareSum = reinterpret_cast<float *>(MemBuffer + ADDR_TARE_SUM);
+#endif
+
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+	pCardId = reinterpret_cast<uint8_t *>(MemBuffer + ADDR_RFID);
 #endif
 	
 	pSensorEnable = reinterpret_cast<uint8_t *>(MemBuffer + ADDR_SENSOR_ENABLE);
@@ -144,10 +149,17 @@ void DataProcessor::SetCalWeight(const std::uint8_t *buf)
 		WriteNV(ADDR_CAL_WEIGHT, reinterpret_cast<uint8_t *>(pCalWeight), sizeof(float));
 }
 
-float DataProcessor::GetCalWeight() const
+#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+void DataProcessor::SetCardId(const std::uint8_t *id)
 {
-	return *pCalWeight;
+	if (id)
+		memcpy(pCardId, id, 8);
+	else
+		memset(pCardId, 0, 8);
+	if (WriteNV)
+		WriteNV(ADDR_RFID, pCardId, 8);
 }
+#endif
 
 void DataProcessor::SetZero(uint8_t ch, bool tare)
 {
@@ -318,6 +330,13 @@ void DataProcessor::RemoveSupplies(std::uint8_t index)
 	memset(pSupplies[index], 0, sizeof(SuppliesInfo));
 	if (WriteNV)
 		WriteNV(ADDR_INFO + index*sizeof(SuppliesInfo), reinterpret_cast<uint8_t *>(pSupplies[index]), sizeof(SuppliesInfo));
+}
+
+void DataProcessor::RemoveAllSupplies()
+{
+	for(int i=0;i<SUPPLIES_NUM;++i)
+		if (pSupplies[i]->Uid != 0)
+			RemoveSupplies(i);
 }
 
 #define TEXT_POS_Y	5

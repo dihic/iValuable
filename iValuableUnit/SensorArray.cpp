@@ -24,8 +24,10 @@ SensorArray::SensorArray()
 	pSensors[1] = new HX711(SENSOR2_SCK, SENSOR2_DOUT);
 	pSensors[2] = new HX711(SENSOR3_SCK, SENSOR3_DOUT);
 	pSensors[3] = new HX711(SENSOR4_SCK, SENSOR4_DOUT);
+#if UNIT_TYPE!=UNIT_TYPE_UNITY_RFID
 	pSensors[4] = new HX711(SENSOR5_SCK, SENSOR5_DOUT);
 	pSensors[5] = new HX711(SENSOR6_SCK, SENSOR6_DOUT);
+#endif
 	memset(currentData, 0, SENSOR_NUM*sizeof(int32_t));
 	memset(lastData, 0, SENSOR_NUM*sizeof(int32_t));
 	memset(tempData, 0, SENSOR_NUM*sizeof(int32_t));
@@ -40,8 +42,10 @@ SensorArray::~SensorArray()
 	delete pSensors[1];
 	delete pSensors[2];
 	delete pSensors[3];
+#if UNIT_TYPE!=UNIT_TYPE_UNITY_RFID
 	delete pSensors[4];
 	delete pSensors[5];	
+#endif
 }
 
 void SensorArray::SetRange(ScaleAttribute *attr)
@@ -114,8 +118,10 @@ void SensorArray::Refresh()
 		Update(2);
 	if (GPIOIntStatus(SENSOR4_DOUT))
 		Update(3);
+#if UNIT_TYPE!=UNIT_TYPE_UNITY_RFID
 	if (GPIOIntStatus(SENSOR5_DOUT))
 		Update(4);
 	if (GPIOIntStatus(SENSOR6_DOUT))
 		Update(5);
+#endif
 }
