@@ -140,11 +140,19 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
 		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
 		if (updated)
+		{
 			unitManager->Recover(sourceId&0x7f, unit);
+#ifdef DEBUG_PRINT
+			cout<<"#Recovered Device Id: 0x"<<std::hex<<sourceId<<endl;
+#endif
+		}
 		else
 		{
 			CanEx->AddDevice(unit);
 			unitManager->Add(sourceId&0x7f, unit);
+#ifdef DEBUG_PRINT
+			cout<<"#Added Device Id: 0x"<<std::hex<<sourceId<<endl;
+#endif
 		}
 	}
 	//CanEx->Sync(sourceId, DeviceSync::SyncLive, CANExtended::AutoSync); //Confirm & Start AutoSync

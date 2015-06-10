@@ -54,6 +54,9 @@ namespace IntelliStorage
 		rfid->NodeIndex = unit->NodeId;
 		rfid->CardType = unit->GetCardState();
 		rfid->CardId = unit->GetCardId();
+#ifdef DEBUG_PRINT
+		cout<<"Rfid Card Type: "<<(int)rfid->CardType<<" ID: "<<rfid->CardId<<endl;
+#endif
 		size_t bufferSize = 0;
 		auto buffer = BSON::Bson::Serialize(rfid, bufferSize);
 		unit->AfterUpdate();
