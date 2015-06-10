@@ -587,7 +587,6 @@ void ReportRfid()
 void RfidChanged(uint8_t cardType, const uint8_t *id)
 {
 	RfidBytes[0] = cardType;
-	memcpy(RfidBytes+1, id, 8);
 	
 	if (cardType==0)
 	{
@@ -595,6 +594,7 @@ void RfidChanged(uint8_t cardType, const uint8_t *id)
 	}
 	else
 	{
+		memcpy(RfidBytes+1, id, 8);
 		if (Processor->IsSameCard(id))
 			DisplayState = DisplayForce;
 		else
@@ -610,7 +610,12 @@ void RfidChanged(uint8_t cardType, const uint8_t *id)
 		ReportRfid();
 	}
 	else
-		RfidPending = true;
+	{
+		if (cardType!=0)
+			RfidPending = true;
+	}
+	if (cardType==0)
+		memset(RfidBytes+1, 0, 8);
 }
 #endif
 
