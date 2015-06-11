@@ -47,8 +47,8 @@
 	#define ENABLE_LOCKER  PORT1,8   //ADDR7
 #endif
 
-#define IS_DOOR_OPEN 		(GPIOGetValue(FB_LOCKER)!=0)
-#define IS_DOOR_CLOSED 	(GPIOGetValue(FB_LOCKER)==0)
+#define IS_DOOR_OPEN 		(GPIOGetValue(FB_LOCKER)==0)
+#define IS_DOOR_CLOSED 	(GPIOGetValue(FB_LOCKER)!=0)
 
 #define LED_ON						GPIOSetValue(CON_LED, 1)
 #define LED_OFF 					GPIOSetValue(CON_LED, 0)

@@ -21,7 +21,7 @@ namespace IntelliStorage
 		switch (syncIndex)
 		{
 			case DeviceSync::SyncData:
-				base = 4+sizeof(float);
+				base = 5+sizeof(float);
 				for(auto i=0; i<val[1]; ++i)
 				{
 					index = val[base++];

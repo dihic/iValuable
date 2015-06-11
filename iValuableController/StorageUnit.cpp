@@ -159,13 +159,16 @@ namespace IntelliStorage
 		{
 			case DeviceSync::SyncData:
 				sensorFlags = val[0];
-				allStable = val[2]!=0;
-				inventoryExpected = val[3]!=0;
+				allStable = val[3]!=0;
+				inventoryExpected = val[4]!=0;
 				memcpy(const_cast<float *>(&deltaWeight), val.get()+4, sizeof(float));
 				break;
 			case DeviceSync::SyncDoor:
+#ifdef DEBUG_PRINT
+			cout<<"Device 0x"<<std::hex<<(((GroupId&0xf)<<3)|(NodeId&0x7))<<(val[0]!=0?" Unlocked":" Locked")<<endl;
+#endif
 				if (OnDoorChangedEvent)
-					OnDoorChangedEvent(GroupId, val[0]!=0);
+					OnDoorChangedEvent(GroupId, NodeId, val[0]!=0);
 				break;
 			default:
 				break;

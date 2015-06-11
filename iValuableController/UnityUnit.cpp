@@ -28,7 +28,7 @@ namespace IntelliStorage
 		switch (syncIndex)
 		{
 			case DeviceSync::SyncData:
-				base = 4+sizeof(float);
+				base = 5+sizeof(float);
 				memcpy(reinterpret_cast<void *>(&totalWeight), val.get()+base, sizeof(float));
 				base += sizeof(float);
 				for(auto i=0; i<val[1]; ++i)

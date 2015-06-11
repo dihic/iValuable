@@ -23,15 +23,16 @@ namespace IntelliStorage
 			class LockGroup
 			{
 				private:
-					volatile std::uint8_t num = 0;
-					volatile std::uint8_t count = 0;
+					std::map<std::uint8_t, bool> lockMap;
+//					volatile std::uint8_t num = 0;
+//					volatile std::uint8_t count = 0;
 					volatile bool open = false;
 					volatile bool last = false;
 					volatile bool changed = false;
 				public:
-					bool LockOne();
-					bool UnlockOne();
-					void AddLock(bool locked);
+					bool LockOne(std::uint8_t node);
+					bool UnlockOne(std::uint8_t node);
+					void AddLock(std::uint8_t node);
 					bool IsOpen() const { return open; }
 					bool IsChanged() const { return changed; }
 			};
@@ -81,7 +82,7 @@ namespace IntelliStorage
 			boost::shared_ptr<SerializableObjects::UnitEntryCollection> dataCollection;
 			
 			boost::shared_ptr<LockGroup> ObtainGroup(std::uint8_t id);
-			void OnDoorChanged(std::uint8_t groupId, bool open);
+			void OnDoorChanged(std::uint8_t groupId, std::uint8_t nodeId, bool open);
 			void CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len);
 			static boost::scoped_ptr<osThreadDef_t> UpdateThreadDef;
 			static volatile bool updating;

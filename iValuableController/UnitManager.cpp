@@ -13,31 +13,41 @@ namespace IntelliStorage
 	
 	volatile bool UnitManager::updating = false;
 	
-	bool UnitManager::LockGroup::LockOne() 
+	bool UnitManager::LockGroup::LockOne(std::uint8_t node) 
 	{ 
-		if (count==num) //error state
-			return open; 
-		open = (++count!=num);
+		auto it = lockMap.find(node);
+		if (it == lockMap.end())
+			return open;
+		it->second = false;
+			
+		bool openAny = false;
+		for(auto item = lockMap.begin(); item != lockMap.end(); ++item)
+			if (item->second)
+			{
+				openAny = true;
+				break;
+			}
+		open = openAny;
 		changed = (open != last);
 		last = open;
 		return open;
 	}
 	
-	bool UnitManager::LockGroup::UnlockOne()
+	bool UnitManager::LockGroup::UnlockOne(std::uint8_t node)
 	{
-		if (count==0) //error state
-			return open; 
-		open = (--count==0);
+		auto it = lockMap.find(node);
+		if (it == lockMap.end())
+			return open;
+		it->second = true;	
+		open = true;
 		changed = (open != last);
 		last = open;
 		return open;
 	}
 	
-	void UnitManager::LockGroup::AddLock(bool locked)
+	void UnitManager::LockGroup::AddLock(std::uint8_t node)
 	{ 
-		++num; 
-		if (locked)
-			LockOne();
+		lockMap[node] = false;
 	}
 	
 	UnitManager::UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp)
@@ -469,12 +479,12 @@ namespace IntelliStorage
 		return group;
 	}
 	
-	void UnitManager::OnDoorChanged(std::uint8_t groupId, bool open)
+	void UnitManager::OnDoorChanged(std::uint8_t groupId, std::uint8_t nodeId, bool open)
 	{
 		if (open)
-			groupList[groupId]->UnlockOne();
+			groupList[groupId]->UnlockOne(nodeId);
 		else
-			groupList[groupId]->LockOne();
+			groupList[groupId]->LockOne(nodeId);
 	}
 	
 	void UnitManager::Recover(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit) 
@@ -493,7 +503,7 @@ namespace IntelliStorage
 		auto group = ObtainGroup(unit->GroupId);
 		
 		if (unit->IsLockController)
-			group->AddLock(!unit->IsDoorOpen());
+			group->AddLock(unit->NodeId);
 		
 		auto count = dataCollection->AllUnits.Count();
 		

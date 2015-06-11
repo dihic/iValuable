@@ -35,14 +35,15 @@ DataProcessor *Processor = NULL;
 float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
 
-#define LOCK_WAIT_SECONDS  5
+#define LOCK_WAIT_SECONDS  1
+#define LOCK_IDLE 				0xffff
 
 extern "C" {
 	
 volatile bool DoorState = false;
 volatile bool DoorChangedEvent = false;
 	
-volatile uint16_t LockCount = 0xffff;
+volatile uint16_t LockCount = LOCK_IDLE;
 	
 static SystemState UnitSystemState = STATE_BOOTUP;
 	
@@ -69,11 +70,11 @@ void TIMER32_0_IRQHandler()		//1000Hz
 #endif
 		
 		//Timeout to re-lock after last unlock
-		if (LockCount!=0xffff && IS_LOCKER_ON)
+		if (LockCount!=LOCK_IDLE && IS_LOCKER_ON)
 			if (--LockCount == 0)
 			{
 				LOCKER_OFF;
-				LockCount = 0xffff;
+				LockCount = LOCK_IDLE;
 			}
 		
 		if (Connected)
@@ -164,24 +165,28 @@ void TIMER32_1_IRQHandler()		//100Hz
 			UpdateWeight(); 
 		}
 		
-		//Door and lock management
+		//Door management
+		bool currentState = IS_DOOR_OPEN;
+		if (DoorState != currentState)
+		{
+			DoorState = currentState;
+			DoorChangedEvent = true;
+		}
+		
+		//Lock management
 		if (IS_LOCKER_ON)
 		{
-			if (LockCount == 0xffff)
-				LockCount = LOCK_WAIT_SECONDS*1000;
-			if (IS_DOOR_OPEN)
+			if (LockCount == LOCK_IDLE)
+				LockCount = LOCK_WAIT_SECONDS*1000;	//Start countdown
+			if (DoorState)
 			{
 				LOCKER_OFF;
-				LockCount = 0xffff;
-				DoorState = true;
-				DoorChangedEvent = true;
+				LockCount = LOCK_IDLE;
 			}
 		}
-		else if (IS_DOOR_CLOSED && DoorState)
+		else if (DoorChangedEvent && !DoorState)	//State from open to closed
 		{
 			NoticeLogic::NoticeCommand = NOTICE_RECOVER;
-			DoorState = false;
-			DoorChangedEvent = true;
 		}
 		
 		//Logic of display into pages 
@@ -537,10 +542,10 @@ void CanexSyncTrigger(uint16_t index, uint8_t mode)
 				DataSyncTriggered = true;
 			break;
 		case SYNC_LIVE:
-			Connected=!Connected;
+			Registered = (Connected=!Connected);
 			if (Connected)
 			{
-				Registered = true;
+				DoorChangedEvent = true;	//Force report door status just after connection
 				AutoSyncEnable = (mode!=0);
 			}
 			break;

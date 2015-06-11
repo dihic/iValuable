@@ -73,7 +73,7 @@ namespace IntelliStorage
 			const std::uint8_t GroupId 	: 4;
 			const std::uint8_t NodeId  	: 3;
 		
-			typedef FastDelegate2<std::uint8_t, bool> DoorChangedHandler;
+			typedef FastDelegate3<std::uint8_t, std::uint8_t, bool> DoorChangedHandler;
 			DoorChangedHandler OnDoorChangedEvent;
 			
 			static std::uint16_t GetId(std::uint8_t groupId, std::uint8_t nodeId)
