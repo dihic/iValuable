@@ -463,7 +463,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_LOCKER:
-			if (entry->subindex==0 && IS_LOCKER_ENABLE)
+			if (entry->subindex==1 && IS_LOCKER_ENABLE)
 			{
 				if (entry->val[0])
 					LOCKER_ON;
@@ -545,7 +545,8 @@ void CanexSyncTrigger(uint16_t index, uint8_t mode)
 			Registered = (Connected=!Connected);
 			if (Connected)
 			{
-				DoorChangedEvent = true;	//Force report door status just after connection
+				if (IS_LOCKER_ENABLE)
+					DoorChangedEvent = true;	//Force report door status just after connection
 				AutoSyncEnable = (mode!=0);
 			}
 			break;
