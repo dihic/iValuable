@@ -406,7 +406,18 @@ namespace IntelliStorage
 		for(auto it = groupList.begin(); it!=groupList.end(); ++it)
 		{
 			if ((forceReport || it->second->CheckChanged()) && ReportDoorDataEvent)
+			{
 				ReportDoorDataEvent(it->first, it->second->IsOpen());
+
+				//When close door, clear all notices on same group
+				if (!it->second->IsOpen())
+					for (auto uit = unitList.begin(); uit!= unitList.end(); ++uit)
+					{
+						if (uit->second->IsLockController || uit->second->GroupId!=it->first)
+							continue;
+						uit->second->SetNotice(0);
+					}
+			}
 		}
 	}
 	
