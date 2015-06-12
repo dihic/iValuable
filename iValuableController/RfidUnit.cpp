@@ -42,9 +42,7 @@ namespace IntelliStorage
 			//Notice device that host has got the process data
 			//canex.Sync(DeviceId, DeviceSync::Gotcha, CANExtended::Trigger);
 			auto rawData = entry->GetVal().get();
-			string id;
-			if (rawData[0]!=0)
-				id = GenerateId(rawData+1, 8);	//Generate temporary rfid id when got one
+			string id = GenerateId(rawData+1, 8);	//Generate temporary rfid id when got one
 			if (lastCardType==(RfidType)rawData[0] && cardId==id) //identical
 				return;
 			lastCardType = (RfidType)rawData[0];
@@ -62,6 +60,9 @@ namespace IntelliStorage
 					break;
 			}
 			cardChanged = true;
+#ifdef DEBUG_PRINT
+			cout<<"Rfid Card "<<(cardState==CardArrival?"Arrival":"Left")<<" ID: "<<id<<endl;
+#endif
 		}
 		else
 			UnityUnit::ProcessRecievedEvent(entry);

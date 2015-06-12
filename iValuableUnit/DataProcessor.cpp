@@ -357,6 +357,7 @@ bool DataProcessor::UpdateDisplay(bool force)
 	uint16_t posY = TEXT_POS_Y;
 	bool needUpdate = (index!=0);
 	bool needClear = false;
+	bool any = false;
 	
 	//Clear screen
 	Display::ClearRegion(0, 0, RES_X, MAXLINE_Y_LIMIT);
@@ -365,6 +366,7 @@ bool DataProcessor::UpdateDisplay(bool force)
 	{
 		if (pSupplies[i]->Uid == 0)	//Skip empty
 			continue;
+		any = true;
 		if (data == NULL)
 		{
 			data = SuppliesDisplay::GetString(i, len);		//Load name string
@@ -398,6 +400,9 @@ bool DataProcessor::UpdateDisplay(bool force)
 			return true;
 		}
 	}
+	
+	if (force && !any)
+		Display::DisplayOnOff(false);
 
 	index = 0;
 	data = NULL;

@@ -23,6 +23,7 @@
 
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 #include "RfidProcessor.h"
+#include "trf796x.h"
 static bool RfidTimeup = true;	// for power saving
 static bool RfidPending = false;
 #endif
@@ -561,9 +562,8 @@ void CanexSyncTrigger(uint16_t index, uint8_t mode)
 
 void AckReciever(uint8_t *ack, uint8_t len)
 {
-//	if (len>0 && ack[0] == 0xff)
-//	{
-//	}
+	if (len>0 && ack[0] == 0xff)
+		DisplayState = DisplayForce;
 }
 
 void ReportDoorState()
@@ -610,7 +610,7 @@ void RfidChanged(uint8_t cardType, const uint8_t *id)
 		}
 	}
 	
-	if (Connected && Registered)
+	if (Registered)
 	{
 		RfidPending = false;
 		ReportRfid();
@@ -667,7 +667,7 @@ int main()
 	DELAY(10);
 	enable_timer32(1);
 	
-	DisplayState = DisplayForce;
+//	DisplayState = DisplayForce;
 	
 	UnitSystemState = STATE_OPERATIONAL;
 	
@@ -702,12 +702,16 @@ int main()
 		}
 		
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+		
+		Trf796xCommunicationSetup();
+		Trf796xInitialSettings();
+		
 		if (RfidTimeup)
 		{
 			RfidProcessor::UpdateRfid();
 			RfidTimeup = false;
 		}
-		if (Connected && Registered && RfidPending)
+		if (Registered && RfidPending)
 		{
 			ReportRfid();
 			RfidPending = false;

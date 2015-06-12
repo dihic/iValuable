@@ -79,7 +79,6 @@ void RfidProcessor::UpdateRfid()
 						processor->SetBoxWeight(block);
 					else
 						AfterRfidError();
-					//TBD
 				}
 				else
 				{
@@ -109,6 +108,7 @@ void RfidProcessor::UpdateRfid()
 		{
 			RfidCardType = 0x00;
 			memset(UIDlast, 0, 8);
+			processor->SetBoxWeight(0);
 //			processor->SetCardId(NULL);
 			if (RfidChangedEvent)
 				RfidChangedEvent(RfidCardType, UIDlast);
