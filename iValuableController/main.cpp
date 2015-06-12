@@ -142,8 +142,9 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		}
 		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
 		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
+		CanEx->AddDevice(unit);
 		if (updated)
-		{
+		{	
 			unitManager->Recover(sourceId&0x7f, unit);
 #ifdef DEBUG_PRINT
 			cout<<"#Recovered Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
@@ -151,7 +152,6 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		}
 		else
 		{
-			CanEx->AddDevice(unit);
 			unitManager->Add(sourceId&0x7f, unit);
 #ifdef DEBUG_PRINT
 			cout<<"#Added Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
