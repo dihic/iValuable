@@ -405,7 +405,7 @@ namespace IntelliStorage
 		
 		for(auto it = groupList.begin(); it!=groupList.end(); ++it)
 		{
-			if ((forceReport || it->second->IsChanged()) && ReportDoorDataEvent)
+			if ((forceReport || it->second->CheckChanged()) && ReportDoorDataEvent)
 				ReportDoorDataEvent(it->first, it->second->IsOpen());
 		}
 	}

@@ -34,7 +34,12 @@ namespace IntelliStorage
 					bool UnlockOne(std::uint8_t node);
 					void AddLock(std::uint8_t node);
 					bool IsOpen() const { return open; }
-					bool IsChanged() const { return changed; }
+					bool CheckChanged() 
+					{ 
+						bool result = changed;
+						changed = false;
+						return result; 
+					}
 			};
 		private:
 			enum CommandType
