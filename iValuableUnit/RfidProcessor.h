@@ -2,7 +2,7 @@
 #define _RFID_PROCESSOR_H
 
 #define RFID_OFF_COUNT    3
-#define RFID_TIME_INTERVAL 100
+#define RFID_TIME_INTERVAL 200
 
 #include <cstdint>
 #include "FastDelegate.h"
