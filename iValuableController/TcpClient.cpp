@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define TCP_BUFFER_NUM 32
+#define TCP_BUFFER_NUM 			128
 
 osMailQDef(MailSendTcp   , TCP_BUFFER_NUM, TcpBuffer);
 osMailQDef(MailReceiveTcp, TCP_BUFFER_NUM  , TcpBuffer);
@@ -33,7 +33,7 @@ TcpClient::TcpClient(const std::uint8_t *endpoint)
 	memcpy(serverIp, endpoint, 4);
 	//Driver_ETH_PHY0.SetMode(ARM_ETH_PHY_SPEED_10M|ARM_ETH_PHY_DUPLEX_FULL);
 	Driver_ETH_PHY0.SetMode(ARM_ETH_PHY_AUTO_NEGOTIATE);
-	osDelay(50);
+	osDelay(10);
 	txCount = TCP_BUFFER_NUM;
 	rxCount = TCP_BUFFER_NUM;
 	Start();
@@ -377,10 +377,7 @@ bool TcpClient::SendData(uint8_t command, const uint8_t *buf, size_t len)
 	uint8_t sum = 0;
 	payload[0] = DataHeader[0];
 	payload[1] = DataHeader[1];
-	payload[2] = len & 0xff;
-	payload[3] = (len>>8) & 0xff;
-	payload[4] = (len>>16) & 0xff;
-	payload[5] = (len>>24) & 0xff;
+	memcpy(payload.get()+2, &len, 4);
 	payload[6] = command;
 	for (int i=0;i<7;++i)
 		sum += payload[i];
@@ -399,7 +396,7 @@ bool TcpClient::SendData(uint8_t command, const uint8_t *buf, size_t len)
 	{
 		if (txCount > 0)	//if out of resource, reset Tcp connection
 			__sync_fetch_and_sub(&txCount, 1);
-		if (osSemaphoreWait(semaphoreSid, 0) <= 0)
+		if (osSemaphoreWait(semaphoreSid, 100) <= 0)
 		{
 #ifdef DEBUG_PRINT
 			cout<<"Out of resources!"<<endl;
@@ -420,7 +417,7 @@ bool TcpClient::SendData(uint8_t command, const uint8_t *buf, size_t len)
 		{
 			if (txCount > 0)	//if out of resource, reset Tcp connection
 				__sync_fetch_and_sub(&txCount, 1);
-			if (osSemaphoreWait(semaphoreSid, 0) <= 0)
+			if (osSemaphoreWait(semaphoreSid, 100) <= 0)
 			{
 #ifdef DEBUG_PRINT
 				cout<<"Out of resources!"<<endl;

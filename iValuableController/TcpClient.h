@@ -25,8 +25,8 @@ class TcpClient : ISerialComm
 		osMailQId mailSid;
 		osSemaphoreId semaphoreRid;
 		osSemaphoreId semaphoreSid;
-		int txCount;
-		int rxCount;
+		volatile int txCount;
+		volatile int rxCount;
 		//static std::uint32_t windowSize;
 	
 		static std::map<std::int32_t,TcpClient *> tcp_table;

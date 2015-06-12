@@ -72,6 +72,9 @@ void SyncDataLauncher(void const *argument)
 	osDelay(3000);
 	syncDataTimerId = osTimerCreate(osTimer(SyncDataTimer), osTimerPeriodic, NULL);
 	osTimerStart(syncDataTimerId, 1000);
+//	Test
+//	osDelay(1000);
+//	unitManager->Unlock(0);
 }
 osThreadDef(SyncDataLauncher, osPriorityNormal, 1, 0);
 
@@ -143,7 +146,7 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		{
 			unitManager->Recover(sourceId&0x7f, unit);
 #ifdef DEBUG_PRINT
-			cout<<"#Recovered Device Id: 0x"<<std::hex<<sourceId<<endl;
+			cout<<"#Recovered Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
 #endif
 		}
 		else
@@ -151,7 +154,7 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 			CanEx->AddDevice(unit);
 			unitManager->Add(sourceId&0x7f, unit);
 #ifdef DEBUG_PRINT
-			cout<<"#Added Device Id: 0x"<<std::hex<<sourceId<<endl;
+			cout<<"#Added Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
 #endif
 		}
 	}
