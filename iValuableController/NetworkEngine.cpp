@@ -442,7 +442,11 @@ namespace IntelliStorage
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(directGuide->GroupIndex, directGuide->NodeIndex));
 				if (unit != nullptr)
+				{
 					unit->SetNotice(directGuide->IsGuide? 1 : 0);
+					if (directGuide->IsGuide)
+						unitManager->Unlock(directGuide->GroupIndex);
+				}
 				else
 					CommandResponse(directGuide->GroupIndex, directGuide->NodeIndex, code, false);
 			}
