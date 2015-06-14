@@ -41,9 +41,6 @@ volatile WeightSet Weights;
 
 extern "C" {
 
-volatile bool InfoShown = false;
-volatile bool NoticeShown = false;
-
 volatile bool DoorState = false;
 volatile bool DoorChangedEvent = false;
 
@@ -202,7 +199,6 @@ void TIMER32_1_IRQHandler()		//100Hz
 			case DisplayForce:
 				cd = 0;
 				refresh = Processor->UpdateDisplay(true);
-				InfoShown = Processor->Any();
 				DisplayState = DisplayNormal;
 				break;
 			default:
@@ -445,7 +441,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case OP_NOTICE:
 			if (entry->subindex==1)
 			{
-				NoticeLogic::NoticeCommand = entry->val[0]? NOTICE_GUIDE:NOTICE_CLEAR_INFO;
+				NoticeLogic::NoticeUpdate(entry->val[0]? NOTICE_GUIDE:NOTICE_CLEAR_INFO);
 				*(response->val)=0;
 			}
 			break;
@@ -467,7 +463,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				if (result)
 				{
 					if (entry->val[sizeof(uint64_t)])
-						NoticeLogic::NoticeCommand = NOTICE_GUIDE;
+						NoticeLogic::NoticeUpdate(NOTICE_GUIDE);
 					*(response->val) = i;
 				}
 			}
@@ -488,6 +484,7 @@ int PrepareData()
 	syncBuf[3] = Weights.AllStable;
 	syncBuf[4] = (Weights.Total>Weights.Min && Weights.Total<Weights.Max);	//If current total weight fits inventory expected
 	memcpy(syncBuf+5, const_cast<float *>(&Weights.Delta), sizeof(float));
+	uint8_t error = 0;
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	float unit,dev;
 	for(int i=0; i<SENSOR_NUM; ++i)
@@ -498,7 +495,10 @@ int PrepareData()
 		++syncBuf[1];
 		syncBuf[base++] = i;
 		syncBuf[base++] = SensorArray::Instance().IsStable(i);
-		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
+		syncBuf[base] = SensorArray::Instance().GetStatus(i);
+		if (syncBuf[base]>error)
+			error = syncBuf[base];
+		++base;
 		syncBuf[base++] = (Processor->GetSuppliesUnit(i, unit, dev)) ? (uint8_t)(WeightArray[i]/unit):0;	//Quantity temp
 		memcpy(syncBuf+base, reinterpret_cast<void *>(&WeightArray[i]), sizeof(float));
 		base += sizeof(float);
@@ -513,9 +513,13 @@ int PrepareData()
 			continue;
 		++syncBuf[1];
 		syncBuf[base++] = i;
-		syncBuf[base++] = SensorArray::Instance().GetStatus(i);
+		syncBuf[base] = SensorArray::Instance().GetStatus(i);
+		if (syncBuf[base]>error)
+			error = syncBuf[base];
+		++base;
 	}
 #endif
+	NoticeLogic::NoticeUpdate(error?(error==SENSOR_OVERWEIGHT?NOTICE_WARNING:NOTICE_FAILURE):NOTICE_CLEAR_EXCEPTION);
 	return base;
 }
 
@@ -662,13 +666,8 @@ int main()
 			ResponseTriggered = false;
 		}
 		
-		NoticeShown = NoticeLogic::NoticeUpdate();
-		Display::DisplayOnOff(NoticeShown && InfoShown);
-		
-		if (DataSyncTriggered)
+		if (DataSyncTriggered && !Updating)
 		{
-			while(Updating)
-				__nop();
 			syncEntry.index = SYNC_DATA;
 			syncEntry.subindex = 0;
 			syncEntry.val = syncBuf;
@@ -676,6 +675,9 @@ int main()
 			CANEXBroadcast(&syncEntry);
 			DataSyncTriggered = false;
 		}
+		
+		//Update display on/off
+		Display::DisplayOnOff(Processor->AnyShown() && NoticeLogic::AnyShown());
 		
 		if (DoorChangedEvent)
 		{

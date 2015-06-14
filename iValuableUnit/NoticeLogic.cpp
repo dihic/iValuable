@@ -8,8 +8,6 @@
 
 #define NOTICE_STATE_GUIDE 							0x01
 
-volatile uint8_t NoticeLogic::NoticeCommand = NOTICE_NONE;
-
 uint8_t NoticeLogic::currentState = 0;
 uint32_t NoticeLogic::exColor = 0;
 
@@ -21,13 +19,13 @@ void NoticeLogic::DrawNoticeBar(uint32_t color, std::uint8_t half)
 	Display::SetColor(COLOR_CLEAR);
 }
 
-bool NoticeLogic::NoticeUpdate()
+void NoticeLogic::NoticeUpdate(std::uint8_t command)
 {
-	if (NoticeCommand == NOTICE_NONE)
-		return (exColor && currentState);
-	switch (NoticeCommand)
+	switch (command)
 	{
 		case NOTICE_CLEAR_INFO:
+			if (currentState == 0)
+				break;
 			if (exColor)
 				DrawNoticeBar(exColor, 1);	//Clear with exception color
 			else
@@ -35,6 +33,8 @@ bool NoticeLogic::NoticeUpdate()
 			currentState = 0;
 			break;
 		case NOTICE_CLEAR_EXCEPTION:
+			if (exColor == 0)
+				break;
 			if (currentState)
 				DrawNoticeBar(COLOR_GREEN, 2);	//Clear with state color
 			else
@@ -42,20 +42,25 @@ bool NoticeLogic::NoticeUpdate()
 			exColor = 0;
 			break;
 		case NOTICE_GUIDE:
+			if (currentState == NOTICE_STATE_GUIDE)
+				break;
 			DrawNoticeBar(COLOR_GREEN, exColor?1:0);
+			currentState = NOTICE_STATE_GUIDE;
 			break;
 		case NOTICE_WARNING:
+			if (exColor == COLOR_YELLOW)
+				break;
 			exColor = COLOR_YELLOW;
+			DrawNoticeBar(exColor, currentState?2:0);
 			break;
 		case NOTICE_FAILURE:
+			if (exColor == COLOR_RED)
+				break;
 			exColor = COLOR_RED;
+			DrawNoticeBar(exColor, currentState?2:0);
 			break;
 		default:
 			break;
 	}
-	if (exColor)
-		DrawNoticeBar(exColor, currentState?2:0);
-	NoticeCommand = NOTICE_NONE;
-	return (exColor && currentState);
 }
 

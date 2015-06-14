@@ -48,7 +48,7 @@ class DataProcessor
 		volatile float boxWeight;
 		bool any;
 	public:
-		bool Any() const { return any; }
+		bool AnyShown() const { return any; }
 	
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
 		static WriteNVHandler WriteNV;

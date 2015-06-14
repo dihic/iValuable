@@ -18,8 +18,8 @@ class NoticeLogic
 		static std::uint32_t exColor;
 		static void DrawNoticeBar(std::uint32_t color, std::uint8_t half);
 	public:
-		static volatile std::uint8_t NoticeCommand;
-		static bool NoticeUpdate();
+		static bool AnyShown() { return exColor&&currentState; }
+		static void NoticeUpdate(std::uint8_t command);
 };
 
 #endif
