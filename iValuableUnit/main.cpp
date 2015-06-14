@@ -211,8 +211,6 @@ void TIMER32_1_IRQHandler()		//100Hz
 	}
 }
 
-volatile bool responseTriggered = false;
-
 void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 {
 	uint8_t i;
@@ -477,7 +475,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		default:
 			break;
 		}
-		responseTriggered = true;
+		ResponseTriggered = true;
 		//CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 }
 
@@ -652,18 +650,16 @@ int main()
 	DELAY(10);
 	enable_timer32(1);
 	
-//	DisplayState = DisplayForce;
-	
 	UnitSystemState = STATE_OPERATIONAL;
 	
 	while(1)
 	{
 		Display::UARTProcessor();
 		
-		if (responseTriggered)
+		if (ResponseTriggered)
 		{
 			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
-			responseTriggered = false;
+			ResponseTriggered = false;
 		}
 		
 		NoticeShown = NoticeLogic::NoticeUpdate();

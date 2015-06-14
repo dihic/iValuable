@@ -52,7 +52,7 @@ volatile CanResponse res;
 
 volatile bool DataSyncTriggered = false;
 volatile bool AutoSyncEnable = false;
-//volatile bool responseTriggered = false;
+volatile bool ResponseTriggered = false;
 
 CAN_ODENTRY syncEntry;
 
@@ -65,7 +65,6 @@ enum DisplayMode
 {
 	DisplayNormal,
 	DisplayForce,
-	DisplayOff,
 };
 
 volatile DisplayMode DisplayState = DisplayNormal;
