@@ -172,23 +172,23 @@ void Display::ShowString(const uint8_t *str, uint16_t strlen, uint16_t posx, uin
 	UARTSendSpecial(bytes, len);
 }
 	
-void Display::ShowStringVertical(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale)
-{
-	uint16_t len = 12;
-	bytes[0] = COMMAND_DRAW_STRING;
-	bytes[1] = 1;
-	bytes[2] = posx & 0xff;
-	bytes[3] = posx >> 8;
-	memcpy(bytes+6,&scale,4);
-	for(int i=0;i<strlen;++i)
-	{
-		bytes[4] = posy & 0xff;
-		bytes[5] = posy >> 8;
-		posy+=(uint16_t)(LINE_HEIGHT*scale-5);
-		memcpy(bytes+10, str+(i<<1), 2);
-		UARTSendSpecial(bytes, len);
-	}
-}
+//void Display::ShowStringVertical(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale)
+//{
+//	uint16_t len = 12;
+//	bytes[0] = COMMAND_DRAW_STRING;
+//	bytes[1] = 1;
+//	bytes[2] = posx & 0xff;
+//	bytes[3] = posx >> 8;
+//	memcpy(bytes+6,&scale,4);
+//	for(int i=0;i<strlen;++i)
+//	{
+//		bytes[4] = posy & 0xff;
+//		bytes[5] = posy >> 8;
+//		posy+=(uint16_t)(LINE_HEIGHT*scale-5);
+//		memcpy(bytes+10, str+(i<<1), 2);
+//		UARTSendSpecial(bytes, len);
+//	}
+//}
 	
 uint16_t Display::ShowString(const uint8_t *str, uint16_t posx, uint16_t posy, float scale)
 {
@@ -239,23 +239,33 @@ void Display::ClearRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 	UARTSendSpecial(bytes,bytesLen);
 }
 
-void Display::SetColor(uint8_t r, uint8_t g, uint8_t b, uint8_t bk)
+void Display::SetColor(uint8_t r, uint8_t g, uint8_t b, bool bk)
 {
 	bytesLen=5;
 	bytes[0] = COMMAND_SET_COLOR;
-	bytes[1] = bk ? 1 : 0;
+	bytes[1] = bk;
 	bytes[2] = b;
 	bytes[3] = g;
 	bytes[4] = r;
-	//buffer[5] = 0;
+	UARTSendSpecial(bytes,bytesLen);
+}
+
+void Display::SetColor(uint32_t color)
+{
+	bytesLen=5;
+	bytes[0] = COMMAND_SET_COLOR;
+	memcpy(bytes+1, &color, 4);
 	UARTSendSpecial(bytes,bytesLen);
 }
 	
-void Display::DisplayOnOff(uint8_t on)
+void Display::DisplayOnOff(bool on)
 {
+	static bool state = true;
+	if (state==on)
+		return;
 	bytesLen=2;
 	bytes[0] = COMMAND_DISPLAY_ON_OFF;
-	bytes[1] = on;
+	bytes[1] = (state=on);
 	UARTSendSpecial(bytes,bytesLen);
 }
 	

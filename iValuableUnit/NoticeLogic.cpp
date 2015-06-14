@@ -1,61 +1,61 @@
 #include "display.h"
 #include "NoticeLogic.h"
 
-#define COLOR_RED				255,0,0
-#define COLOR_GREEN			0,255,0
-#define COLOR_YELLOW		255,255,0
-#define COLOR_CLEAR			0,0,0
+#define COLOR_RED				0x010000ff
+#define COLOR_GREEN			0x0100ff00
+#define COLOR_YELLOW		0x0100ffff
+#define COLOR_CLEAR			0x01000000
 
+#define NOTICE_STATE_GUIDE 							0x01
 
 volatile uint8_t NoticeLogic::NoticeCommand = NOTICE_NONE;
 
-uint8_t NoticeLogic::lastState = NOTICE_CLEAR;
-uint8_t NoticeLogic::currentState = NOTICE_CLEAR;
+uint8_t NoticeLogic::currentState = 0;
+uint32_t NoticeLogic::exColor = 0;
 
-
-void NoticeLogic::DrawNoticeBar(uint8_t r, uint8_t g, uint8_t b)
+// half: 0 for whole, 1 for left, 2 for right
+void NoticeLogic::DrawNoticeBar(uint32_t color, std::uint8_t half)
 {
-	Display::SetColor(r, g, b, 1);
-	Display::ClearRegion(0, MAXLINE_Y_LIMIT, RES_X, RES_Y - MAXLINE_Y_LIMIT);
-	Display::SetColor(0, 0, 0, 1);
+	Display::SetColor(color);
+	Display::ClearRegion((half==2?(RES_X>>1):0), MAXLINE_Y_LIMIT, (half?(RES_X>>1):RES_X), RES_Y - MAXLINE_Y_LIMIT);
+	Display::SetColor(COLOR_CLEAR);
 }
 
-void NoticeLogic::NoticeUpdate()
+bool NoticeLogic::NoticeUpdate()
 {
-	if (NoticeCommand == currentState)
-	{
-		NoticeCommand = NOTICE_NONE;
-		return;
-	}
+	if (NoticeCommand == NOTICE_NONE)
+		return (exColor && currentState);
 	switch (NoticeCommand)
 	{
-		case NOTICE_RECOVER:
-			NoticeCommand = lastState;
+		case NOTICE_CLEAR_INFO:
+			if (exColor)
+				DrawNoticeBar(exColor, 1);	//Clear with exception color
+			else
+				DrawNoticeBar(COLOR_CLEAR, 0);
+			currentState = 0;
 			break;
-		case NOTICE_CLEAR:
-			Display::SetColor(COLOR_CLEAR, 1);
-			Display::ClearRegion(0, MAXLINE_Y_LIMIT, RES_X, RES_Y - MAXLINE_Y_LIMIT);
-			currentState = lastState = NOTICE_CLEAR;
-			NoticeCommand = NOTICE_NONE;
+		case NOTICE_CLEAR_EXCEPTION:
+			if (currentState)
+				DrawNoticeBar(COLOR_GREEN, 2);	//Clear with state color
+			else
+				DrawNoticeBar(COLOR_CLEAR, 0);
+			exColor = 0;
 			break;
 		case NOTICE_GUIDE:
-			DrawNoticeBar(COLOR_GREEN);
-			NoticeCommand = NOTICE_NONE;
-			currentState = NOTICE_GUIDE;
+			DrawNoticeBar(COLOR_GREEN, exColor?1:0);
 			break;
 		case NOTICE_WARNING:
-			DrawNoticeBar(COLOR_YELLOW);
-			currentState = lastState = NOTICE_WARNING;
-			NoticeCommand = NOTICE_NONE;
+			exColor = COLOR_YELLOW;
 			break;
 		case NOTICE_FAILURE:
-			DrawNoticeBar(COLOR_RED);
-			currentState = lastState = NOTICE_FAILURE;
-			NoticeCommand = NOTICE_NONE;
+			exColor = COLOR_RED;
 			break;
 		default:
 			break;
 	}
-	
+	if (exColor)
+		DrawNoticeBar(exColor, currentState?2:0);
+	NoticeCommand = NOTICE_NONE;
+	return (exColor && currentState);
 }
 

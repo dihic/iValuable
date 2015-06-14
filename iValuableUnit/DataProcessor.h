@@ -46,7 +46,10 @@ class DataProcessor
 		uint8_t *pCardId;
 #endif
 		volatile float boxWeight;
+		bool any;
 	public:
+		bool Any() const { return any; }
+	
 		typedef FastDelegate3<std::uint16_t, std::uint8_t *, std::uint16_t> WriteNVHandler;
 		static WriteNVHandler WriteNV;
 	

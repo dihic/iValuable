@@ -29,13 +29,14 @@ class Display
 		static AckRecieverHandler OnAckReciever;
 		static void UARTProcessor();
 		static uint16_t ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &posy, float scale=1.0f);
-		static void ShowStringVertical(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale=1.0f);
+//		static void ShowStringVertical(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static uint16_t ShowString(const uint8_t *str, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static void ShowString(const uint8_t *str, uint16_t strlen, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static void ShowString(uint32_t number, uint16_t posx, uint16_t posy, float scale=1.0f);
 		static void ClearRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
-		static void SetColor(uint8_t r, uint8_t g, uint8_t b, uint8_t bk);
-		static void DisplayOnOff(uint8_t on);
+		static void SetColor(uint8_t r, uint8_t g, uint8_t b, bool bk);
+		static void SetColor(uint32_t r);
+		static void DisplayOnOff(bool on);
 		static void Brightness(uint8_t level);
 };
 

@@ -40,9 +40,13 @@ volatile WeightSet Weights;
 #define LOCK_IDLE 				0xffff
 
 extern "C" {
-	
+
+volatile bool InfoShown = false;
+volatile bool NoticeShown = false;
+
 volatile bool DoorState = false;
 volatile bool DoorChangedEvent = false;
+
 	
 volatile uint16_t LockCount = LOCK_IDLE;
 	
@@ -153,7 +157,6 @@ void TIMER32_1_IRQHandler()		//100Hz
 	static int counter=0;
 	static int cd = 0;							//Display time counter
 	static bool refresh = false;		//Need auto show page by page
-	static bool shown = false;			//Trigger as display-off
 	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
@@ -185,16 +188,11 @@ void TIMER32_1_IRQHandler()		//100Hz
 				LockCount = LOCK_IDLE;
 			}
 		}
-		else if (DoorChangedEvent && !DoorState)	//State from open to closed
-		{
-			NoticeLogic::NoticeCommand = NOTICE_RECOVER;
-		}
 		
 		//Logic of display into pages 
 		switch (DisplayState)
 		{
 			case DisplayNormal:
-				shown = true;
 				if (refresh && ++cd==300) // Interval 3s
 				{
 					cd = 0;
@@ -203,24 +201,17 @@ void TIMER32_1_IRQHandler()		//100Hz
 				break;
 			case DisplayForce:
 				cd = 0;
-				shown = true;
-				DisplayState = DisplayNormal;
-				Display::DisplayOnOff(true);
 				refresh = Processor->UpdateDisplay(true);
-				break;
-			case DisplayOff:
-				if (shown)
-				{
-					Display::DisplayOnOff(false);
-					shown = false;
-					refresh = false;
-				}
+				InfoShown = Processor->Any();
+				DisplayState = DisplayNormal;
 				break;
 			default:
 				break;
 		}
 	}
 }
+
+volatile bool responseTriggered = false;
 
 void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 {
@@ -456,10 +447,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case OP_NOTICE:
 			if (entry->subindex==1)
 			{
-				if (entry->val[0] ==0)
-					NoticeLogic::NoticeCommand = NOTICE_CLEAR;
-				else if (entry->val[0] ==1)
-					NoticeLogic::NoticeCommand = NOTICE_GUIDE;
+				NoticeLogic::NoticeCommand = entry->val[0]? NOTICE_GUIDE:NOTICE_CLEAR_INFO;
 				*(response->val)=0;
 			}
 			break;
@@ -489,8 +477,8 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		default:
 			break;
 		}
-//		responseTriggered = true;
-		CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
+		responseTriggered = true;
+		//CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 }
 
 int PrepareData()
@@ -594,19 +582,14 @@ void RfidChanged(uint8_t cardType, const uint8_t *id)
 {
 	RfidBytes[0] = cardType;
 	
-	if (cardType==0)
-	{
-		DisplayState = DisplayOff;
-	}
-	else
+	if (cardType)
 	{
 		memcpy(RfidBytes+1, id, 8);
-		if (Processor->IsSameCard(id))
-			DisplayState = DisplayForce;
-		else
+		if (!Processor->IsSameCard(id))
 		{
 			Processor->SetCardId(id);
 			Processor->RemoveAllSupplies();
+			DisplayState = DisplayForce;
 		}
 	}
 	
@@ -644,9 +627,7 @@ int main()
 	
 	//FRAM Init
 	DELAY(100000); 	//wait 100ms for voltage stable
-	uint8_t firstUse = FRAM::Init();
-	//firstUse=1; 	//Force to format FRAM for debug
-	if (firstUse)
+	if (FRAM::Init())
 		FRAM::WriteMemory(0x04, (uint8_t *)(DataProcessor::MemBuffer+4), MEM_BUFSIZE-4);		//Write default values
 	else
 		FRAM::ReadMemory(0, (uint8_t *)DataProcessor::MemBuffer, MEM_BUFSIZE);		//Read all values from NV memory
@@ -656,6 +637,10 @@ int main()
 
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID	
 	RfidProcessor::RfidChangedEvent.bind(&RfidChanged);
+	
+	//Init TRF796x for Rfid
+	Trf796xCommunicationSetup();
+	Trf796xInitialSettings();
 #endif
 	
 	UARTInit(230400);
@@ -675,13 +660,14 @@ int main()
 	{
 		Display::UARTProcessor();
 		
-//		if (responseTriggered)
-//		{
-//			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
-//			responseTriggered = false;
-//		}
+		if (responseTriggered)
+		{
+			CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
+			responseTriggered = false;
+		}
 		
-		NoticeLogic::NoticeUpdate();
+		NoticeShown = NoticeLogic::NoticeUpdate();
+		Display::DisplayOnOff(NoticeShown && InfoShown);
 		
 		if (DataSyncTriggered)
 		{
@@ -702,10 +688,6 @@ int main()
 		}
 		
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
-		
-		Trf796xCommunicationSetup();
-		Trf796xInitialSettings();
-		
 		if (RfidTimeup)
 		{
 			RfidProcessor::UpdateRfid();
