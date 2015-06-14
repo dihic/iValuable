@@ -156,7 +156,7 @@ namespace IntelliStorage
 		//Copy arg to local and release
 		boost::shared_ptr<UpdateThreadArgs> updater(new UpdateThreadArgs);
 		memcpy(updater.get(), arg, sizeof(UpdateThreadArgs));
-		delete (UpdateThreadArgs *)(arg));
+		delete (UpdateThreadArgs *)(arg);
 		
 		auto manager = updater->Manager;
 		boost::shared_ptr<StorageUnit> unit;
