@@ -68,6 +68,6 @@ enum DisplayMode
 };
 
 volatile DisplayMode DisplayState = DisplayNormal;
-
+volatile bool DisplayConnected = false;
 
 #endif

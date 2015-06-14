@@ -552,6 +552,7 @@ void CanexSyncTrigger(uint16_t index, uint8_t mode)
 
 void AckReciever(uint8_t *ack, uint8_t len)
 {
+	DisplayConnected = true;
 	if (len>0 && ack[0] == 0xff)
 		DisplayState = DisplayForce;
 }
@@ -677,7 +678,8 @@ int main()
 		}
 		
 		//Update display on/off
-		Display::DisplayOnOff(Processor->AnyShown() && NoticeLogic::AnyShown());
+		if (DisplayConnected)
+			Display::DisplayOnOff(Processor->AnyShown() && NoticeLogic::AnyShown());
 		
 		if (DoorChangedEvent)
 		{
