@@ -152,7 +152,12 @@ namespace IntelliStorage
 	{
 		if (arg==NULL)
 			return;
-		auto updater = reinterpret_cast<UpdateThreadArgs *>(const_cast<void *>(arg));
+		
+		//Copy arg to local and release
+		boost::shared_ptr<UpdateThreadArgs> updater(new UpdateThreadArgs);
+		memcpy(updater.get(), arg, sizeof(UpdateThreadArgs));
+		delete (UpdateThreadArgs *)(arg));
+		
 		auto manager = updater->Manager;
 		boost::shared_ptr<StorageUnit> unit;
 		
@@ -188,7 +193,7 @@ namespace IntelliStorage
 			default:
 				break;
 		}
-		delete updater;
+		
 		status[0] = 0xff;
 		status[1] = 0;
 		manager->comm->SendFileData(CommandUpdate, status, 2);
@@ -409,14 +414,13 @@ namespace IntelliStorage
 			{
 				ReportDoorDataEvent(it->first, it->second->IsOpen());
 
-				//When close door, clear all notices on same group
-				if (!it->second->IsOpen())
-					for (auto uit = unitList.begin(); uit!= unitList.end(); ++uit)
-					{
-						if (uit->second->IsLockController || uit->second->GroupId!=it->first)
-							continue;
-						uit->second->SetNotice(0);
-					}
+//				//When close door, clear all notices on same group
+//				if (!it->second->IsOpen())
+//					for (auto uit = unitList.begin(); uit!= unitList.end(); ++uit)
+//					{
+//						if (uit->second->GroupId==it->first)
+//							uit->second->SetNotice(0);
+//					}
 			}
 		}
 	}

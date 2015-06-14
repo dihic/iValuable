@@ -73,8 +73,6 @@ void SyncDataLauncher(void const *argument)
 	syncDataTimerId = osTimerCreate(osTimer(SyncDataTimer), osTimerPeriodic, NULL);
 	osTimerStart(syncDataTimerId, 1000);
 //	Test
-//	osDelay(1000);
-//	unitManager->Unlock(0);
 }
 osThreadDef(SyncDataLauncher, osPriorityNormal, 1, 0);
 

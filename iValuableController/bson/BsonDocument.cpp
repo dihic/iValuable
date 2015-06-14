@@ -243,9 +243,6 @@ namespace BSON
 				e.reset(new Element());
 				while(e->Deserialize(stream))
 				{
-//					pBase = new boost::shared_ptr<TypeInfoBase>;
-//					*pBase = e->GetValue();
-					//base = e->GetValue();
 					pTable->insert(pair<string, boost::shared_ptr<TypeInfoBase> >(e->GetKey(), e->GetValue()));
 					e.reset(new Element());
 				}
