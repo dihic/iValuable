@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define LIMIT_SPEED 			(1<<11)
+#define LIMIT_SPEED 			(1<<7)
 #define STABLE_WINDOW 		5
 #define AVG_WINDOW 				4
 
