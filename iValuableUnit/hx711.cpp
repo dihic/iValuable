@@ -50,8 +50,6 @@ int32_t HX711::ReadData(uint8_t num)
 	
 	GPIOIntEnable(HX_DOUT);
 	
-	
-	
 	if (val & (1<<(num-1)))
 	{
 		uint32_t mask=0;

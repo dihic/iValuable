@@ -1,10 +1,10 @@
 #include "display.h"
 #include "NoticeLogic.h"
 
-#define COLOR_RED				0x010000ff
-#define COLOR_GREEN			0x0100ff00
-#define COLOR_YELLOW		0x0100ffff
-#define COLOR_CLEAR			0x01000000
+#define COLOR_RED				0xff000001u
+#define COLOR_GREEN			0x00ff0001u
+#define COLOR_YELLOW		0xffff0001u
+#define COLOR_CLEAR			0x00000001u
 
 #define NOTICE_STATE_GUIDE 							0x01
 
@@ -16,6 +16,7 @@ void NoticeLogic::DrawNoticeBar(uint32_t color, std::uint8_t half)
 {
 	Display::SetColor(color);
 	Display::ClearRegion((half==2?(RES_X>>1):0), MAXLINE_Y_LIMIT, (half?(RES_X>>1):RES_X), RES_Y - MAXLINE_Y_LIMIT);
+	//Display::ClearRegion(0, MAXLINE_Y_LIMIT, RES_X, RES_Y - MAXLINE_Y_LIMIT);
 	Display::SetColor(COLOR_CLEAR);
 }
 

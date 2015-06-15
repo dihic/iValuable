@@ -679,7 +679,7 @@ int main()
 		
 		//Update display on/off
 		if (DisplayConnected)
-			Display::DisplayOnOff(Processor->AnyShown() && NoticeLogic::AnyShown());
+			Display::DisplayOnOff(Processor->AnyShown() || NoticeLogic::AnyShown());
 		
 		if (DoorChangedEvent)
 		{
