@@ -166,10 +166,7 @@ void DataProcessor::SetZero(uint8_t ch, bool tare)
 #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 	if (ch>=SENSOR_NUM)
 		return;
-	if (tare)
-		pScales[ch]->SetTare();
-	else
-		pScales[ch]->SetZero();
+	pScales[ch]->SetZero(tare);
 	if (WriteNV)
 	{
 		uint16_t base = ADDR_SCALE+ ch*sizeof(ScaleBasic);
@@ -181,17 +178,18 @@ void DataProcessor::SetZero(uint8_t ch, bool tare)
 		float w = 0;
 		//Ignore ch when taring
 		for(uint8_t i=0;i<SENSOR_NUM;++i)
-			if (SensorEnable(i))
+		{
+			if (!SensorEnable(i))
+				continue;
+			if (abs(pScales[ch]->GetBasic()->Ramp)<0.000001f)
 			{
-				if (abs(pScales[ch]->GetBasic()->Ramp)<0.000001f)
-				{
-					w = 0;
-					break;
-				}
-				pScales[i]->SetTare();
-				w += (pScales[i]->GetBasic()->Tare - pScales[i]->GetBasic()->Zero)/
-							pScales[ch]->GetBasic()->Ramp;
+				w = 0;
+				break;
 			}
+			pScales[i]->SetZero(true);
+			w += (pScales[i]->GetBasic()->Tare - pScales[i]->GetBasic()->Zero)/
+						pScales[ch]->GetBasic()->Ramp;
+		}
 		*pTareSum = w;
 		if (WriteNV)
 		{
@@ -210,7 +208,7 @@ void DataProcessor::SetZero(uint8_t ch, bool tare)
 			return;
 		*pTareSum = 0;
 		//When set zero for any channel, tare sum must be cleared!
-		pScales[ch]->SetZero();
+		pScales[ch]->SetZero(false);
 		if (WriteNV)
 		{
 			WriteNV(ADDR_TARE_SUM, reinterpret_cast<uint8_t *>(pTareSum), sizeof(float));

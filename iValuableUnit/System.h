@@ -58,8 +58,6 @@
 #define IS_LOCKER_ON 			(GPIOGetValue(CON_LOCKER)==0)
 #define IS_LOCKER_ENABLE	(GPIOGetValue(ENABLE_LOCKER)!=0)
 
-#define ABS(x) ((x)>=0?(x):-(x))
-
 void SystemSetup();
 //void EnterISP();
 

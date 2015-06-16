@@ -1,6 +1,8 @@
 #include "SensorArray.h"
 #include "gpio.h"
 #include <cstring>
+#include <cmath>
+#include <cstdlib>
 
 using namespace std;
 
@@ -59,7 +61,7 @@ void SensorArray::SetRange(ScaleAttribute *attr)
 
 void SensorArray::UpdateStateWithZero(uint8_t ch, int32_t zero)
 {
-	if (ABS(zero) > zeroLimit)
+	if (abs(zero) > zeroLimit)
 		state[ch] |= SENSOR_FAULT;
 	else
 		state[ch] &= 0x0f;
@@ -76,9 +78,9 @@ void SensorArray::Update(uint8_t ch)
 		tempData[ch] = 0;
 		
 		//Update sensor state
-		if (ABS(currentData[ch]) > safeRange)
+		if (abs(currentData[ch]) > safeRange)
 		{
-			if (ABS(currentData[ch]) > maxRange)
+			if (abs(currentData[ch]) > maxRange)
 				state[ch] = (state[ch]&0xf0)|SENSOR_DAMAGE;
 			else
 				state[ch] = (state[ch]&0xf0)|SENSOR_OVERWEIGHT;
@@ -89,7 +91,7 @@ void SensorArray::Update(uint8_t ch)
 		//Determine if sensor stable
 		if (stable[ch])
 		{
-			if (ABS(lastData[ch]-currentData[ch]) > LIMIT_SPEED)
+			if (abs(lastData[ch]-currentData[ch]) > LIMIT_SPEED)
 			{
 				stable[ch] = false;
 				count[ch] = 0;
@@ -97,7 +99,7 @@ void SensorArray::Update(uint8_t ch)
 		}
 		else
 		{
-			if (ABS(lastData[ch]-currentData[ch]) > LIMIT_SPEED)
+			if (abs(lastData[ch]-currentData[ch]) > LIMIT_SPEED)
 				count[ch] = 0;
 			else if (++count[ch] > STABLE_WINDOW)
 				stable[ch] = true;

@@ -40,8 +40,7 @@ class ScaleInfo
 		~ScaleInfo() {}
 		ScaleBasic *GetBasic() { return basic; }
 		bool Calibrate(float w);
-		int32_t SetZero();
-		int32_t SetTare();
+		int32_t SetZero(bool tare);
 		void SetRamp(float ramp);
 		//Not write to non-volatile memory when the initial phase
 		void TemperatureCompensation(float coeff, float delta);
