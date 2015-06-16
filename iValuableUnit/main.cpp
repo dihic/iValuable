@@ -279,7 +279,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 						continue;
 					++response->val[0];
 					ptr[0] = i;
-					f =  Processor->GetRamp(entry->val[0]);
+					f = Processor->GetRamp(i);
 					memcpy(ptr+1, &f, sizeof(float));
 					ptr += sizeof(float)+1;
 					response->entrytype_len += sizeof(float)+1;
@@ -287,13 +287,12 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			else
 			{
-				if (entry->entrytype_len<1)
-					break;
-				if (!Processor->SensorEnable(i))
-					break;
-				memcpy(&f, entry->val+1, sizeof(float));
-				Processor->SetRamp(entry->val[0], f);
-				*(response->val)=0;
+				if (entry->entrytype_len>0 && Processor->SensorEnable(entry->val[0]))
+				{
+					memcpy(&f, entry->val+1, sizeof(float));
+					Processor->SetRamp(entry->val[0], f);
+					*(response->val)=0;
+				}
 			}
 			break;
 		case OP_TEMP:
