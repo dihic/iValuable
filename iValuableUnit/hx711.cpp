@@ -45,7 +45,7 @@ int32_t HX711::ReadData(uint8_t num)
 	GPIOSetValue(HX_SCK,0);
 	DELAY(10);
 	
-	if (num>0 && num<23)
+	if (num>0 && num<24)
 		val>>=(24-num);
 	
 	GPIOIntEnable(HX_DOUT);
