@@ -110,14 +110,13 @@ uint16_t Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &
 			index += 2;
 			tail += 2;
 			
-			SetColor(255, 255, 255, 0);
-			SetColor(0, 0, 0, 1);
+			ResetColor();
 			more = false;
 		}
 		else if (str[tail]==4 && str[tail+1]==0)	//Set colors
 		{
-			SetColor(str[tail+2], str[tail+3], str[tail+4], 0);
-			SetColor(str[tail+5], str[tail+6], str[tail+7], 1);
+			SetColor((str[tail+2]<<24)|(str[tail+3]<<16)|(str[tail+4]<<8));
+			SetColor((str[tail+5]<<24)|(str[tail+6]<<16)|(str[tail+7]<<8)|1);
 			tail += 8;
 		}
 		else
@@ -145,16 +144,12 @@ uint16_t Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &
 		ShowString(str+index, len, X_OFFSET, posy, scale);
 		if (posy+2*LINE_HEIGHT > MAXLINE_Y_LIMIT)
 		{
-			//Reset color
-			SetColor(255, 255, 255, 0);
-			SetColor(0, 0, 0, 1);
+			ResetColor();
 			return 0;		//Just completed but need to clear screen in next update
 		}
 	}
 	
-	//Reset color
-	SetColor(255, 255, 255, 0);
-	SetColor(0, 0, 0, 1);
+	ResetColor();
 	return size;	//Just completed
 }
 	
@@ -239,16 +234,16 @@ void Display::ClearRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 	UARTSendSpecial(bytes,bytesLen);
 }
 
-void Display::SetColor(uint8_t r, uint8_t g, uint8_t b, bool bk)
-{
-	bytesLen=5;
-	bytes[0] = COMMAND_SET_COLOR;
-	bytes[1] = bk;
-	bytes[2] = b;
-	bytes[3] = g;
-	bytes[4] = r;
-	UARTSendSpecial(bytes,bytesLen);
-}
+//void Display::SetColor(uint8_t r, uint8_t g, uint8_t b, bool bk)
+//{
+//	bytesLen=5;
+//	bytes[0] = COMMAND_SET_COLOR;
+//	bytes[1] = bk;
+//	bytes[2] = b;
+//	bytes[3] = g;
+//	bytes[4] = r;
+//	UARTSendSpecial(bytes,bytesLen);
+//}
 
 void Display::SetColor(uint32_t color)
 {
@@ -256,6 +251,12 @@ void Display::SetColor(uint32_t color)
 	bytes[0] = COMMAND_SET_COLOR;
 	memcpy(bytes+1, &color, 4);
 	UARTSendSpecial(bytes,bytesLen);
+}
+
+void Display::ResetColor()
+{
+	SetColor(0xffffff00u);	//Forground White
+	SetColor(0x00000001u);	//Background Black
 }
 	
 void Display::DisplayOnOff(bool on)
