@@ -425,12 +425,13 @@ namespace IntelliStorage
 		}
 	}
 	
-	bool UnitManager::Unlock(std::uint8_t groupId)
+	bool UnitManager::Unlock(std::uint8_t groupId, bool &isOpen)
 	{
 		auto groupIt = groupList.find(groupId);
 		if (groupIt == groupList.end())
 			return false;
-		if (groupIt->second->IsOpen())
+		isOpen = groupIt->second->IsOpen();
+		if (isOpen)
 			return true;
 		bool result = false;
 		for (auto it = unitList.begin(); it!= unitList.end(); ++it)

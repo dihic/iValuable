@@ -293,10 +293,9 @@ namespace IntelliStorage
 		boost::shared_ptr<SerializableObjects::DirectGuide>						directGuide;
 
 		boost::shared_ptr<MemStream> stream(new MemStream(payload, size, 1));
-//		
-//		
-//		int id;
-//		bool found = false;
+    
+		bool open;
+		
 		switch (code)
 		{
 		case SerializableObjects::CodeZero:
@@ -430,7 +429,12 @@ namespace IntelliStorage
 			BSON::Bson::Deserialize(stream, deviceDesc);
 			if (deviceDesc != nullptr)
 			{
-				if (!unitManager->Unlock(deviceDesc->GroupIndex))
+				if (unitManager->Unlock(deviceDesc->GroupIndex, open))
+				{	
+					if (open)
+						CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
+				}
+				else
 					CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
 			}
 			else
@@ -445,7 +449,7 @@ namespace IntelliStorage
 				{
 					unit->SetNotice(directGuide->IsGuide? 1 : 0);
 					if (directGuide->IsGuide)
-						unitManager->Unlock(directGuide->GroupIndex);
+						unitManager->Unlock(directGuide->GroupIndex, open);
 				}
 				else
 					CommandResponse(directGuide->GroupIndex, directGuide->NodeIndex, code, false);

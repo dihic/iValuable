@@ -112,7 +112,7 @@ namespace IntelliStorage
 			
 			void Traversal(bool forceReport);
 		
-			bool Unlock(std::uint8_t groupId);
+			bool Unlock(std::uint8_t groupId, bool &isOpen);
 			boost::shared_ptr<RfidUnit> FindUnit(const std::string &cardId);
 			boost::shared_ptr<StorageUnit> FindUnit(std::uint16_t id);
 			boost::shared_ptr<SerializableObjects::UnitEntry> FindUnitEntry(std::uint16_t id);
