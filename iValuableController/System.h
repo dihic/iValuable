@@ -8,6 +8,9 @@
 #include "Driver_ETH_MAC.h"
 #include "Driver_ETH_PHY.h"
 
+#define FW_VERSION_MAJOR			0x01
+#define FW_VERSION_MINOR			0x00
+
 #define STATUS_PIN		GPIOC,GPIO_PIN_8
 
 extern ARM_DRIVER_CAN 				Driver_CAN1;

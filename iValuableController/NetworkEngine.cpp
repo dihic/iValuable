@@ -1,6 +1,7 @@
 #include "NetworkEngine.h"
 #include "MemStream.h"
 #include "Bson.h"
+#include "System.h"
 #include <ctime>
 #include <cstring>
 
@@ -30,7 +31,7 @@ namespace IntelliStorage
 	{
 		static const uint8_t ME[0x14]={0x14, 0x00, 0x00, 0x00, 0x12, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x00,
 																	 0x01, 0x03, 0x03, 0x01, 			// Fixed 0x01, iValuable 0x03, HV 0x03, 0x01 Pharmacy Products
-																	 0x01, 0x00, 0x00, 0x00, 0x00};	//FW Version 1.00
+																	 FW_VERSION_MAJOR, FW_VERSION_MINOR, 0x00, 0x00, 0x00};	//FW Version 1.00
 		tcp.SendData(SerializableObjects::CodeWhoAmI, ME, 0x14);
 	}
 	

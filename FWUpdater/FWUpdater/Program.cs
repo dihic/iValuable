@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace FWUpdater
@@ -34,6 +35,18 @@ namespace FWUpdater
         {
             switch (code)
             {
+                case CommandType.Ver:
+                    Console.WriteLine("MCU FW Version " + data[0] + "." + data[1]);
+                    Console.WriteLine("CPUID: "+BitConverter.ToUInt32(data,2).ToString("X8"));
+                    Console.Write("Mac Address: ");
+                    for (var i = 6; i < 12; i++)
+                    {
+                        Console.Write(data[i].ToString("X2"));
+                        if (i < 11)
+                            Console.Write(":");
+                    }
+                    Console.WriteLine();
+                    break;
                 case CommandType.Access:
                     Console.WriteLine("Access File Slot #" + data[0]);
                     break;
@@ -174,7 +187,7 @@ namespace FWUpdater
                         comm.SendCommand(CommandType.Write, buffer);
                         break;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         count--;
                     }
@@ -243,6 +256,12 @@ namespace FWUpdater
             comm.SendCommand(CommandType.Info, index == 0xff ? null : new[] {index});
         }
 
+        // ReSharper disable once InconsistentNaming
+        public void ReadMCU()
+        {
+            comm.SendCommand(CommandType.Ver, null);
+        }
+
         private void ReadDevices()
         {
             comm.SendCommand(CommandType.Devices, null);
@@ -252,8 +271,12 @@ namespace FWUpdater
         {
             if (args.Length == 0)
             {
+                Console.WriteLine("Unit FW Online Updater");
+                Console.WriteLine("Ver " + Assembly.GetExecutingAssembly().GetName().Version);
+                Console.WriteLine();
                 Console.WriteLine("No parameters");
                 Console.WriteLine("Available commands: ");
+                Console.WriteLine(" Ver");
                 Console.WriteLine(" Write (index) (type) (version) (filepath)");
                 Console.WriteLine(" Info [(index)]");
                 Console.WriteLine(" Devices");
@@ -284,6 +307,9 @@ namespace FWUpdater
                 byte index;
                 switch (command)
                 {
+                    case CommandType.Ver:
+                        program.ReadMCU();
+                        break;
                     case CommandType.Write:
                         if (args.Length != 5)
                         {
@@ -378,10 +404,10 @@ namespace FWUpdater
                                         Console.WriteLine("Invalid Type!");
                                         return;
                                     }
-                                    program.Update(type, (byte)id);
+                                    program.Update(type, (byte) id);
                                 }
                                 else
-                                    program.Update(UnitType.Same, (byte)id);
+                                    program.Update(UnitType.Same, (byte) id);
                             }
                             else if (Enum.TryParse(args[1], true, out type))
                             {

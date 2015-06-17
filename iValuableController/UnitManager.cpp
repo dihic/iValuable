@@ -3,6 +3,10 @@
 #include "IndependentUnit.h"
 #include "System.h"
 
+#include <rl_net_lib.h>
+
+extern ETH_CFG eth0_config;
+
 using namespace std;
 
 #define FILE_HEADER_SIZE	12
@@ -213,6 +217,14 @@ namespace IntelliStorage
 		
 		switch (command)
 		{
+			case CommandVersion:
+				data = boost::make_shared<uint8_t[]>(12);
+				data[0] = FW_VERSION_MAJOR;
+				data[1] = FW_VERSION_MINOR;
+				memcpy(data.get()+2, (const void *)(&SCB->CPUID), 4);
+				memcpy(data.get()+6, eth0_config.MacAddr, 6);
+				comm->SendFileData(command, data.get(), 12);
+				break;
 			case CommandAccess:
 				if (len<1 || parameters[0]>=4)
 				{

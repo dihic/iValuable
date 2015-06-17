@@ -13,6 +13,7 @@ namespace FWUpdater
         Info = 0xcf,
         Update = 0xd0,
         Devices = 0xd1,
+        Ver = 0xd2,
         Status = 0xfe
     };
 
