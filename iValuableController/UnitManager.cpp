@@ -5,6 +5,12 @@
 
 #include <rl_net_lib.h>
 
+#define SENSOR_NORMAL						0x00
+#define SENSOR_OVERWEIGHT 			0x01
+#define SENSOR_DAMAGE			 			0x02
+#define SENSOR_FAULT						0x10
+#define SENSOR_WEIGHT_MASK			0x0F
+
 extern ETH_CFG eth0_config;
 
 using namespace std;
@@ -593,8 +599,8 @@ namespace IntelliStorage
 							continue;
 						state.reset(new SerializableObjects::ScaleState);
 						state->SensorIndex = i;
-						state->IsDamaged = (scalesData[i].Status&0x10)!=0;
-						state->WeightState = scalesData[i].Status&0x0f;
+						state->IsDamaged = (scalesData[i].Status&SENSOR_FAULT) || (scalesData[i].Status&SENSOR_DAMAGE);
+						state->WeightState = scalesData[i].Status&SENSOR_WEIGHT_MASK;
 						state->Weight = scalesData[i].Weight;
 						state->IsStable = scalesData[i].IsStable;
 						element->SensorStates.Add(state);
