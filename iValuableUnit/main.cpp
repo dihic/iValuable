@@ -306,8 +306,6 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_UNIT_INFO:
-			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
-					break;
 			if (entry->subindex==0)	//Read
 			{
 				response->entrytype_len = 1;
@@ -331,6 +329,8 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			else //Write
 			{
+//				if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
+//					break;
 				DisplayState = DisplayPause;
 				if (entry->val[0] == 0xff)	//Clear All
 				{
