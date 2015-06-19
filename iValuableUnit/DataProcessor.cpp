@@ -399,6 +399,8 @@ bool DataProcessor::UpdateDisplay(bool force)
 			len -= end;
 			return true;
 		}
+		else
+			data = NULL;
 	}
 
 	index = 0;

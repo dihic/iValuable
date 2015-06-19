@@ -7,14 +7,14 @@
 using namespace std; 
 using namespace fastdelegate;
 
-#define LINE_HEIGHT			 35
+#define LINE_HEIGHT			 33
 #define CHAR_WEIGHT			 15
 #define X_OFFSET				 5
 #define RES_X						 400
 #define RES_Y 					 240
 
 #define MAXLINE_X_LIMIT	 (RES_X-X_OFFSET)
-#define MAXLINE_Y_LIMIT	 200
+#define MAXLINE_Y_LIMIT	 205
 
 
 class Display
