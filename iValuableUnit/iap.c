@@ -40,7 +40,7 @@ int CopyToFlash256(unsigned int dest, unsigned int source)
 	{
 		iap_command_param[0] = IAP_COMMAND_COPY_TO_FLASH;
 		iap_command_param[1] = dest;	
-		iap_command_param[2] = source & 0xffffffc;	// Word boundary
+		iap_command_param[2] = source & 0xfffffffc;	// Word boundary
 		iap_command_param[3] = 256;
 		iap_command_param[4] = SystemCoreClock/1000; // System clock in kHz
 		iap_entry(iap_command_param, iap_status_result);
