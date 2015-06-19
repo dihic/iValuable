@@ -192,6 +192,18 @@ namespace BSON
 					boost::shared_ptr<float> f = member->GetObject<float>();
 					*f=float(*d);
 				}
+				else if (p->GetType()==typeid(int64_t) && member->GetType()==typeid(uint64_t))
+				{
+					boost::shared_ptr<int64_t> d = p->GetObject<int64_t>();
+					boost::shared_ptr<uint64_t> f = member->GetObject<uint64_t>();
+					*f=uint64_t(*d);
+				}
+				else if (p->GetType()==typeid(int) && member->GetType()==typeid(uint32_t))
+				{
+					boost::shared_ptr<int> d = p->GetObject<int>();
+					boost::shared_ptr<uint32_t> f = member->GetObject<uint32_t>();
+					*f=uint32_t(*d);
+				}
 			}
 			else
 			{
