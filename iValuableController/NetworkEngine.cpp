@@ -237,6 +237,9 @@ namespace IntelliStorage
 					ptr += sizeof(float);
 					memcpy(&suppliesItem->ErrorRange, ptr, sizeof(float));
 					ptr += sizeof(float);
+					//Push dumps
+					suppliesItem->MaterialName.push_back(0);
+					suppliesItem->MaterialName.push_back(0);
 					suppliesList->AllMaterialInfos.Add(suppliesItem);
 				}
 				buffer = BSON::Bson::Serialize(suppliesList, bufferSize);
