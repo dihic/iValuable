@@ -99,8 +99,9 @@ namespace IntelliStorage
 	
 	void StorageUnit::SetInventoryInfo(SerializableObjects::SuppliesItem &info)
 	{
-		static constexpr size_t fixSize = sizeof(uint64_t)+sizeof(float)*2+1;
-		size_t size = info.MaterialName.size() + fixSize;
+		static constexpr size_t fixSize = sizeof(uint64_t)+sizeof(float)*2+2;
+		uint8_t nameLen = info.MaterialName.size();
+		size_t size =  nameLen + fixSize;
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(size);
 		data[0] = info.Index & 0xff;
 		uint8_t *ptr = data.get()+1;
@@ -110,7 +111,9 @@ namespace IntelliStorage
 		ptr += sizeof(float);
 		memcpy(ptr, &info.ErrorRange, sizeof(float));
 		ptr += sizeof(float);
-		if (info.MaterialName.size() > 0)
+		*ptr = nameLen;
+		++ptr;
+		if (nameLen > 0)
 			std::copy(info.MaterialName.begin(), info.MaterialName.end(), ptr);
 		WriteAttribute(DeviceAttribute::InventoryInfo, data, size);
 	}

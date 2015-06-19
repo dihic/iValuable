@@ -110,10 +110,19 @@ void CanDevice::ReadAttribute(uint16_t attr)
 
 void CanDevice::WriteAttribute(uint16_t attr,const boost::shared_ptr<std::uint8_t[]> &data, size_t size)
 {
-	if (SyncTable.find((DeviceId<<16)|attr) != SyncTable.end())
+	int8_t count=3;
+	while (SyncTable.find((DeviceId<<16)|attr) != SyncTable.end())
 	{
-		if (WriteCommandResponse != NULL)
-			WriteCommandResponse(*this, attr, false);
+		if (--count<=0)
+			break;
+		osDelay(SYNC_TIME);
+	}
+	if (count<=0 && WriteCommandResponse != NULL)
+	{
+#ifdef DEBUG_PRINT
+		cout<<"CAN Write Timeout!"<<endl;
+#endif
+		WriteCommandResponse(*this, attr, false);
 		return;
 	}
 	
