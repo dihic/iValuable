@@ -306,17 +306,6 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 			}
 			break;
 		case OP_UNIT_INFO:
-			if (entry->subindex==1 && entry->entrytype_len>=1 && entry->val[0] == 0xff)	//Clear All
-			{
-				for(i=0;i<SUPPLIES_NUM;++i)
-				{
-					Processor->RemoveSupplies(i);
-					SuppliesDisplay::DeleteString(i);
-				}
-				*(response->val)=0;
-				DisplayState = DisplayForce;
-				break;
-			}
 			if (entry->entrytype_len<1 || entry->val[0]>=SUPPLIES_NUM)
 					break;
 			if (entry->subindex==0)	//Read
@@ -340,14 +329,25 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					response->entrytype_len += sizeof(SuppliesInfo)+1;
 				}
 			}
-			else if (entry->subindex==1)	//Write
+			else //Write
 			{
-				//Size of info
-				i = sizeof(SuppliesInfo);
-				memcpy(&info, entry->val+1, i);
-				Processor->SetSupplies(entry->val[0], info);
-				Processor->SetQuantity(entry->val[0], 0);
-				SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
+				DisplayState = DisplayPause;
+				if (entry->val[0] == 0xff)	//Clear All
+				{
+					for(i=0;i<SUPPLIES_NUM;++i)
+					{
+						Processor->RemoveSupplies(i);
+						SuppliesDisplay::DeleteString(i);
+					}
+				}
+				else
+				{
+					//Size of info
+					i = sizeof(SuppliesInfo);
+					memcpy(&info, entry->val+1, i);
+					Processor->SetSupplies(entry->val[0], info);
+					SuppliesDisplay::ModifyString(entry->val[0], entry->val+i+2, entry->val[i+1]);
+				}
 				*(response->val)=0;
 				DisplayState = DisplayForce;
 			}
@@ -447,10 +447,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		case OP_LOCKER:
 			if (entry->subindex==1 && IS_LOCKER_ENABLE)
 			{
-				if (entry->val[0])
-					LOCKER_ON;
-				else
-					LOCKER_OFF;
+				LOCKER_CONTROL(entry->val[0]);
 				*(response->val)=0;
 			}
 			break;

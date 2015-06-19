@@ -65,6 +65,7 @@ enum DisplayMode
 {
 	DisplayNormal,
 	DisplayForce,
+	DisplayPause,
 };
 
 volatile DisplayMode DisplayState = DisplayNormal;

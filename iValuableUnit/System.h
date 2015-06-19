@@ -53,6 +53,10 @@
 #define LED_ON						GPIOSetValue(CON_LED, 1)
 #define LED_OFF 					GPIOSetValue(CON_LED, 0)
 #define LED_BLINK 				GPIOSetValue(CON_LED, GPIOGetValue(CON_LED)==0)
+
+//x=1 Lock On and Door Open
+//x=0 Lock Off
+#define LOCKER_CONTROL(x) 	GPIOSetValue(CON_LOCKER, (x)==0)		
 #define LOCKER_ON 				GPIOSetValue(CON_LOCKER, 0)
 #define LOCKER_OFF 				GPIOSetValue(CON_LOCKER, 1)
 #define IS_LOCKER_ON 			(GPIOGetValue(CON_LOCKER)==0)

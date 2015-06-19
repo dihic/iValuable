@@ -40,9 +40,15 @@ void SuppliesDisplay::CopyFromSource(int index, const uint8_t *source, uint8_t l
 		memcpy(tempBuffer+8, source, len);
 	}
 #else
-	tempBuffer[0] = len;
+	
+	tempBuffer[0] = len+2;
 	tempBuffer[1] = 0;
-	memcpy(tempBuffer+2, source, len);
+	tempBuffer[2] = 0x22;					//Char •
+	tempBuffer[3] = 0x20;
+	memcpy(tempBuffer+4, source, len);
+//	tempBuffer[0] = len;
+//	tempBuffer[1] = 0;
+//	memcpy(tempBuffer+2, source, len);
 #endif
 }
 
