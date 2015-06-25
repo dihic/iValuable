@@ -7,10 +7,10 @@
 class HX711
 {
 	private:
-		uint32_t sckPort;
-		uint32_t sckBit;
-		uint32_t doutPort;
-		uint32_t doutBit;
+		const uint32_t sckPort;
+		const uint32_t sckBit;
+		const uint32_t doutPort;
+		const uint32_t doutBit;
 	public:
 		static const float RangeCoeff;
 		int32_t CurrentData;

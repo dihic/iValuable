@@ -12,11 +12,8 @@ using namespace std;
 const float HX711::RangeCoeff = 0.256f;
 
 HX711::HX711(uint32_t sckPortNum, uint32_t sckBitPos,uint32_t doutPortNum, uint32_t doutBitPos)
+	:sckPort(sckPortNum),sckBit(sckBitPos),doutPort(doutPortNum),doutBit(doutBitPos)
 {
-	sckPort=sckPortNum;
-	sckBit=sckBitPos;
-	doutPort=doutPortNum;
-	doutBit=doutBitPos;
 	GPIOSetDir(HX_SCK,E_IO_OUTPUT);
 	DrvGPIO_ClrBit(HX_SCK);
 	GPIOSetDir(HX_DOUT,E_IO_INPUT);

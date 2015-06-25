@@ -1,14 +1,14 @@
 #include <LPC11xx.h>
 #include "gpio.h"
 
-volatile uint32_t gpio0_counter = 0;
-volatile uint32_t gpio1_counter = 0;
-volatile uint32_t gpio2_counter = 0;
-volatile uint32_t gpio3_counter = 0;
-volatile uint32_t p0_1_counter  = 0;
-volatile uint32_t p1_1_counter  = 0;
-volatile uint32_t p2_1_counter  = 0;
-volatile uint32_t p3_1_counter  = 0;
+//volatile uint32_t gpio0_counter = 0;
+//volatile uint32_t gpio1_counter = 0;
+//volatile uint32_t gpio2_counter = 0;
+//volatile uint32_t gpio3_counter = 0;
+//volatile uint32_t p0_1_counter  = 0;
+//volatile uint32_t p1_1_counter  = 0;
+//volatile uint32_t p2_1_counter  = 0;
+//volatile uint32_t p3_1_counter  = 0;
 
 /*****************************************************************************
 ** Function name:		GPIOInit
