@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "UnitType.h"
 
-#define PRECISION_DIGITS 20
+#define PRECISION_DIGITS 17
 
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 	#define SENSOR1_SCK  PORT1,8

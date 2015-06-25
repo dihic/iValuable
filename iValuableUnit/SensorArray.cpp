@@ -6,9 +6,10 @@
 
 using namespace std;
 
-#define LIMIT_SPEED 			(1<<7)
 #define STABLE_WINDOW 		5
-#define AVG_WINDOW 				4
+#define AVG_WINDOW 				3
+
+const int LIMIT_SPEED = (1<<(PRECISION_DIGITS-11));
 
 SensorArray *SensorArray::Singleton = NULL;
 
@@ -70,7 +71,7 @@ void SensorArray::UpdateStateWithZero(uint8_t ch, int32_t zero)
 void SensorArray::Update(uint8_t ch)
 {
 	tempData[ch] += pSensors[ch]->ReadData(PRECISION_DIGITS);
-	if (++tempCount[ch] > AVG_WINDOW)
+	if (++tempCount[ch] >= AVG_WINDOW)
 	{
 		//Filter with average value
 		currentData[ch] = tempData[ch]/AVG_WINDOW;
