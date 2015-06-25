@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define TCP_BUFFER_NUM 			128
+#define TCP_BUFFER_NUM 			48
 
 osMailQDef(MailSendTcp   , TCP_BUFFER_NUM, TcpBuffer);
 osMailQDef(MailReceiveTcp, TCP_BUFFER_NUM  , TcpBuffer);
