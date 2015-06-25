@@ -3,6 +3,7 @@
 namespace SerializableObjects
 {
 	CLAIM_CLASS(HeartBeat);
+	CLAIM_CLASS(SyetemInfo);
 	CLAIM_CLASS(DeviceDesc);
 	CLAIM_CLASS(CalWeight);
 	CLAIM_CLASS(SensorEnable);
@@ -27,6 +28,7 @@ namespace SerializableObjects
 	void CommStructures::Register()
 	{
 		REGISTER_CLASS(HeartBeat);
+		REGISTER_CLASS(SyetemInfo);
 		REGISTER_CLASS(DeviceDesc);
 		REGISTER_CLASS(CalWeight);
 		REGISTER_CLASS(SensorEnable);

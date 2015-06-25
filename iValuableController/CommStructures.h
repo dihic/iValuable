@@ -45,6 +45,23 @@ namespace SerializableObjects
 			std::uint64_t Times;
 	};
 	
+	DECLARE_CLASS(SyetemInfo)
+	{
+		public:
+			SyetemInfo()
+			{
+				REGISTER_FIELD(Product);
+				REGISTER_FIELD(Version);
+				REGISTER_FIELD(CpuId);
+				REGISTER_FIELD(MacAddress);
+			}
+			virtual ~SyetemInfo() {}
+			std::string Product;
+			std::uint32_t Version;
+ 			std::uint32_t CpuId;
+			Binary MacAddress;
+	};
+	
 	DECLARE_CLASS(DeviceDesc)
 	{
 		public:

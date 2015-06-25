@@ -5,6 +5,10 @@
 #include <ctime>
 #include <cstring>
 
+#include <rl_net_lib.h>
+
+extern ETH_CFG eth0_config;
+
 using namespace std;
 
 namespace IntelliStorage
@@ -29,10 +33,16 @@ namespace IntelliStorage
 	
 	void NetworkEngine::WhoAmI()
 	{
-		static const uint8_t ME[0x14]={0x14, 0x00, 0x00, 0x00, 0x12, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x00,
-																	 0x01, 0x03, 0x03, 0x01, 			// Fixed 0x01, iValuable 0x03, HV 0x03, 0x01 Pharmacy Products
-																	 FW_VERSION_MAJOR, FW_VERSION_MINOR, 0x00, 0x00, 0x00};	//FW Version 1.00
-		tcp.SendData(SerializableObjects::CodeWhoAmI, ME, 0x14);
+		boost::shared_ptr<SerializableObjects::SyetemInfo> info(new SerializableObjects::SyetemInfo);
+		info->Product = "iValuable HV";
+		info->Version = (FW_VERSION_MAJOR<<8)|FW_VERSION_MINOR;
+		info->CpuId = SCB->CPUID;
+		for (auto i=0;i<6;++i)
+			info->MacAddress.push_back(eth0_config.MacAddr[i]);
+		size_t bufferSize = 0;
+		auto buffer = BSON::Bson::Serialize(info, bufferSize);
+		if (buffer!=nullptr && bufferSize>0)
+			tcp.SendData(SerializableObjects::CodeWhoAmI, buffer.get(), bufferSize);
 	}
 	
 	void NetworkEngine::SendDoorData(uint8_t groupId, bool state)
