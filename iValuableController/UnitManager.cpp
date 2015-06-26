@@ -455,6 +455,8 @@ namespace IntelliStorage
 		for (auto it = unitList.begin(); it!= unitList.end(); ++it)
 			if (it->second->IsLockController && it->second->GroupId == groupId)
 			{
+				if (result)
+					osDelay(200);
 				it->second->LockControl(true);
 				result = true;
 			}
