@@ -30,7 +30,7 @@ DataProcessor::DataProcessor()
 	//Default values for YZC-133
 	pConfig->Sensitivity = 1.0f;
 	pConfig->TempDrift = 0.0002f;
-	pConfig->ZeroRange = 0.1f;
+	pConfig->ZeroRange = 0.2f;	//original value 0.1
 	pConfig->SafeOverload = 1.2f;
 	pConfig->MaxOverload = 1.5f;
 	
@@ -181,14 +181,14 @@ void DataProcessor::SetZero(uint8_t ch, bool tare)
 		{
 			if (!SensorEnable(i))
 				continue;
-			if (abs(pScales[ch]->GetBasic()->Ramp)<0.000001f)
+			if (abs(pScales[i]->GetBasic()->Ramp)<0.000001f)
 			{
 				w = 0;
 				break;
 			}
 			pScales[i]->SetZero(true);
 			w += (pScales[i]->GetBasic()->Tare - pScales[i]->GetBasic()->Zero)/
-						pScales[ch]->GetBasic()->Ramp;
+						pScales[i]->GetBasic()->Ramp;
 		}
 		*pTareSum = w;
 		if (WriteNV)
