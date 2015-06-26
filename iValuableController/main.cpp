@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <cmath>
 #include "cmsis_os.h"                   // ARM::CMSIS:RTOS:Keil RTX
 #include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
 
@@ -50,7 +51,7 @@ void HeatbeatTimerCallback(void const *arg)
 		cout<<"Current Temperature: "<<CurrentTemperature<<endl;
 #endif
 		if (CanEx != nullptr && !UnitManager::IsUpdating())
-			StorageUnit::SetTemperature(*CanEx, CurrentTemperature);
+			StorageUnit::SetTemperature(*CanEx, rintf(CurrentTemperature));
 		hbcount = 0;
 		if (ethEngine!= nullptr) 
 			ethEngine->SendHeartBeat();
