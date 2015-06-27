@@ -70,6 +70,7 @@ class DataProcessor
 		static __align(16) std::uint8_t MemBuffer[MEM_BUFSIZE];
 		
 		~DataProcessor();
+		void InitZeroState();
 		//Parameter flags stands for enable to calibrate sensors bitwise
 		void CalibrateSensors(std::uint8_t flags);
 		//

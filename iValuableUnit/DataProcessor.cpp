@@ -90,6 +90,13 @@ bool DataProcessor::SensorEnable(std::uint8_t ch) const
 	return (ch<SENSOR_NUM) ? (*pSensorEnable & (1<<ch))!=0 : false;
 }
 
+void DataProcessor::InitZeroState()
+{
+	for(uint8_t i=0;i<SENSOR_NUM;++i)
+		if (SensorEnable(i))
+			SensorArray::Instance().UpdateStateWithZero(i, pScales[i]->GetBasic()->Zero);
+}
+
 void DataProcessor::SetConfig(const std::uint8_t *buf)
 {
 	memcpy(reinterpret_cast<void *>(&pConfig->Sensitivity), buf, sizeof(float));
