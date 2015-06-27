@@ -629,12 +629,10 @@ int main()
 	if (FRAM::Init())
 		FRAM::WriteMemory(0x04, (uint8_t *)(DataProcessor::MemBuffer+4), MEM_BUFSIZE-4);		//Write default values
 	else
-	{
 		FRAM::ReadMemory(0, (uint8_t *)DataProcessor::MemBuffer, MEM_BUFSIZE);		//Read all values from NV memory
-		Processor->InitZeroState();
-	}
 	DataProcessor::WriteNV.bind(&FRAM::WriteMemory);
 	SensorArray::Instance(Processor->GetConfig());
+	Processor->InitZeroState();
 
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID	
 	RfidProcessor::RfidChangedEvent.bind(&RfidChanged);
