@@ -11,11 +11,7 @@
 #include <boost/type_traits.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/make_shared.hpp>
-
-struct null_deleter
-{
-	void operator()(void const *) const {}
-};
+#include <boost/core/null_deleter.hpp>
 
 typedef std::vector<std::uint8_t> Binary;
 
@@ -57,7 +53,7 @@ class TypeInfo : public TypeInfoBase
 		static boost::shared_ptr<TypeInfo<T> > Register(T &p)
 		{
 			boost::shared_ptr<TypeInfo<T> > info(new TypeInfo<T>);
-			boost::shared_ptr<T> px(&p, null_deleter());
+			boost::shared_ptr<T> px(&p, boost::null_deleter());
 			info->Ptr = px;
 			return info;
 		}	
@@ -99,7 +95,7 @@ class TypeInfo<Binary> : public TypeInfoBase
 	public:
 		static boost::shared_ptr<TypeInfo<Binary> > Register(Binary &b)
 		{
-			boost::shared_ptr<Binary> bx(&b, null_deleter());
+			boost::shared_ptr<Binary> bx(&b, boost::null_deleter());
 			boost::shared_ptr<TypeInfo<Binary> > info(new TypeInfo<Binary>(bx));
 			return info;
 		}

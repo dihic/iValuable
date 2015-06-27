@@ -2,6 +2,10 @@
 #include <cstring>
 #include <Driver_ETH_PHY.h>
 
+#ifdef DEBUG_PRINT
+#include <iostream>
+#endif
+
 using namespace std;
 
 #define TCP_BUFFER_NUM 			48

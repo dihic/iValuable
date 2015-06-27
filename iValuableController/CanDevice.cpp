@@ -52,9 +52,11 @@ void CanDevice::WorkThread(void const *arg)
 		result = osSignalWait(0xff, SYNC_TIME);
 		--tryCount;
 	} while (result.status == osEventTimeout && tryCount>0); // Wait for response
-	
+
+#ifdef DEBUG_PRINT
 	if (tryCount==0)
 		cout<<"CAN Timeout!"<<endl;
+#endif
 	
 	if (result.status == osEventSignal)
 		osSignalClear(threadid, 0xff);

@@ -166,8 +166,9 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 int main()
 {
 	HAL_MspInit();
+#ifdef DEBUG_PRINT	
 	cout<<"System Started..."<<endl;
-	
+#endif	
 	SerializableObjects::CommStructures::Register();
 	
 	ispUpdater.reset(new ISPProgram(Driver_USART1));

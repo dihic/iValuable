@@ -240,7 +240,7 @@ namespace BSON
 		
 		boost::shared_ptr<DynamicObject::Table> pTable;
 		if (object->IsRaw())
-			pTable.reset(&object->GetTable(), null_deleter());
+			pTable.reset(&object->GetTable(), boost::null_deleter());
 		else
 			pTable.reset(new DynamicObject::Table);
 		

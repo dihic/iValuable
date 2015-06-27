@@ -7,6 +7,10 @@
 #include <cmsis_os.h>
 #include "FastDelegate.h"
 
+#ifdef DEBUG_PRINT
+#include <iostream>
+#endif
+
 using namespace fastdelegate;
 
 class CanDevice;
