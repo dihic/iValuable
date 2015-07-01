@@ -36,7 +36,7 @@ DataProcessor *Processor = NULL;
 float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
 
-#define LOCK_WAIT_SECONDS  1
+#define LOCK_WAIT_MS  		500			//Lock auto protection time in MS
 #define LOCK_IDLE 				0xffff
 
 extern "C" {
@@ -178,7 +178,7 @@ void TIMER32_1_IRQHandler()		//100Hz
 		if (IS_LOCKER_ON)
 		{
 			if (LockCount == LOCK_IDLE)
-				LockCount = LOCK_WAIT_SECONDS*1000;	//Start countdown
+				LockCount = LOCK_WAIT_MS;	//Start countdown
 			if (DoorState)
 			{
 				LOCKER_OFF;
