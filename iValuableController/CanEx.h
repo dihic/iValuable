@@ -103,7 +103,7 @@ namespace CANExtended
 			void Broadcast(OdEntry &entry);
 			void SyncAll(std::uint16_t index, SyncMode mode);
       void Sync(std::uint16_t syncId, std::uint16_t index, SyncMode mode);
-			void AddDevice(const boost::shared_ptr<ICanDevice> &device) { DeviceNetwork[device->DeviceId] = device; }
+			void RegisterDevice(const boost::shared_ptr<ICanDevice> &device) { DeviceNetwork[device->DeviceId] = device; }
 	};
 }
 #endif

@@ -37,9 +37,13 @@ namespace boost
 
 extern volatile float CurrentTemperature;
 
+#define WARM_COEFF		0.2f
+#define WARM_LIMIT		50
+
 void HeatbeatTimerCallback(void const *arg)
 {
 	static uint8_t hbcount = 20;
+	static int warmCount = 0; 
 	
 	HAL_GPIO_TogglePin(STATUS_PIN);
 	
@@ -50,8 +54,16 @@ void HeatbeatTimerCallback(void const *arg)
 #ifdef DEBUG_PRINT
 		cout<<"Current Temperature: "<<CurrentTemperature<<endl;
 #endif
+		if (warmCount<WARM_LIMIT)
+			warmCount++;
 		if (CanEx != nullptr && !UnitManager::IsUpdating())
-			StorageUnit::SetTemperature(*CanEx, rintf(CurrentTemperature));
+		{
+			float t=CurrentTemperature - warmCount*WARM_COEFF;
+			StorageUnit::SetTemperature(*CanEx, t);
+#ifdef DEBUG_PRINT
+		cout<<"Calibrated Temperature: "<<t<<endl;
+#endif		
+		}
 		hbcount = 0;
 		if (ethEngine!= nullptr) 
 			ethEngine->SendHeartBeat();
@@ -72,19 +84,19 @@ void SyncDataLauncher(void const *argument)
 {
 	osDelay(3000);
 	syncDataTimerId = osTimerCreate(osTimer(SyncDataTimer), osTimerPeriodic, NULL);
-	osTimerStart(syncDataTimerId, 1000);
-//	Test
+	osTimerStart(syncDataTimerId, 500);
 }
 osThreadDef(SyncDataLauncher, osPriorityNormal, 1, 0);
 
 static void CanPollWorker(void const *argument)  
 {
+	if (CanEx == nullptr)
+		return;
 	while(1)
 	{
-		if (CanEx != nullptr)
-			CanEx->Poll();
-		osDelay(5);
-		//osThreadYield();
+		CanEx->Poll();
+		//osDelay(5);
+		osThreadYield();
 	}
 }
 osThreadDef(CanPollWorker, osPriorityNormal, 1, 0);
@@ -94,9 +106,6 @@ static void Traversal(void const *argument)  //Prevent missing status
 	static bool forceReport = true;
 	while(1)
 	{
-//		if (ethEngine==nullptr)
-//			continue;
-//		ethEngine->Process();
 		if (!ethEngine->IsConnected())
 		{
 			forceReport = true;
@@ -118,6 +127,7 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		return;
 	auto unit = unitManager->FindUnit(sourceId&0x7f);
 	bool updated = (unit!=nullptr) && (unit->UpdateStatus()==StorageUnit::Updated);
+	
 	if (unit == nullptr || updated)
 	{
 		StorageBasic basic(CanEx);
@@ -141,7 +151,7 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		}
 		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
 		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
-		CanEx->AddDevice(unit);
+		CanEx->RegisterDevice(unit);
 		if (updated)
 		{	
 			unitManager->Recover(sourceId&0x7f, unit);
