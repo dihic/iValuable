@@ -15,14 +15,14 @@ CanDevice::CanDevice(CANExtended::CanEx &canex, std::uint16_t deviceId)
 	if (WorkThreadDef == nullptr)
 	{
 		WorkThreadDef.reset(new osThreadDef_t);
-		WorkThreadDef->pthread = WorkThread;
+		WorkThreadDef->pthread = CanWorkThread;
 		WorkThreadDef->tpriority = osPriorityNormal;
 		WorkThreadDef->instances = 4;
 		WorkThreadDef->stacksize = 0;
 	}
 }
 
-void CanDevice::WorkThread(void const *arg)
+void CanDevice::CanWorkThread(void const *arg)
 {
 	osThreadId threadid = osThreadGetId();
 	

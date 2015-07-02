@@ -150,11 +150,6 @@ namespace IntelliStorage
 				canex.Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
 			}
 			
-			void SyncUnitData()
-			{
-				canex.Sync(DeviceId, DeviceSync::SyncData, CANExtended::Trigger);
-			}
-			
 			UpdateState UpdateStatus() const { return updateStatus; }
 			
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;

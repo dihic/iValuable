@@ -48,7 +48,7 @@ class CanDevice : public CANExtended::ICanDevice
 		static boost::scoped_ptr<osThreadDef_t> WorkThreadDef;
 		static std::int32_t SyncSignalId;
 		static std::map<std::uint32_t, osThreadId> SyncTable;
-		static void WorkThread(void const *arg);
+		static void CanWorkThread(void const *arg);
 	public:
 		bool IsBusy() const { return busy;}
 		typedef FastDelegate3<CanDevice &,std::uint16_t, bool> ResultCB;
