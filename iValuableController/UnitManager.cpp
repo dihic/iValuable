@@ -402,7 +402,7 @@ namespace IntelliStorage
 		{
 			if (!updating && it->second->UpdateStatus() != StorageUnit::Updating)
 			{
-				it->second->SyncUnitData();
+				it->second->RequestData();
 				osDelay(20);
 			}
 		}
@@ -533,9 +533,7 @@ namespace IntelliStorage
 	void UnitManager::Add(std::uint16_t id, boost::shared_ptr<StorageUnit> &unit) 
 	{
 		unit->OnDoorChangedEvent.bind(this, &UnitManager::OnDoorChanged);
-		unitList[id] = unit; 
-		bool find = false;
-		
+		unitList[id] = unit;
 		auto group = ObtainGroup(unit->GroupId);
 		
 		if (unit->IsLockController)
@@ -543,14 +541,15 @@ namespace IntelliStorage
 		
 		auto count = dataCollection->AllUnits.Count();
 		
+		bool found = false;
 		for(auto i=0; i<count; ++i)
 			if (dataCollection->AllUnits[i].GroupIndex==unit->GroupId && 
 					dataCollection->AllUnits[i].NodeIndex==unit->NodeId)
 			{
-				find = true;
+				found = true;
 				break;
 			}
-		if (!find)
+		if (!found)
 		{
 			boost::shared_ptr<SerializableObjects::UnitEntry> element(new SerializableObjects::UnitEntry);
 			element->GroupIndex = unit->GroupId;
@@ -570,7 +569,8 @@ namespace IntelliStorage
 			auto element = FindUnitEntry(it->first);
 			element->IsStable = it->second->GetAllStable();
 			element->SensorStates.Clear();
-			auto unity = boost::dynamic_pointer_cast<UnityUnit>(it->second);
+
+			auto unity = dynamic_cast<UnityUnit *>(it->second.get());
 			if (unity!=nullptr)
 			{
 				element->Weight = unity->GetTotalWeight();
@@ -590,14 +590,14 @@ namespace IntelliStorage
 			}
 			else
 			{
-				auto integrity = boost::dynamic_pointer_cast<IndependentUnit>(it->second);
-				if (integrity!=nullptr)
+				auto indpt = dynamic_cast<IndependentUnit *>(it->second.get());
+				if (indpt!=nullptr)
 				{
 					element->Weight = 0;
-					auto scalesData = integrity->GetScaleList();
-					for(auto i=0; i<integrity->SensorNum; ++i)
+					auto scalesData = indpt->GetScaleList();
+					for(auto i=0; i<indpt->SensorNum; ++i)
 					{
-						if (!integrity->IsEnable(i))
+						if (!indpt->IsEnable(i))
 							continue;
 						state.reset(new SerializableObjects::ScaleState);
 						state->SensorIndex = i;
