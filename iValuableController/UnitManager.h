@@ -80,7 +80,7 @@ namespace IntelliStorage
 				std::uint8_t Id;
 			};
 			const boost::shared_ptr<ConfigComm> &comm;
-			const boost::scoped_ptr<ISPProgram> &updater;
+			const boost::shared_ptr<ISPProgram> &updater;
 			std::map<std::uint16_t, boost::shared_ptr<StorageUnit> > unitList;
 			std::map<std::uint16_t, boost::shared_ptr<SerializableObjects::UnitEntry> > entryList;
 			std::map<std::uint8_t, boost::shared_ptr<LockGroup> > groupList;
@@ -102,7 +102,7 @@ namespace IntelliStorage
 			ReportRfidDataHandler ReportRfidDataEvent;
 			ReportDoorDataHandler ReportDoorDataEvent;
 		
-			UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp);
+			UnitManager(ARM_DRIVER_USART &u, boost::shared_ptr<ISPProgram> &isp);
 			~UnitManager() {}
 			void SyncAllData();
 			void SyncUpdate();

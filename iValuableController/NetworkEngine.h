@@ -16,7 +16,7 @@ namespace IntelliStorage
 	{
 		private:
 			TcpClient tcp;
-			boost::scoped_ptr<UnitManager> &unitManager;
+			boost::shared_ptr<UnitManager> &unitManager;
 			void CommandResponse(std::uint8_t groupId, std::uint8_t nodeId, SerializableObjects::CodeType code, bool result);
 			void CommandResponse(StorageUnit &unit, DeviceAttribute attr, bool isWrite, bool result);
 			void TcpClientCommandArrival(boost::shared_ptr<std::uint8_t[]> payload, std::size_t size);
@@ -25,7 +25,7 @@ namespace IntelliStorage
 			void SendDoorData(uint8_t groupId, bool state);
 		public:
 
-			NetworkEngine(const std::uint8_t *endpoint, boost::scoped_ptr<UnitManager> &units);
+			NetworkEngine(const std::uint8_t *endpoint, boost::shared_ptr<UnitManager> &units);
 			~NetworkEngine() {}
 			void SendHeartBeat();
 			void Process();
