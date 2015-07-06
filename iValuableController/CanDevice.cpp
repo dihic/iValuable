@@ -9,9 +9,9 @@ map<uint32_t, osThreadId> CanDevice::SyncTable;
 
 boost::scoped_ptr<osThreadDef_t> CanDevice::WorkThreadDef;
 
-CanDevice::CanDevice(CANExtended::CanEx &canex, std::uint16_t deviceId)
-	: CANExtended::ICanDevice(canex,deviceId), busy(false)
-{		
+CanDevice::CanDevice(boost::weak_ptr<CANExtended::CanEx> ex, std::uint16_t deviceId)
+	: CANExtended::ICanDevice(deviceId), canex(ex), busy(false)
+{
 	if (WorkThreadDef == nullptr)
 	{
 		WorkThreadDef.reset(new osThreadDef_t);
@@ -32,7 +32,12 @@ void CanDevice::CanWorkThread(void const *arg)
 	WorkThreadArgs *wta = (WorkThreadArgs *)(arg);
 	if (wta == NULL)
 		return;
-	CanDevice &device = wta->Device;
+	boost::shared_ptr<CanDevice> device = wta->Device.lock();
+	if (device == nullptr)
+	{
+		delete wta;	//Release wta
+		return;
+	}
 	uint16_t attr = wta->Attr;
 	uint8_t isWriteCommand = wta->IsWriteCommand;
 	
@@ -46,9 +51,12 @@ void CanDevice::CanWorkThread(void const *arg)
 	
 	osEvent result;
 	uint8_t tryCount = 3;
+	auto ex = device->canex.lock();
+	if (ex == nullptr)
+		return;
 	do
 	{
-		device.canex.Request(device.DeviceId, *entry);	
+		ex->Request(device->DeviceId, *entry);	
 		result = osSignalWait(0xff, SYNC_TIME);
 		--tryCount;
 	} while (result.status == osEventTimeout && tryCount>0); // Wait for response
@@ -65,26 +73,26 @@ void CanDevice::CanWorkThread(void const *arg)
 	
 	if (isWriteCommand)
 	{
-		if (device.WriteCommandResponse)
-			device.WriteCommandResponse(device, attr, result.status == osEventSignal);
+		if (device->WriteCommandResponse)
+			device->WriteCommandResponse(*device, attr, result.status == osEventSignal);
 	}
 	else
 	{
-		if (device.EntryBuffer.get()!=NULL)
+		if (device->EntryBuffer.get()!=NULL)
 		{
-			if (device.ReadCommandResponse)
-				device.ReadCommandResponse(device, attr, device.EntryBuffer->GetVal(), device.EntryBuffer->GetLen());
-			device.EntryBuffer.reset();
+			if (device->ReadCommandResponse)
+				device->ReadCommandResponse(*device, attr, device->EntryBuffer->GetVal(), device->EntryBuffer->GetLen());
+			device->EntryBuffer.reset();
 		}
 		else
-			if (device.ReadCommandResponse)
+			if (device->ReadCommandResponse)
 			{
 				boost::shared_ptr<uint8_t[]> dump;
-				device.ReadCommandResponse(device, attr, dump, 0);
+				device->ReadCommandResponse(*device, attr, dump, 0);
 			}
 	}
-	SyncTable.erase((device.DeviceId<<16)|attr);
-	device.busy = false;
+	SyncTable.erase((device->DeviceId<<16)|attr);
+	device->busy = false;
 }
 
 void CanDevice::ReadAttribute(uint16_t attr)
@@ -98,7 +106,7 @@ void CanDevice::ReadAttribute(uint16_t attr)
 	}
 	
 	busy = true;
-	WorkThreadArgs *args = new WorkThreadArgs(*this, attr, 0xff, false);
+	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, false);
 	osThreadId tid = osThreadCreate(WorkThreadDef.get(), args);
 	while (tid==NULL)
 	{
@@ -129,7 +137,7 @@ void CanDevice::WriteAttribute(uint16_t attr,const boost::shared_ptr<std::uint8_
 	}
 	
 	busy = true;
-	WorkThreadArgs *args = new WorkThreadArgs(*this, attr, 0xff, true);
+	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, true);
 	args->Data = data;
 	args->DataLen = size;
 

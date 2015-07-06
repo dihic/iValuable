@@ -60,7 +60,7 @@ namespace IntelliStorage
 		lockMap[node] = false;
 	}
 	
-	UnitManager::UnitManager(ARM_DRIVER_USART &u, boost::scoped_ptr<ISPProgram> &isp)
+	UnitManager::UnitManager(ARM_DRIVER_USART &u, boost::shared_ptr<ISPProgram> &isp)
 		:comm(ConfigComm::CreateInstance(u)), updater(isp)
 	{
 		dataCollection.reset(new SerializableObjects::UnitEntryCollection);
@@ -147,7 +147,10 @@ namespace IntelliStorage
 		osDelay(100);
 		
 		osSignalClear(osThreadGetId(), 0x01);
-		unit->canex.Sync(unit->DeviceId, DeviceSync::SyncLive, CANExtended::Trigger);
+		auto ex = unit->canex.lock();
+		if (ex == nullptr)
+			return false;
+		ex->Sync(unit->DeviceId, DeviceSync::SyncLive, CANExtended::Trigger);
 		osEvent evt = osSignalWait(0x01, 1000);
 		return (evt.status == osEventSignal);
 	}

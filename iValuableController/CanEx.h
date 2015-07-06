@@ -18,9 +18,8 @@ namespace CANExtended
 	class ICanDevice
 	{
 		protected:
-			CanEx &canex;
-			ICanDevice(CanEx &ex, std::uint16_t deviceId)
-				: canex(ex), DeviceId(deviceId)
+			ICanDevice(std::uint16_t deviceId)
+				: DeviceId(deviceId)
 			{}
 		public:
 			const std::uint16_t DeviceId;

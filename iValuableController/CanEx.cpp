@@ -162,7 +162,7 @@ namespace CANExtended
 				{
 					if (msgReceived.len >= 4)
 					{
-						rxEntry.reset( new OdEntry(
+						rxEntry.reset(new OdEntry(
 							(msgReceived.data[1] << 8) | msgReceived.data[0],
 							msgReceived.data[2], 
 							msgReceived.data[3]));

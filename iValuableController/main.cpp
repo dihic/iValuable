@@ -22,11 +22,11 @@ using namespace fastdelegate;
 using namespace IntelliStorage;
 using namespace std;
 
-boost::scoped_ptr<CANExtended::CanEx> CanEx;
-boost::scoped_ptr<NetworkConfig> ethConfig;
-boost::scoped_ptr<NetworkEngine> ethEngine;
-boost::scoped_ptr<UnitManager> unitManager;
-boost::scoped_ptr<ISPProgram> ispUpdater;
+boost::shared_ptr<CANExtended::CanEx> CanEx;
+boost::shared_ptr<NetworkConfig> ethConfig;
+boost::shared_ptr<NetworkEngine> ethEngine;
+boost::shared_ptr<UnitManager> unitManager;
+boost::shared_ptr<ISPProgram> ispUpdater;
 
 osTimerId syncDataTimerId = NULL;
 
@@ -113,6 +113,7 @@ static void Traversal(void const *argument)  //Prevent missing status
 		}
 		unitManager->Traversal(forceReport);	//Update all units
 		forceReport = false;
+		//osDelay(5);
 		osThreadYield();
 	}
 }

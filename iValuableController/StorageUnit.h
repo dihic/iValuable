@@ -36,11 +36,11 @@ namespace IntelliStorage
 	class StorageBasic
 	{
 		public:
-			boost::scoped_ptr<CANExtended::CanEx> &CanEx;
+			boost::weak_ptr<CANExtended::CanEx> CanEx;
 			std::uint16_t DeviceId;
 			std::uint8_t SensorNum;
 			std::uint16_t Version;
-			StorageBasic(boost::scoped_ptr<CANExtended::CanEx> &ex)	: CanEx(ex) {}
+			StorageBasic(boost::shared_ptr<CANExtended::CanEx> &ex)	:CanEx(ex) {}
 			~StorageBasic() {}
 	};
 	
@@ -141,13 +141,17 @@ namespace IntelliStorage
 			
 			void RequestData()
 			{
-				canex.Sync(DeviceId, DeviceSync::SyncData, CANExtended::Trigger);
+				auto ex = canex.lock();
+				if (ex != nullptr)
+					ex->Sync(DeviceId, DeviceSync::SyncData, CANExtended::Trigger);
 			}
 			
 			void EnterCanISP()
 			{
 				updateStatus = UpdateState::Updating;
-				canex.Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
+				auto ex = canex.lock();
+				if (ex != nullptr)
+					ex->Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
 			}
 			
 			UpdateState UpdateStatus() const { return updateStatus; }
