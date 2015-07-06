@@ -271,6 +271,9 @@ void HAL_MspInit(void)
 {	
 	SystemClock_Config();
 	
+	//Insert 100 ms delay, wait for voltage stable
+	osDelay(100);
+	
 	HAL_RNG_Init(&RNGHandle);
 	HAL_CRC_Init(&CRCHandle);
 	
