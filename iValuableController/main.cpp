@@ -5,6 +5,7 @@
 #include "cmsis_os.h"                   // ARM::CMSIS:RTOS:Keil RTX
 #include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
 
+#include "stm32f4xx_hal.h"
 #include "System.h"
 #include "CanEx.h"
 #include "NetworkConfig.h"
@@ -176,7 +177,7 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 
 int main()
 {
-	HAL_MspInit();
+	HAL_Init();
 #ifdef DEBUG_PRINT	
 	cout<<"System Started..."<<endl;
 #endif	
