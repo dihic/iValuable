@@ -47,7 +47,7 @@ class CanDevice : public CANExtended::ICanDevice, public boost::enable_shared_fr
 		}
 	private:
 		static boost::scoped_ptr<osThreadDef_t> WorkThreadDef;
-		static std::int32_t SyncSignalId;
+		static osSemaphoreId semaphore; 
 		static std::map<std::uint32_t, osThreadId> SyncTable;
 		static void CanWorkThread(void const *arg);
 	public:

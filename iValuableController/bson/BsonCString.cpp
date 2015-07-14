@@ -40,7 +40,6 @@ namespace BSON
 			str.push_back(b);
 			b = stream->GetByte();
 		}
-		//TypeInfo<string> *info = new TypeInfo<string>(str);
 		pVal = boost::make_shared<TypeInfo<string> >(str);
 		return true;
 	}

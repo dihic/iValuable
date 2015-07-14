@@ -3,9 +3,11 @@
 #define SYNC_TIME 500
 
 using namespace std;
+
+osSemaphoreDef(semCanDevice);
 	
-int32_t CanDevice::SyncSignalId = 1;
 map<uint32_t, osThreadId> CanDevice::SyncTable;
+osSemaphoreId CanDevice::semaphore;
 
 boost::scoped_ptr<osThreadDef_t> CanDevice::WorkThreadDef;
 
@@ -14,11 +16,8 @@ CanDevice::CanDevice(boost::weak_ptr<CANExtended::CanEx> ex, std::uint16_t devic
 {
 	if (WorkThreadDef == nullptr)
 	{
-		WorkThreadDef.reset(new osThreadDef_t);
-		WorkThreadDef->pthread = CanWorkThread;
-		WorkThreadDef->tpriority = osPriorityNormal;
-		WorkThreadDef->instances = 4;
-		WorkThreadDef->stacksize = 0;
+		semaphore = osSemaphoreCreate(osSemaphore(semCanDevice), 4);
+		WorkThreadDef.reset(new osThreadDef_t { CanWorkThread, osPriorityNormal, 4, 0});
 	}
 }
 
@@ -93,6 +92,7 @@ void CanDevice::CanWorkThread(void const *arg)
 	}
 	SyncTable.erase((device->DeviceId<<16)|attr);
 	device->busy = false;
+	osSemaphoreRelease(semaphore);
 }
 
 void CanDevice::ReadAttribute(uint16_t attr)
@@ -106,13 +106,9 @@ void CanDevice::ReadAttribute(uint16_t attr)
 	}
 	
 	busy = true;
+	osSemaphoreWait(semaphore, osWaitForever);
 	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, false);
 	osThreadId tid = osThreadCreate(WorkThreadDef.get(), args);
-	while (tid==NULL)
-	{
-		osDelay(100);
-		tid = osThreadCreate(WorkThreadDef.get(), args);
-	}
 	
 	SyncTable[(DeviceId<<16)|attr] = tid;
 	osSignalSet(tid, 0x100);			//Continue work thread after recorded in SyncTable
@@ -137,17 +133,11 @@ void CanDevice::WriteAttribute(uint16_t attr,const boost::shared_ptr<std::uint8_
 	}
 	
 	busy = true;
+	osSemaphoreWait(semaphore, osWaitForever);
 	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, true);
 	args->Data = data;
 	args->DataLen = size;
-
 	osThreadId tid = osThreadCreate(WorkThreadDef.get(), args);
-	
-	while (tid==NULL)
-	{
-		osDelay(100);
-		tid = osThreadCreate(WorkThreadDef.get(), args);
-	}
 	
 	SyncTable[(DeviceId<<16)|attr] = tid;
 	osSignalSet(tid, 0x100);

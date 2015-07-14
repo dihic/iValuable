@@ -365,7 +365,7 @@ namespace IntelliStorage
 				args = new UpdateThreadArgs { this, parameters[0], parameters[1], parameters[2] };
 				
 				tid = osThreadCreate(UpdateThreadDef.get(), args);
-				if (tid==NULL)
+				if (tid==nullptr)
 				{
 					delete args;
 					status[1] = ErrorBusy;

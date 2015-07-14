@@ -40,11 +40,11 @@ namespace BSON
 		stream->GetBytes(&len,4);
 		if (len==0)
 			return false;
-		char *s=new char[len+1];
+		char *s = new char[len+1];
 		s[len]=0;
 		stream->GetBytes(s,len);
 		str.assign(s);
-		delete [] s;
+		delete[] s;
 		pVal = boost::make_shared<TypeInfo<string> >(str);		
 		return true;
 	}
