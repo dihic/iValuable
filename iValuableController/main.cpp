@@ -107,7 +107,7 @@ static void Traversal(void const *argument)  //Prevent missing status
 	static bool forceReport = true;
 	while(1)
 	{
-		if (!ethEngine->IsConnected())
+		if (ethEngine!=nullptr && !ethEngine->IsConnected())
 		{
 			forceReport = true;
 			continue;
@@ -151,8 +151,11 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 				CanEx->Sync(sourceId, DeviceSync::SyncLive,  CANExtended::Trigger);
 				return;
 		}
-		unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
-		unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
+		if (ethEngine!=nullptr)
+		{
+			unit->ReadCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceReadResponse);
+			unit->WriteCommandResponse.bind(ethEngine.get(), &NetworkEngine::DeviceWriteResponse);
+		}
 		CanEx->RegisterDevice(unit);
 		if (updated)
 		{	
