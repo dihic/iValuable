@@ -686,7 +686,7 @@ HAL_StatusTypeDef HAL_CAN_Transmit_IT(CAN_HandleTypeDef* hcan)
   if((tmp == HAL_CAN_STATE_READY) || (tmp == HAL_CAN_STATE_BUSY_RX))
   {
     /* Process Locked */
-    __HAL_LOCK(hcan);
+    //__HAL_LOCK(hcan);
     
     /* Select one empty transmit mailbox */
     if((hcan->Instance->TSR&CAN_TSR_TME0) == CAN_TSR_TME0)
@@ -917,7 +917,7 @@ HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber
   if((tmp == HAL_CAN_STATE_READY) || (tmp == HAL_CAN_STATE_BUSY_TX))
   {
     /* Process locked */
-    __HAL_LOCK(hcan);
+    //__HAL_LOCK(hcan);
   
     if(hcan->State == HAL_CAN_STATE_BUSY_TX) 
     {
