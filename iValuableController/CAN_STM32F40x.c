@@ -352,15 +352,16 @@ CAN_ERROR CAN_hw_wr (U32 ctrl, CAN_msg *msg)  {
 		hCAN->pTxMsg->StdId = msg->id & 0x7ff;
 	}
 	
-	HAL_StatusTypeDef result = HAL_CAN_Transmit_IT(hCAN);
-	while (result == HAL_TIMEOUT)
-	{
-		osDelay(5);
-		result = HAL_CAN_Transmit_IT(hCAN);
-	}
-//	if (HAL_CAN_Transmit_IT(hCAN) != HAL_OK)
-	if (result != HAL_OK)
-		return CAN_TX_BUSY_ERROR;
+//	HAL_StatusTypeDef result = HAL_CAN_Transmit_IT(hCAN);
+//	while (result == HAL_TIMEOUT)
+//	{
+//		osDelay(5);
+//		result = HAL_CAN_Transmit_IT(hCAN);
+//	}
+	while (HAL_CAN_Transmit_IT(hCAN) != HAL_OK)
+		osDelay(1);
+//	if (result != HAL_OK)
+//		return CAN_TX_BUSY_ERROR;
 	return CAN_OK;
 }
 
