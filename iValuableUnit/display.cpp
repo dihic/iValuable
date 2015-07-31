@@ -54,6 +54,7 @@ void Display::UARTProcessor()
 				readIndex++;
 				if (readIndex>=2)
 				{
+					ackLength &= 0xff;
 					phase=2;
 					readIndex=0;
 				}				
