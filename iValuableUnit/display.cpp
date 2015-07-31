@@ -101,7 +101,10 @@ uint16_t Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &
 				ShowString(str+index, len, X_OFFSET, posy, scale);
 				posy += LINE_HEIGHT;
 				if (posy+LINE_HEIGHT > MAXLINE_Y_LIMIT)
-					return tail+2;	//Need to clear screen in next update
+				{
+					tail+=2;
+					return (tail>=size)?0:tail;	//Need to clear screen in next update
+				}
 
 				index += (len<<1);
 				len = 0;
@@ -142,7 +145,8 @@ uint16_t Display::ShowFormatString(const uint8_t *str, uint16_t size, uint16_t &
 	if (more)
 	{
 		ShowString(str+index, len, X_OFFSET, posy, scale);
-		if (posy+2*LINE_HEIGHT > MAXLINE_Y_LIMIT)
+		posy += LINE_HEIGHT;
+		if (posy+LINE_HEIGHT > MAXLINE_Y_LIMIT)
 		{
 			ResetColor();
 			return 0;		//Just completed but need to clear screen in next update
