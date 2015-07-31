@@ -266,7 +266,7 @@ CAN_ERROR CAN_hw_start (U32 ctrl)
 
 /*--------------------------- CAN_hw_tx_empty -------------------------------
  *
- *  Check if transmit mailbox 0 is available for usage (empty)
+ *  Check if any transmit mailbox is available for usage (empty)
  *
  *  Parameter:  ctrl:       Index of the hardware CAN controller (1 .. x)
  *
@@ -352,16 +352,16 @@ CAN_ERROR CAN_hw_wr (U32 ctrl, CAN_msg *msg)  {
 		hCAN->pTxMsg->StdId = msg->id & 0x7ff;
 	}
 	
-	HAL_StatusTypeDef result = HAL_CAN_Transmit_IT(hCAN);
-	while (result == HAL_TIMEOUT)
-	{
-		osDelay(1);
-		result = HAL_CAN_Transmit_IT(hCAN);
-	}
-//	while (HAL_CAN_Transmit_IT(hCAN) != HAL_OK)
+//	HAL_StatusTypeDef result = HAL_CAN_Transmit_IT(hCAN);
+//	while (result == HAL_TIMEOUT)
+//	{
 //		osDelay(1);
-	if (result != HAL_OK)
-		return CAN_TX_BUSY_ERROR;
+//		result = HAL_CAN_Transmit_IT(hCAN);
+//	}
+//		if (result != HAL_OK)
+//		return CAN_TX_BUSY_ERROR;
+	while (HAL_CAN_Transmit_IT(hCAN) != HAL_OK)
+		osDelay(5);
 	return CAN_OK;
 }
 
