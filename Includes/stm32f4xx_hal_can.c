@@ -10,7 +10,7 @@
   *           + IO operation functions
   *           + Peripheral Control functions
   *           + Peripheral State and Error functions
-  *
+  *	Modified by Nick Luo
   @verbatim
   ==============================================================================
                         ##### How to use this driver #####
@@ -676,6 +676,21 @@ HAL_StatusTypeDef HAL_CAN_Transmit_IT(CAN_HandleTypeDef* hcan)
 {
   uint32_t  transmitmailbox = 5;
   uint32_t tmp = 0;
+	
+	uint32_t isr = 0;
+	
+	if(hcan->Instance==CAN1)
+	{
+		isr = HAL_NVIC_GetActive(CAN1_RX0_IRQn) 
+				| HAL_NVIC_GetActive(CAN1_RX1_IRQn)
+				| HAL_NVIC_GetActive(CAN1_TX_IRQn);
+	}
+	else
+	{
+		isr = HAL_NVIC_GetActive(CAN2_RX0_IRQn) 
+				| HAL_NVIC_GetActive(CAN2_RX1_IRQn)
+				| HAL_NVIC_GetActive(CAN2_TX_IRQn);
+	}
   
   /* Check the parameters */
   assert_param(IS_CAN_IDTYPE(hcan->pTxMsg->IDE));
@@ -686,7 +701,8 @@ HAL_StatusTypeDef HAL_CAN_Transmit_IT(CAN_HandleTypeDef* hcan)
   if((tmp == HAL_CAN_STATE_READY) || (tmp == HAL_CAN_STATE_BUSY_RX))
   {
     /* Process Locked */
-    //__HAL_LOCK(hcan);
+		if (isr==0)
+			__HAL_LOCK(hcan);
     
     /* Select one empty transmit mailbox */
     if((hcan->Instance->TSR&CAN_TSR_TME0) == CAN_TSR_TME0)
@@ -754,7 +770,8 @@ HAL_StatusTypeDef HAL_CAN_Transmit_IT(CAN_HandleTypeDef* hcan)
       hcan->ErrorCode = HAL_CAN_ERROR_NONE;
       
       /* Process Unlocked */
-      __HAL_UNLOCK(hcan);
+			if (isr==0)
+				__HAL_UNLOCK(hcan);
       
       /* Enable Error warning Interrupt */
       __HAL_CAN_ENABLE_IT(hcan, CAN_IT_EWG);
@@ -780,8 +797,9 @@ HAL_StatusTypeDef HAL_CAN_Transmit_IT(CAN_HandleTypeDef* hcan)
 		else
 		{
 			/* Process Unlocked */
-      __HAL_UNLOCK(hcan);
-			return HAL_TIMEOUT;
+			if (isr==0)
+				__HAL_UNLOCK(hcan);
+			return HAL_BUSY;
 		}
   }
   else
@@ -909,6 +927,21 @@ HAL_StatusTypeDef HAL_CAN_Receive(CAN_HandleTypeDef* hcan, uint8_t FIFONumber, u
 HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber)
 {
   uint32_t tmp = 0;
+	
+	uint32_t isr = 0;
+	
+	if(hcan->Instance==CAN1)
+	{
+		isr = HAL_NVIC_GetActive(CAN1_RX0_IRQn) 
+				| HAL_NVIC_GetActive(CAN1_RX1_IRQn)
+				| HAL_NVIC_GetActive(CAN1_TX_IRQn);
+	}
+	else
+	{
+		isr = HAL_NVIC_GetActive(CAN2_RX0_IRQn) 
+				| HAL_NVIC_GetActive(CAN2_RX1_IRQn)
+				| HAL_NVIC_GetActive(CAN2_TX_IRQn);
+	}
   
   /* Check the parameters */
   assert_param(IS_CAN_FIFO(FIFONumber));
@@ -917,7 +950,8 @@ HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber
   if((tmp == HAL_CAN_STATE_READY) || (tmp == HAL_CAN_STATE_BUSY_TX))
   {
     /* Process locked */
-    //__HAL_LOCK(hcan);
+		if (isr==0)
+			__HAL_LOCK(hcan);
   
     if(hcan->State == HAL_CAN_STATE_BUSY_TX) 
     {
@@ -949,7 +983,8 @@ HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber
     __HAL_CAN_ENABLE_IT(hcan, CAN_IT_ERR);
 
     /* Process unlocked */
-    __HAL_UNLOCK(hcan);
+		if (isr==0)
+			__HAL_UNLOCK(hcan);
 
     if(FIFONumber == CAN_FIFO0)
     {
