@@ -360,7 +360,8 @@ CAN_ERROR CAN_hw_wr (U32 ctrl, CAN_msg *msg)  {
 //	}
 //		if (result != HAL_OK)
 //		return CAN_TX_BUSY_ERROR;
-	while (HAL_CAN_Transmit_IT(hCAN) != HAL_OK) {}
+	while (HAL_CAN_Transmit_IT(hCAN) != HAL_OK)
+		osDelay(5);
 	return CAN_OK;
 }
 
