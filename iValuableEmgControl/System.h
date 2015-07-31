@@ -1,6 +1,9 @@
 #ifndef _SYSTEM_H
 #define _SYSTEM_H
 
+#define LOCK_ON 0
+#define LOCK_OFF 1
+
 #define LOCKER01    PORT2,0
 #define LOCKER02    PORT2,1
 #define LOCKER03    PORT2,2

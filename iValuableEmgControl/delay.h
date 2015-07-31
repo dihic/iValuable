@@ -5,7 +5,7 @@ extern "C" {
 #endif
 	
 extern void SysCtlDelay(unsigned long ulCount);
-#define DELAY(us) SysCtlDelay((SystemCoreClock/8000000)*(us)) //SystemFrequency
+#define DELAY(us) SysCtlDelay((SystemCoreClock/6000000)*(us)) //SystemFrequency
 
 #ifdef __cplusplus
 }
