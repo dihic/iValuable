@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace FWUpdater
+﻿namespace FWUpdater
 {
 //Order = 32;
 //Polynom = 0x4c11db7;
@@ -62,8 +60,6 @@ namespace FWUpdater
             }
         }
 
-        private uint value;
-
         public Crc32()
         {
             Init();
@@ -74,18 +70,14 @@ namespace FWUpdater
         /// </summary>
         public void Init()
         {
-            value = KInitial;
+            Value = KInitial;
         }
 
-        public uint Value
-        {
-            get { return value; }
-            //get { return (int)(value^KInitial); }
-        }
+        public uint Value { get; private set; }
 
         public void UpdateByte(byte b)
         {
-            value = (value << 8) ^ Table[(byte)(value >> 24) ^ b];
+            Value = (Value << 8) ^ Table[(byte)(Value >> 24) ^ b];
             //value = (value >> 8) ^ Table[(byte)value ^ b];
         }
 

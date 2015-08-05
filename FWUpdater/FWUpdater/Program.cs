@@ -120,7 +120,7 @@ namespace FWUpdater
                         throw new Exception(errorCommand + " Error: " + errorCode);
 //                    break;
                 default:
-                    throw new ArgumentOutOfRangeException("code");
+                    throw new ArgumentOutOfRangeException(nameof(code));
             }
         }
 
@@ -249,7 +249,7 @@ namespace FWUpdater
             comm.DataArrivalEvent += CommandResponse;
         }
 
-        public bool IsUsable { get { return comm != null; } }
+        public bool IsUsable => comm != null;
 
         public void ReadInfo(byte index = 0xff)
         {

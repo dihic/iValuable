@@ -125,8 +125,7 @@ namespace FWUpdater
                         {
                             if (syncCommand == null)
                             {
-                                if (DataArrivalEvent != null)
-                                    DataArrivalEvent((CommandType)command, recieveData);
+                                DataArrivalEvent?.Invoke((CommandType)command, recieveData);
                             }
                             else
                             {
@@ -158,8 +157,7 @@ namespace FWUpdater
                 throw new IOException("Communication No Response!");
             syncCommand = null;
             var message = messageQueue.Dequeue();
-            if (DataArrivalEvent != null)
-                DataArrivalEvent(message.Key, message.Value);
+            DataArrivalEvent?.Invoke(message.Key, message.Value);
         }
 
         private void Send(CommandType com, byte[] data)
