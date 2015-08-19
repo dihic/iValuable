@@ -744,7 +744,7 @@ static int32_t ReadFrame (uint8_t *frame, uint32_t len) {
 
   if (ETH->DMASR & ETH_DMASR_RBUS) {
     /* Receive buffer unavailable, resume DMA */
-    ETH->DMASR   = ETH_DMASR_RBUS;
+    ETH->DMASR   = ETH_DMASR_AIS | ETH_DMASR_RBUS; // Check out http://www.keil.com/forum/21608/
     ETH->DMARPDR = 0;
   }
   return ((int32_t)len);
