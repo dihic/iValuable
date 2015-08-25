@@ -248,7 +248,11 @@ void CANInit(uint32_t baudRateinK)
 	nmtMsg.mode_id = CAN_MSGOBJ_EXT | COMMAND_HEARTBEAT | (NodeId & 0xFFF)<<12;
 	nmtMsg.dlc = 5;
 	nmtMsg.data[1] = UNIT_TYPE;
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	nmtMsg.data[2] = SENSOR_NUM;
+	#else
+	nmtMsg.data[2] = 0;
+	#endif
 	nmtMsg.data[3] = FW_VERSION_MAJOR;	//Major version
 	nmtMsg.data[4] = FW_VERSION_MINOR; //Minor version
 	

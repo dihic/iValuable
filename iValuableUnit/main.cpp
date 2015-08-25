@@ -31,10 +31,12 @@ static bool RfidPending = false;
 using namespace std; 
 using namespace fastdelegate;
 
+#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 DataProcessor *Processor = NULL;
 
 float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
+#endif
 
 #define LOCK_WAIT_MS  		500			//Lock auto protection time in MS
 #define LOCK_IDLE 				0xffff
@@ -62,14 +64,14 @@ void TIMER32_0_IRQHandler()		//1000Hz
   {    
 		LPC_TMR32B0->IR = 1;			/* clear interrupt flag */
 
-#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+  #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 		if (!RfidTimeup)
 			if (RfidCount++>=RFID_TIME_INTERVAL)
 			{
 				RfidTimeup =true;
 				RfidCount = 0;
 			}
-#endif
+  #endif
 		
 		//Timeout to re-lock after last unlock
 		if (LockCount!=LOCK_IDLE && IS_LOCKER_ON)
@@ -103,6 +105,7 @@ void TIMER32_0_IRQHandler()		//1000Hz
 	}
 }
 
+#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 volatile bool Updating = false;
 
 void UpdateWeight()
@@ -148,16 +151,21 @@ void UpdateWeight()
 	
 	Updating = false;
 }
+#endif
 
 void TIMER32_1_IRQHandler()		//100Hz
 {
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	static int counter=0;
 	static int cd = 0;							//Display time counter
 	static bool refresh = false;		//Need auto show page by page
+	#endif
 	
 	if ( LPC_TMR32B1->IR & 0x01 )
   {    
 		LPC_TMR32B1->IR = 1;			/* clear interrupt flag */
+		
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		SensorArray::Instance().Refresh();
 	
 		if (++counter >= 20)
@@ -165,6 +173,7 @@ void TIMER32_1_IRQHandler()		//100Hz
 			counter = 0;
 			UpdateWeight(); 
 		}
+	#endif
 		
 		//Door management
 		bool currentState = IS_DOOR_OPEN;
@@ -186,6 +195,7 @@ void TIMER32_1_IRQHandler()		//100Hz
 			}
 		}
 		
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		//Logic of display into pages 
 		switch (DisplayState)
 		{
@@ -204,17 +214,20 @@ void TIMER32_1_IRQHandler()		//100Hz
 			default:
 				break;
 		}
+	#endif
 	}
 }
 
 void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 {
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	uint8_t i;
 	float f, d;
 	uint64_t id;
 	uint16_t q;
 	bool result;
 	SuppliesInfo info;
+	#endif
 //	const uint8_t *data;
 	
 	CAN_ODENTRY *response = const_cast<CAN_ODENTRY *>(&(res.response));
@@ -231,8 +244,9 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 	{
 		case 0:	//system config
 			break;
+  #if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		case OP_SET_ZERO:
-#if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
+    #if UNIT_TYPE==UNIT_TYPE_INDEPENDENT
 			for(i=0;i<SENSOR_NUM;++i)
 				if (Processor->SensorEnable(i) && ((1<<i) & entry->val[0]))
 				{
@@ -240,7 +254,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 					Processor->SetZero(i, entry->val[1]!=0);
 					*(response->val)=0;
 				}
-#else
+    #else
 			if (entry->val[1]==0)		//0 for set Zero, 1 for set Tare
 			{
 				for(i=0;i<SENSOR_NUM;++i)
@@ -254,7 +268,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				Processor->SetZero(0xff, true);
 				*(response->val)=0;
 			}
-#endif
+    #endif
 			break;
 		case OP_RAWDATA:
 			response->val = const_cast<uint8_t *>(res.buffer);
@@ -444,6 +458,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				*(response->val)=0;
 			}
 			break;
+  #endif
 		case OP_LOCKER:
 			if (entry->subindex==1 && IS_LOCKER_ENABLE)
 			{
@@ -451,6 +466,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				*(response->val)=0;
 			}
 			break;
+  #if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		case OP_QUERY:
 			if (entry->subindex==1 && entry->entrytype_len>5)
 			{
@@ -464,6 +480,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 				}
 			}
 			break;
+  #endif
 		default:
 			break;
 		}
@@ -471,6 +488,7 @@ void CanexReceived(uint16_t sourceId, CAN_ODENTRY *entry)
 		//CANEXResponse(res.sourceId, const_cast<CAN_ODENTRY *>(&(res.response)));
 }
 
+#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 int PrepareData()
 {
 	int base = 5+sizeof(float);
@@ -518,6 +536,7 @@ int PrepareData()
 	NoticeLogic::NoticeUpdate(error?(error==SENSOR_OVERWEIGHT?NOTICE_WARNING:NOTICE_FAILURE):NOTICE_CLEAR_EXCEPTION);
 	return base;
 }
+#endif
 
 void CanexSyncTrigger(uint16_t index, uint8_t mode)
 {	
@@ -621,6 +640,7 @@ int main()
 	enable_timer32(0);
 	UnitSystemState = STATE_PREOPERATIONAL;
 	
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	Processor = DataProcessor::InstancePtr();
 	SuppliesDisplay::Init();
 	
@@ -633,6 +653,9 @@ int main()
 	DataProcessor::WriteNV.bind(&FRAM::WriteMemory);
 	SensorArray::Instance(Processor->GetConfig());
 	Processor->InitZeroState();
+	#else
+	DELAY(100000); 	//wait 100ms for voltage stable
+	#endif
 
 #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID	
 	RfidProcessor::RfidChangedEvent.bind(&RfidChanged);
@@ -642,10 +665,12 @@ int main()
 	Trf796xInitialSettings();
 #endif
 	
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	UARTInit(230400);
 	Display::OnAckReciever.bind(&AckReciever);
 	
 	UpdateWeight();
+	#endif
 	
 	init_timer32(1,TIME_INTERVAL(100));		//	100Hz
 	DELAY(10);
@@ -655,7 +680,9 @@ int main()
 	
 	while(1)
 	{
+	#if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		Display::UARTProcessor();
+	#endif
 		
 		if (ResponseTriggered)
 		{
@@ -663,6 +690,7 @@ int main()
 			ResponseTriggered = false;
 		}
 		
+  #if UNIT_TYPE!=UNIT_TYPE_LOCKER
 		if (DataSyncTriggered && !Updating)
 		{
 			syncEntry.index = SYNC_DATA;
@@ -676,6 +704,7 @@ int main()
 		//Update display on/off
 		if (DisplayConnected)
 			Display::DisplayOnOff(Processor->AnyShown() || NoticeLogic::AnyShown());
+  #endif
 		
 		if (DoorChangedEvent)
 		{
@@ -683,7 +712,7 @@ int main()
 			DoorChangedEvent = false;
 		}
 		
-#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
+  #if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 		if (RfidTimeup)
 		{
 			RfidProcessor::UpdateRfid();
@@ -694,6 +723,6 @@ int main()
 			ReportRfid();
 			RfidPending = false;
 		}
-#endif
+  #endif
 	}
 }
