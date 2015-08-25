@@ -9,7 +9,8 @@ namespace FWUpdater
         Same = 0,
         Indpt = 0x80,
         Unity = 0x81,
-        Rfid = 0x82
+        Rfid = 0x82,
+        Locker = 0x83
     };
 
     public class Helper
@@ -37,7 +38,7 @@ namespace FWUpdater
             Console.WriteLine(" Type: " + (UnitType)info[offset + 2]);
             Console.WriteLine(" Version: " + (int)info[offset + 4] + "." + (int)info[offset + 5]);
             Console.WriteLine(" File Size: " + ((info[offset + 7] << 8) | info[offset + 6]) + " bytes");
-            Console.WriteLine(info[offset + 3] == 0 ? " File Completed" : " File Incompleted!");
+            Console.WriteLine(info[offset + 3] == 0 ? " File Completed" : " File Uncompleted!");
             Console.WriteLine();
             return true;
         }

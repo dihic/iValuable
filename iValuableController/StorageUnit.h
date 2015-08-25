@@ -57,18 +57,12 @@ namespace IntelliStorage
 				Updated,
 			};
 		protected:
-			volatile std::uint8_t sensorFlags = 0xff;
 			volatile bool isDoorOpen = false;
-			volatile bool allStable = false;
-			volatile bool inventoryExpected = false;
-			volatile float deltaWeight = 0;
 			volatile UpdateState updateStatus = UpdateState::Idle;
 			StorageUnit(std::uint8_t typeCode, StorageBasic &basic);
 		public:		
-			
 			const std::uint8_t TypeCode;
 			const std::uint16_t Version;
-			const std::uint8_t SensorNum;
 			const bool IsLockController : 1;
 			const std::uint8_t GroupId 	: 4;
 			const std::uint8_t NodeId  	: 3;
@@ -81,19 +75,50 @@ namespace IntelliStorage
 				return ((groupId&0xf)<<3)|(nodeId&0x7);
 			}
 			
+			virtual ~StorageUnit() {}		
+
+			bool IsDoorOpen() const { return isDoorOpen; }			
+			void LockControl(bool open);
+			
+			void EnterCanISP()
+			{
+				updateStatus = UpdateState::Updating;
+				auto ex = canex.lock();
+				if (ex != nullptr)
+					ex->Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
+			}
+			
+			UpdateState UpdateStatus() const { return updateStatus; }
+			
+			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
+	};
+	
+	class SensorUnit : public CanDevice
+	{
+		public:
+			friend class UnitManager;
+		protected:
+			volatile std::uint8_t sensorFlags = 0xff;
+			volatile bool allStable = false;
+			volatile bool inventoryExpected = false;
+			volatile float deltaWeight = 0;
+			SensorUnit(StorageBasic &basic) 
+				:CanDevice(basic.CanEx, basic.DeviceId),
+				 SensorNum(basic.SensorNum) {}
+		public:					
+			const std::uint8_t SensorNum;
+			
 			static void SetTemperature(CANExtended::CanEx &ex, float t);
 				
-			virtual ~StorageUnit() {}
+			virtual ~SensorUnit() {}
 			
 			bool IsEnable(std::uint8_t ch) const
 			{
 				return (ch<SensorNum) ? (sensorFlags & (1<<ch))!=0 : false;
 			}				
-			
-			
+		
 			std::uint8_t GetSensorEnable() const { return sensorFlags; }
 			bool GetAllStable() const { return allStable; }
-			bool IsDoorOpen() const { return isDoorOpen; }
 			
 			void SetRamp(std::uint8_t index, float val);
 			void SetZero(std::uint8_t flags, bool tare);
@@ -101,7 +126,6 @@ namespace IntelliStorage
 			void SetSensorEnable(std::uint8_t flags);
 			void SetCalWeight(float weight);
 			void SetNotice(std::uint8_t level);
-			void LockControl(bool open);
 			void SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr);
 			void ClearAllInventoryInfo();
 			void SetInventoryInfo(SerializableObjects::SuppliesItem &info);
@@ -146,32 +170,27 @@ namespace IntelliStorage
 					ex->Sync(DeviceId, DeviceSync::SyncData, CANExtended::Trigger);
 			}
 			
-			void EnterCanISP()
-			{
-				updateStatus = UpdateState::Updating;
-				auto ex = canex.lock();
-				if (ex != nullptr)
-					ex->Sync(DeviceId, DeviceSync::SyncISP, CANExtended::Trigger);
-			}
-			
-			UpdateState UpdateStatus() const { return updateStatus; }
-			
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
 	};
 	
 	template<class T>
-	class WeightBase : public StorageUnit
+	class WeightBase : public StorageUnit, public SensorUnit
 	{
 		protected:
 			boost::shared_ptr<T[]> scaleList; 
 			WeightBase<T>(std::uint8_t typeCode, StorageBasic &basic)
-				:StorageUnit(typeCode, basic)
+				:StorageUnit(typeCode, basic), SensorUnit(basic)
 			{
 				scaleList = boost::make_shared<T[]>(basic.SensorNum);
 			}
 		public:
 			virtual ~WeightBase() {}
 			boost::shared_ptr<T[]> &GetScaleList() { return scaleList; }
+			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override
+			{
+				StorageUnit::ProcessRecievedEvent(entry);
+				SensorUnit::ProcessRecievedEvent(entry);
+			}
 	};
 }
 

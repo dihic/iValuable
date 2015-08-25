@@ -405,8 +405,12 @@ namespace IntelliStorage
 		{
 			if (!updating && it->second->UpdateStatus() != StorageUnit::Updating)
 			{
-				it->second->RequestData();
-				osDelay(20);
+				SensorUnit *unit = dynamic_cast<SensorUnit *>(it->second.get());
+				if (unit != nullptr)
+				{
+					unit->RequestData();
+					osDelay(20);
+				}
 			}
 		}
 	}
@@ -542,6 +546,10 @@ namespace IntelliStorage
 		if (unit->IsLockController)
 			group->AddLock(unit->NodeId);
 		
+		auto su = dynamic_cast<SensorUnit *>(unit.get());
+		if (su==nullptr)
+			return;
+		
 		auto count = dataCollection->AllUnits.Count();
 		
 		bool found = false;
@@ -569,8 +577,11 @@ namespace IntelliStorage
 		boost::shared_ptr<SerializableObjects::ScaleState> state;
 		for(auto it = unitList.begin(); it!=unitList.end(); ++it)
 		{
+			auto su = dynamic_cast<SensorUnit *>(it->second.get());
+			if (su==nullptr)
+				continue;
 			auto element = FindUnitEntry(it->first);
-			element->IsStable = it->second->GetAllStable();
+			element->IsStable = su->GetAllStable();
 			element->SensorStates.Clear();
 
 			auto unity = dynamic_cast<UnityUnit *>(it->second.get());
