@@ -320,16 +320,17 @@ namespace IntelliStorage
 			if (sensorEnable != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(sensorEnable->GroupIndex, sensorEnable->NodeIndex));
-				if (unit != nullptr)
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit != nullptr && su != nullptr)
 				{
 					if (code == SerializableObjects::CodeZero)
-						unit->SetZero(sensorEnable->Flags, false);
+						su->SetZero(sensorEnable->Flags, false);
 					else if (code == SerializableObjects::CodeTare)
-						unit->SetZero(0xff, true);
+						su->SetZero(0xff, true);
 					else if (code == SerializableObjects::CodeCalibration)
-						unit->SetAutoRamp(sensorEnable->Flags);
+						su->SetAutoRamp(sensorEnable->Flags);
 					else if (code == SerializableObjects::CodeSetSensorEnable)
-						unit->SetSensorEnable(sensorEnable->Flags);
+						su->SetSensorEnable(sensorEnable->Flags);
 				}
 				else
 					CommandResponse(sensorEnable->GroupIndex, sensorEnable->NodeIndex, code, false);
@@ -342,8 +343,9 @@ namespace IntelliStorage
 			if (calWeight != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(calWeight->GroupIndex, calWeight->NodeIndex));
-				if (unit != nullptr)
-					unit->SetCalWeight(calWeight->Weight);
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit != nullptr && su != nullptr)
+					su->SetCalWeight(calWeight->Weight);
 				else
 					CommandResponse(calWeight->GroupIndex, calWeight->NodeIndex, code, false);
 			}
@@ -360,20 +362,21 @@ namespace IntelliStorage
 			if (deviceDesc != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(deviceDesc->GroupIndex, deviceDesc->NodeIndex));
-				if (unit != nullptr)
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit != nullptr && su != nullptr)
 				{
 					if (code == SerializableObjects::CodeQueryAD)
-						unit->RequestRawData();
+						su->RequestRawData();
 					else if (code == SerializableObjects::CodeQueryRamp)
-						unit->RequestRamps();
+						su->RequestRamps();
 					else if (code == SerializableObjects::CodeQueryConfig)
-						unit->RequestSensorConfig();
+						su->RequestSensorConfig();
 					else if (code == SerializableObjects::CodeQuerySensorEnable)
-						unit->RequestSensorEnable();
+						su->RequestSensorEnable();
 					else if (code == SerializableObjects::CodeQueryInventoryInfo)
-						unit->RequestInventoryInfos();
+						su->RequestInventoryInfos();
 					else if (code == SerializableObjects::CodeQueryInventory)
-						unit->RequestInventoryQuantities();
+						su->RequestInventoryQuantities();
 				}
 				else
 					CommandResponse(deviceDesc->GroupIndex, deviceDesc->NodeIndex, code, false);
@@ -387,8 +390,9 @@ namespace IntelliStorage
 			if (scaleAttr != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(scaleAttr->GroupIndex, scaleAttr->NodeIndex));
-				if (unit != nullptr)
-					unit->SetSensorConfig(scaleAttr);
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit != nullptr && su != nullptr)
+					su->SetSensorConfig(scaleAttr);
 				else
 					CommandResponse(scaleAttr->GroupIndex, scaleAttr->NodeIndex, code, false);
 			}
@@ -406,17 +410,18 @@ namespace IntelliStorage
 			if (suppliesList != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(suppliesList->GroupIndex, suppliesList->NodeIndex));
-				if (unit == nullptr)
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit == nullptr || su == nullptr)
 				{
 					CommandResponse(suppliesList->GroupIndex, suppliesList->NodeIndex, code, false);
 					break;
 				}
 				if (suppliesList->AllMaterialInfos.Count() == 0) //Clear
-					unit->ClearAllInventoryInfo();
+					su->ClearAllInventoryInfo();
 				else		//Set or modify
 				{
 					for (auto i=0; i<suppliesList->AllMaterialInfos.Count(); ++i)
-						unit->SetInventoryInfo(suppliesList->AllMaterialInfos[i]);
+						su->SetInventoryInfo(suppliesList->AllMaterialInfos[i]);
 					//Response once for all
 					CommandResponse(suppliesList->GroupIndex, suppliesList->NodeIndex, code, true);	
 				}
@@ -429,12 +434,13 @@ namespace IntelliStorage
 			if (suppliesList != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(quantityList->GroupIndex, quantityList->NodeIndex));
-				if (unit == nullptr || quantityList->AllMaterialAmounts.Count() == 0)
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit == nullptr || su == nullptr ||quantityList->AllMaterialAmounts.Count() == 0)
 				{
 					CommandResponse(quantityList->GroupIndex, quantityList->NodeIndex, code, false);
 					break;
 				}
-				unit->SetInventoryQuantities(quantityList->AllMaterialAmounts);
+				su->SetInventoryQuantities(quantityList->AllMaterialAmounts);
 			}
 			else
 				tcp.SendData(SerializableObjects::CodeError, nullptr, 0);
@@ -459,9 +465,10 @@ namespace IntelliStorage
 			if (directGuide != nullptr)
 			{
 				auto unit = unitManager->FindUnit(StorageUnit::GetId(directGuide->GroupIndex, directGuide->NodeIndex));
-				if (unit != nullptr)
+				auto su = dynamic_cast<SensorUnit *>(unit.get());
+				if (unit != nullptr && su != nullptr)
 				{
-					unit->SetNotice(directGuide->IsGuide? 1 : 0);
+					su->SetNotice(directGuide->IsGuide? 1 : 0);
 					if (directGuide->IsGuide)
 						unitManager->Unlock(directGuide->GroupIndex, open);
 				}

@@ -15,6 +15,7 @@
 #include "IndependentUnit.h"
 #include "UnityUnit.h"
 #include "RfidUnit.h"
+#include "LockerUnit.h"
 #include "ISPProgram.h"
 
 #include "FastDelegate.h"
@@ -60,7 +61,7 @@ void HeatbeatTimerCallback(void const *arg)
 		if (CanEx != nullptr && !UnitManager::IsUpdating())
 		{
 			float t=CurrentTemperature - warmCount*WARM_COEFF;
-			StorageUnit::SetTemperature(*CanEx, t);
+			SensorUnit::SetTemperature(*CanEx, t);
 #ifdef DEBUG_PRINT
 		cout<<"Calibrated Temperature: "<<t<<endl;
 #endif		
@@ -146,6 +147,9 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 				break;
 			case UNIT_TYPE_UNITY_RFID:
 				unit.reset(new RfidUnit(basic));
+				break;
+			case UNIT_TYPE_LOCKER:
+				unit.reset(new LockerUnit(basic));
 				break;
 			default:
 				CanEx->Sync(sourceId, DeviceSync::SyncLive,  CANExtended::Trigger);
