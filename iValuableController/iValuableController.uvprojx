@@ -565,6 +565,11 @@
               <FileType>8</FileType>
               <FilePath>.\UartComm.cpp</FilePath>
             </File>
+            <File>
+              <FileName>LockerUnit.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\LockerUnit.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1266,6 +1271,11 @@
               <FileName>UartComm.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\UartComm.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>LockerUnit.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\LockerUnit.cpp</FilePath>
             </File>
           </Files>
         </Group>
