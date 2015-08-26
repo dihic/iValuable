@@ -69,6 +69,8 @@ namespace IntelliStorage
 		
 			typedef FastDelegate3<std::uint8_t, std::uint8_t, bool> DoorChangedHandler;
 			DoorChangedHandler OnDoorChangedEvent;
+		
+			static void SetTemperature(CANExtended::CanEx &ex, float t);
 			
 			static std::uint16_t GetId(std::uint8_t groupId, std::uint8_t nodeId)
 			{
@@ -93,22 +95,19 @@ namespace IntelliStorage
 			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override;
 	};
 	
-	class SensorUnit : public CanDevice
+	class SensorUnit : public StorageUnit
 	{
-		public:
-			friend class UnitManager;
 		protected:
 			volatile std::uint8_t sensorFlags = 0xff;
 			volatile bool allStable = false;
 			volatile bool inventoryExpected = false;
 			volatile float deltaWeight = 0;
-			SensorUnit(StorageBasic &basic) 
-				:CanDevice(basic.CanEx, basic.DeviceId),
-				 SensorNum(basic.SensorNum) {}
+			SensorUnit(std::uint8_t typeCode, StorageBasic &basic) 
+				:StorageUnit(typeCode, basic),
+				 SensorNum(basic.SensorNum)
+			{}
 		public:					
 			const std::uint8_t SensorNum;
-			
-			static void SetTemperature(CANExtended::CanEx &ex, float t);
 				
 			virtual ~SensorUnit() {}
 			
@@ -129,7 +128,6 @@ namespace IntelliStorage
 			void SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr);
 			void ClearAllInventoryInfo();
 			void SetInventoryInfo(SerializableObjects::SuppliesItem &info);
-			//void SetInventoryQuantity(std::uint8_t index, std::uint16_t q);
 			void SetInventoryQuantities(Array<SerializableObjects::InventoryQuantity> &quantities);
 			void NoticeInventoryById(std::uint64_t id, bool notice);
 			
@@ -174,23 +172,18 @@ namespace IntelliStorage
 	};
 	
 	template<class T>
-	class WeightBase : public StorageUnit, public SensorUnit
+	class WeightBase : public SensorUnit
 	{
 		protected:
 			boost::shared_ptr<T[]> scaleList; 
 			WeightBase<T>(std::uint8_t typeCode, StorageBasic &basic)
-				:StorageUnit(typeCode, basic), SensorUnit(basic)
+				:SensorUnit(typeCode, basic)
 			{
 				scaleList = boost::make_shared<T[]>(basic.SensorNum);
 			}
 		public:
 			virtual ~WeightBase() {}
 			boost::shared_ptr<T[]> &GetScaleList() { return scaleList; }
-			virtual void ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry) override
-			{
-				StorageUnit::ProcessRecievedEvent(entry);
-				SensorUnit::ProcessRecievedEvent(entry);
-			}
 	};
 }
 

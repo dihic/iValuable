@@ -21,12 +21,13 @@ namespace IntelliStorage
 	{
 	}
 	
-	void SensorUnit::SetTemperature(CANExtended::CanEx &ex, float t)
+	void StorageUnit::SetTemperature(CANExtended::CanEx &ex, float t)
 	{
 		CANExtended::OdEntry entry(DeviceAttribute::Temperature, 1);
 		entry.SetVal(reinterpret_cast<uint8_t *>(&t), sizeof(float));
 		ex.Broadcast(entry);
 	}
+	
 	
 	void SensorUnit::SetZero(std::uint8_t flags, bool tare)
 	{
@@ -35,6 +36,7 @@ namespace IntelliStorage
 		data[1] = tare;
     WriteAttribute(DeviceAttribute::Zero, data, 2);
 	}
+	
 	
 	void SensorUnit::SetRamp(std::uint8_t index, float val)
 	{
@@ -45,12 +47,14 @@ namespace IntelliStorage
     WriteAttribute(DeviceAttribute::Ramp, data, size);
 	}
 	
+	
 	void SensorUnit::SetAutoRamp(std::uint8_t flags)
 	{
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(1);
 		data[0] = flags;
     WriteAttribute(DeviceAttribute::AutoRamp, data, 1);
 	}
+	
 	
 	void SensorUnit::SetSensorEnable(std::uint8_t flags)
 	{
@@ -59,12 +63,14 @@ namespace IntelliStorage
     WriteAttribute(DeviceAttribute::SensorEnable, data, 1);
 	}
 	
+	
 	void SensorUnit::SetCalWeight(float weight)
 	{
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(sizeof(float));
 		memcpy(data.get(), &weight, sizeof(float));
     WriteAttribute(DeviceAttribute::CalWeight, data, sizeof(float));
 	}
+	
 	
 	void SensorUnit::SetSensorConfig(boost::shared_ptr<SerializableObjects::ScaleAttribute> &attr)
 	{
@@ -83,6 +89,7 @@ namespace IntelliStorage
     WriteAttribute(DeviceAttribute::SensorConfig, data, size);
 	}
 	
+	
 	void SensorUnit::SetNotice(std::uint8_t level)
 	{
 		boost::shared_ptr<std::uint8_t[]> data = boost::make_shared<std::uint8_t[]>(1);
@@ -96,6 +103,7 @@ namespace IntelliStorage
 		data[0]=open;
 		WriteAttribute(DeviceAttribute::Locker, data, 1);
 	}
+	
 	
 	void SensorUnit::SetInventoryInfo(SerializableObjects::SuppliesItem &info)
 	{
@@ -118,12 +126,14 @@ namespace IntelliStorage
 		WriteAttribute(DeviceAttribute::InventoryInfo, data, size);
 	}
 	
+	
 	void SensorUnit::ClearAllInventoryInfo()
 	{
 		boost::shared_ptr<uint8_t[]> data = boost::make_shared<uint8_t[]>(1);
 		data[0] = 0xff;
 		WriteAttribute(DeviceAttribute::InventoryInfo, data, 1);
 	}
+	
 	
 	void SensorUnit::SetInventoryQuantities(Array<SerializableObjects::InventoryQuantity> &quantities)
 	{
@@ -142,7 +152,6 @@ namespace IntelliStorage
 		WriteAttribute(DeviceAttribute::InventoryQuantity, data, size);
 	}
 	
-	
 	void SensorUnit::NoticeInventoryById(std::uint64_t id, bool notice)
 	{
 		static constexpr size_t size = sizeof(uint64_t)+1;
@@ -155,6 +164,7 @@ namespace IntelliStorage
 	
 	void SensorUnit::ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry)
 	{
+		StorageUnit::ProcessRecievedEvent(entry);
 		const DeviceSync syncIndex = static_cast<DeviceSync>(entry->Index);
 		auto val = entry->GetVal();
 		auto len = entry->GetLen();

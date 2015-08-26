@@ -20,7 +20,7 @@ namespace IntelliStorage
 	
 	void UnityUnit::ProcessRecievedEvent(boost::shared_ptr<CANExtended::OdEntry> &entry)
 	{
-		WeightBase<std::uint8_t>::ProcessRecievedEvent(entry);
+		SensorUnit::ProcessRecievedEvent(entry);
 		const DeviceSync syncIndex = static_cast<DeviceSync>(entry->Index);
 		auto val = entry->GetVal();
 		auto len = entry->GetLen();
