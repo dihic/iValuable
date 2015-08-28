@@ -9,7 +9,7 @@
 #include "Driver_ETH_PHY.h"
 
 #define FW_VERSION_MAJOR			0x01
-#define FW_VERSION_MINOR			0x00
+#define FW_VERSION_MINOR			0x01
 
 #define STATUS_PIN		GPIOC,GPIO_PIN_8
 
@@ -33,6 +33,7 @@ extern CRC_HandleTypeDef CRCHandle;
 #define UNIT_TYPE_INDEPENDENT		0x80
 #define UNIT_TYPE_UNITY					0x81
 #define UNIT_TYPE_UNITY_RFID		0x82
+#define UNIT_TYPE_LOCKER				0x83
 
 extern const uint8_t *UserFlash;
 

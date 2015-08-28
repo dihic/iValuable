@@ -10,6 +10,7 @@
       <TargetName>Debug</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pCCUsed>5060020::V5.06 (build 20)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F427ZITx</Device>
@@ -52,7 +53,7 @@
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
-          <BrowseInformation>0</BrowseInformation>
+          <BrowseInformation>1</BrowseInformation>
           <ListingPath>.\Listings\</ListingPath>
           <HexFormatSelection>1</HexFormatSelection>
           <Merge32K>0</Merge32K>
@@ -229,6 +230,7 @@
             <useUlib>0</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
+            <nSecure>0</nSecure>
             <RoSelD>3</RoSelD>
             <RwSelD>3</RwSelD>
             <CodeSel>0</CodeSel>
@@ -365,8 +367,10 @@
             <useXO>0</useXO>
             <v6Lang>0</v6Lang>
             <v6LangP>0</v6LangP>
+            <vShortEn>0</vShortEn>
+            <vShortWch>0</vShortWch>
             <VariousControls>
-              <MiscControls>--gnu</MiscControls>
+              <MiscControls>--gnu --gnu_version=40400</MiscControls>
               <Define>HSE_VALUE=25000000,DEBUG_PRINT</Define>
               <Undefine></Undefine>
               <IncludePath>.\bson;.\</IncludePath>
@@ -447,8 +451,10 @@
                 <useXO>2</useXO>
                 <v6Lang>0</v6Lang>
                 <v6LangP>0</v6LangP>
+                <vShortEn>0</vShortEn>
+                <vShortWch>0</vShortWch>
                 <VariousControls>
-                  <MiscControls> --cpp11</MiscControls>
+                  <MiscControls>--cpp11</MiscControls>
                   <Define></Define>
                   <Undefine></Undefine>
                   <IncludePath></IncludePath>
@@ -559,6 +565,11 @@
               <FileType>8</FileType>
               <FilePath>.\UartComm.cpp</FilePath>
             </File>
+            <File>
+              <FileName>LockerUnit.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\LockerUnit.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -599,8 +610,10 @@
                 <useXO>2</useXO>
                 <v6Lang>0</v6Lang>
                 <v6LangP>0</v6LangP>
+                <vShortEn>0</vShortEn>
+                <vShortWch>0</vShortWch>
                 <VariousControls>
-                  <MiscControls> --cpp11</MiscControls>
+                  <MiscControls>--cpp11</MiscControls>
                   <Define></Define>
                   <Undefine></Undefine>
                   <IncludePath></IncludePath>
@@ -704,6 +717,7 @@
       <TargetName>Release</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pCCUsed>5060020::V5.06 (build 20)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F427ZITx</Device>
@@ -923,6 +937,7 @@
             <useUlib>0</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
+            <nSecure>0</nSecure>
             <RoSelD>3</RoSelD>
             <RwSelD>3</RwSelD>
             <CodeSel>0</CodeSel>
@@ -1059,8 +1074,10 @@
             <useXO>0</useXO>
             <v6Lang>0</v6Lang>
             <v6LangP>0</v6LangP>
+            <vShortEn>0</vShortEn>
+            <vShortWch>0</vShortWch>
             <VariousControls>
-              <MiscControls>--gnu</MiscControls>
+              <MiscControls>--gnu --gnu_version=40400</MiscControls>
               <Define>HSE_VALUE=25000000</Define>
               <Undefine></Undefine>
               <IncludePath>.\bson;.\</IncludePath>
@@ -1141,6 +1158,8 @@
                 <useXO>2</useXO>
                 <v6Lang>0</v6Lang>
                 <v6LangP>0</v6LangP>
+                <vShortEn>0</vShortEn>
+                <vShortWch>0</vShortWch>
                 <VariousControls>
                   <MiscControls> --cpp11</MiscControls>
                   <Define></Define>
@@ -1253,6 +1272,11 @@
               <FileType>8</FileType>
               <FilePath>.\UartComm.cpp</FilePath>
             </File>
+            <File>
+              <FileName>LockerUnit.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\LockerUnit.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1293,6 +1317,8 @@
                 <useXO>2</useXO>
                 <v6Lang>0</v6Lang>
                 <v6LangP>0</v6LangP>
+                <vShortEn>0</vShortEn>
+                <vShortWch>0</vShortWch>
                 <VariousControls>
                   <MiscControls> --cpp11</MiscControls>
                   <Define></Define>

@@ -31,7 +31,7 @@ void CanDevice::CanWorkThread(void const *arg)
 	WorkThreadArgs *wta = (WorkThreadArgs *)(arg);
 	if (wta == NULL)
 		return;
-	boost::shared_ptr<CanDevice> device = wta->Device.lock();
+	CanDevice *device = wta->Device;
 	if (device == nullptr)
 	{
 		delete wta;	//Release wta
@@ -107,7 +107,7 @@ void CanDevice::ReadAttribute(uint16_t attr)
 	
 	busy = true;
 	osSemaphoreWait(semaphore, osWaitForever);
-	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, false);
+	WorkThreadArgs *args = new WorkThreadArgs(this, attr, 0xff, false);
 	osThreadId tid = osThreadCreate(WorkThreadDef.get(), args);
 	
 	SyncTable[(DeviceId<<16)|attr] = tid;
@@ -134,7 +134,7 @@ void CanDevice::WriteAttribute(uint16_t attr,const boost::shared_ptr<std::uint8_
 	
 	busy = true;
 	osSemaphoreWait(semaphore, osWaitForever);
-	WorkThreadArgs *args = new WorkThreadArgs(This(), attr, 0xff, true);
+	WorkThreadArgs *args = new WorkThreadArgs(this, attr, 0xff, true);
 	args->Data = data;
 	args->DataLen = size;
 	osThreadId tid = osThreadCreate(WorkThreadDef.get(), args);

@@ -285,7 +285,7 @@ namespace FWUpdater
                 Console.WriteLine(" Update (id) [(type)]");
                 Console.WriteLine("Parameters comment: ");
                 Console.WriteLine(" (index): 0 to 3 for memory slot");
-                Console.WriteLine(" (type): Unity|Indpt|Rfid");
+                Console.WriteLine(" (type): Unity|Indpt|Rfid|Locker");
                 Console.WriteLine(" (version): nn.nn");
                 Console.WriteLine(" (filepath): binary executable file");
                 Console.WriteLine(" (id): 0 to 127 for node id specified");
