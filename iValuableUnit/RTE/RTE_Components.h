@@ -4,7 +4,7 @@
  *      *** Do not modify ! ***
  *
  * Project: 'iValuableUnit' 
- * Target:  'Unity' 
+ * Target:  'UnityLocker' 
  */
 
 #ifndef RTE_COMPONENTS_H

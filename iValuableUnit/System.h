@@ -47,6 +47,12 @@
 	#define ENABLE_LOCKER  PORT1,8   //ADDR7
 #endif
 
+#if LOCKER_TYPE==SOUTHCO_LOCKER
+  #define FB_DOOR		  PORT0,2
+	#define IS_DOORFB_OPEN 		(GPIOGetValue(FB_DOOR)==0)
+  #define IS_DOORFB_CLOSED 	(GPIOGetValue(FB_DOOR)!=0)
+#endif
+
 #define IS_DOOR_OPEN 		(GPIOGetValue(FB_LOCKER)==0)
 #define IS_DOOR_CLOSED 	(GPIOGetValue(FB_LOCKER)!=0)
 

@@ -38,7 +38,11 @@ float WeightArray[SENSOR_NUM];
 volatile WeightSet Weights;
 #endif
 
+#if LOCKER_TYPE==SOUTHCO_LOCKER
+#define LOCK_WAIT_MS  		1100		//Lock auto protection time in MS
+#else
 #define LOCK_WAIT_MS  		500			//Lock auto protection time in MS
+#endif
 #define LOCK_IDLE 				0xffff
 
 extern "C" {
@@ -184,7 +188,11 @@ void TIMER32_1_IRQHandler()		//100Hz
 		}
 		
 		//Lock management
+		#if LOCKER_TYPE==SOUTHCO_LOCKER
+		if ((IS_LOCKER_ON) && (IS_DOORFB_CLOSED))
+		#else
 		if (IS_LOCKER_ON)
+		#endif
 		{
 			if (LockCount == LOCK_IDLE)
 				LockCount = LOCK_WAIT_MS;	//Start countdown
