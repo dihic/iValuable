@@ -371,7 +371,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls>--gnu --gnu_version=40400</MiscControls>
-              <Define>HSE_VALUE=25000000,DEBUG_PRINT</Define>
+              <Define>HSE_VALUE=25000000,DEBUG_PRINT,ADDR_TYPE=ADDR_SWTICH_10BITS</Define>
               <Undefine></Undefine>
               <IncludePath>.\bson;.\</IncludePath>
             </VariousControls>

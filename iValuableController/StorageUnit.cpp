@@ -5,9 +5,15 @@
 
 using namespace std;
 
+#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 #define IS_LC(x)							(((x)&0x80)!=0)
 #define OBTAIN_GROUP_ID(x) 		(((x)&0x78)>>3)
 #define OBTAIN_NODE_ID(x)			((x)&0x07)
+#else
+#define IS_LC(x)							(((x)&0x200)!=0) //1 bit:  bit9
+#define OBTAIN_GROUP_ID(x) 		(((x)&0x1e0)>>5) //4 bits: bit8 bit7 bit6 bit5
+#define OBTAIN_NODE_ID(x)			((x)&0x01f)      //5 bits: bit4 bit3 bit2 bit1 bit0
+#endif
 
 
 namespace IntelliStorage
@@ -190,7 +196,11 @@ namespace IntelliStorage
 		{
 			case DeviceSync::SyncDoor:
 #ifdef DEBUG_PRINT
+			#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 			cout<<"#Device 0x"<<std::hex<<(((GroupId&0xf)<<3)|(NodeId&0x7))<<(val[0]!=0?" Unlocked":" Locked")<<std::dec<<endl;
+			#else
+			cout<<"#Device 0x"<<std::hex<<(((GroupId&0xf)<<5)|(NodeId&0x1f))<<(val[0]!=0?" Unlocked":" Locked")<<std::dec<<endl;
+			#endif
 #endif
 				if (OnDoorChangedEvent)
 					OnDoorChangedEvent(GroupId, NodeId, val[0]!=0);
