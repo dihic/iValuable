@@ -371,7 +371,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>UNIT_TYPE=UNIT_TYPE_UNITY, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
+              <Define>UNIT_TYPE=UNIT_TYPE_UNITY, ADDR_TYPE=ADDR_SWITCH_10BITS, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>
@@ -901,7 +901,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>UNIT_TYPE=UNIT_TYPE_INDEPENDENT, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
+              <Define>UNIT_TYPE=UNIT_TYPE_INDEPENDENT, ADDR_TYPE=ADDR_SWITCH_10BITS, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>
@@ -1431,7 +1431,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>UNIT_TYPE=UNIT_TYPE_UNITY_RFID, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
+              <Define>UNIT_TYPE=UNIT_TYPE_UNITY_RFID, ADDR_TYPE=ADDR_SWITCH_10BITS,LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>
@@ -1961,7 +1961,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>UNIT_TYPE=UNIT_TYPE_LOCKER,  LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
+              <Define>UNIT_TYPE=UNIT_TYPE_LOCKER, ADDR_TYPE=ADDR_SWITCH_10BITS, LOCKER_TYPE=SOUTHCO_LOCKER, FW_VERSION_MAJOR=0x01, FW_VERSION_MINOR=0x00</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>

@@ -28,42 +28,81 @@ void SystemSetup()
 #if UNIT_TYPE!=UNIT_TYPE_LOCKER
 	#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
 		LPC_GPIO[PORT1]->DIR &= ~(0xC37); //ADDR0-6
+	
+	#if ADDR_TYPE!=ADDR_SWITCH_10BITS
+	  uint8_t id = LPC_GPIO[PORT1]->MASKED_ACCESS[0x7]; //ADDR2 ADDR1 ADDR0
+	#else
+	  uint16_t id = LPC_GPIO[PORT1]->MASKED_ACCESS[0x7];
+	  GPIOSetDir(PORT3, 2, E_IO_INPUT);	//ADDR7 P3.2
+	  GPIOSetDir(PORT3, 1, E_IO_INPUT);	//ADDR8 P3.1
+	  if (GPIOGetValue(PORT3,2)) //ADDR7
+		  id|=0x080;
+	  if (GPIOGetValue(PORT3,1)) //ADDR8
+		  id|=0x100;
+	#endif
+		
+		if (GPIOGetValue(PORT1,4)) //ADDR3
+			id|=0x08;
+		if (GPIOGetValue(PORT1,5)) //ADDR4
+			id|=0x10;
 	#else
 		LPC_GPIO[PORT2]->DIR &= ~(0xDC0); //ADDR0-4
 		GPIOSetDir(PORT1, 10, E_IO_INPUT);	//ADDR5
 		GPIOSetDir(PORT1, 11, E_IO_INPUT);	//ADDR6
-	#endif
 		
-		GPIOSetDir(ENABLE_LOCKER, E_IO_INPUT); //ADDR7
-		
-		//Obtain NodeId
-	#if UNIT_TYPE==UNIT_TYPE_UNITY_RFID
-		uint8_t id = LPC_GPIO[PORT1]->MASKED_ACCESS[0x7];
-		if (GPIOGetValue(PORT1,4))
-			id|=0x08;
-		if (GPIOGetValue(PORT1,5))
-			id|=0x10;
-	#else
+		#if ADDR_TYPE!=ADDR_SWITCH_10BITS
 		uint8_t id = (LPC_GPIO[PORT2]->MASKED_ACCESS[0x1C0])>>6;
 		id |= (LPC_GPIO[PORT2]->MASKED_ACCESS[0xC00])>>7;
+		#else
+		uint16_t id = (LPC_GPIO[PORT2]->MASKED_ACCESS[0x1C0])>>6;
+		id |= (LPC_GPIO[PORT2]->MASKED_ACCESS[0xC00])>>7;
+		GPIOSetDir(PORT1,  8, E_IO_INPUT);	//ADDR7
+		GPIOSetDir(PORT0, 11, E_IO_INPUT);	//ADDR8
+		if (GPIOGetValue(PORT1,8)) //ADDR7
+		  id|=0x080;
+	  if (GPIOGetValue(PORT0,11)) //ADDR8
+		  id|=0x100;
+		#endif
+		
 	#endif
+		GPIOSetDir(ENABLE_LOCKER, E_IO_INPUT); //ADDR7-->ADDR9
+		
 #else
   LPC_GPIO[PORT2]->DIR &= ~(0xDC0); //ADDR0-4
 	GPIOSetDir(PORT1, 10, E_IO_INPUT);	//ADDR5
-	GPIOSetDir(PORT1, 11, E_IO_INPUT);	//ADDR6
+	GPIOSetDir(PORT1, 11, E_IO_INPUT);	//ADDR6	
 	
-	GPIOSetDir(ENABLE_LOCKER, E_IO_INPUT); //ADDR7
-	
+	#if ADDR_TYPE!=ADDR_SWITCH_10BITS
 	uint8_t id = (LPC_GPIO[PORT2]->MASKED_ACCESS[0x1C0])>>6;
 	id |= (LPC_GPIO[PORT2]->MASKED_ACCESS[0xC00])>>7;
+	#else
+	uint16_t id = (LPC_GPIO[PORT2]->MASKED_ACCESS[0x1C0])>>6;
+	id |= (LPC_GPIO[PORT2]->MASKED_ACCESS[0xC00])>>7;
+	GPIOSetDir(PORT1,  8, E_IO_INPUT);	//ADDR7
+	GPIOSetDir(PORT0, 11, E_IO_INPUT);	//ADDR8
+	if (GPIOGetValue(PORT1,8)) //ADDR7
+		id|=0x080;
+	if (GPIOGetValue(PORT0,11)) //ADDR8
+		id|=0x100;
+	#endif
+	
+	GPIOSetDir(ENABLE_LOCKER, E_IO_INPUT); //ADDR7-->ADDR9
 #endif
-	if (GPIOGetValue(PORT1,10))
+		
+	if (GPIOGetValue(PORT1,10)) //ADDR5
 		id|=0x20;
-	if (GPIOGetValue(PORT1,11))
+	if (GPIOGetValue(PORT1,11)) //ADDR6
 		id|=0x40;
-	if (GPIOGetValue(ENABLE_LOCKER))
+	
+	#if ADDR_TYPE!=ADDR_SWITCH_10BITS
+	if (GPIOGetValue(ENABLE_LOCKER)) //ADDR7
 		id|=0x80;
 	NodeId = 0x100 | id;
+	#else
+	if (GPIOGetValue(ENABLE_LOCKER)) //ADDR9
+		id|=0x200;
+	NodeId = 0x400 | id;
+	#endif
 	
 //	GPIOSetDir(LATCH_LE, E_IO_OUTPUT);
 //	GPIOSetDir(LATCH_D, E_IO_OUTPUT);

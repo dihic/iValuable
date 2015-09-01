@@ -19,7 +19,13 @@
 	#define CON_LOCKER	PORT2,8
 	#define CON_LED			PORT2,7
 	#define FB_LOCKER		PORT0,11
+
+  #if ADDR_TYPE!=ADDR_SWITCH_10BITS
 	#define ENABLE_LOCKER  PORT3,2 //ADDR7
+	#else
+	#define ENABLE_LOCKER  PORT0,4 //ADDR9
+	#endif
+	
 #else
 //Unity and Indpt Unit I/O Configuration
 	#define SENSOR1_SCK  PORT2,1
@@ -41,10 +47,18 @@
 	//#define LATCH_Q2 		PORT0,3
 
 	#define CON_LOCKER	PORT0,5
+	
+	#if ADDR_TYPE!=ADDR_SWITCH_10BITS
 	#define CON_LED			PORT0,11
+	#define ENABLE_LOCKER  PORT1,8   //ADDR7
+	#else
+	#define CON_LED			PORT0,1
+	#define ENABLE_LOCKER  PORT0,4   //ADDR9
+	#endif
+	
 	#define FB_LOCKER		PORT1,2
 
-	#define ENABLE_LOCKER  PORT1,8   //ADDR7
+	
 #endif
 
 #if LOCKER_TYPE==SOUTHCO_LOCKER
