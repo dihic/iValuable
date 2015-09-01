@@ -196,11 +196,7 @@ namespace IntelliStorage
 		{
 			case DeviceSync::SyncDoor:
 #ifdef DEBUG_PRINT
-			#if ADDR_TYPE!=ADDR_SWTICH_10BITS
-			cout<<"#Device 0x"<<std::hex<<(((GroupId&0xf)<<3)|(NodeId&0x7))<<(val[0]!=0?" Unlocked":" Locked")<<std::dec<<endl;
-			#else
-			cout<<"#Device 0x"<<std::hex<<(((GroupId&0xf)<<5)|(NodeId&0x1f))<<(val[0]!=0?" Unlocked":" Locked")<<std::dec<<endl;
-			#endif
+			cout<<"#Device 0x"<<std::hex<<GetId(GroupId, NodeId)<<(val[0]!=0?" Unlocked":" Locked")<<std::dec<<endl;
 #endif
 				if (OnDoorChangedEvent)
 					OnDoorChangedEvent(GroupId, NodeId, val[0]!=0);
