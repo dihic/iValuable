@@ -61,7 +61,7 @@ namespace IntelliStorage
 			}
 			cardChanged = true;
 #ifdef DEBUG_PRINT
-			cout<<"#Device 0x"<<std::hex<<(((GroupId&0xf)<<3)|(NodeId&0x7))<<std::dec<<" Card "<<(cardState==CardArrival?"Arrival":"Left")<<" ID: "<<id<<endl;
+			cout<<"#Device 0x"<<std::hex<<GetId(GroupId, NodeId)<<std::dec<<" Card "<<(cardState==CardArrival?"Arrival":"Left")<<" ID: "<<id<<endl;
 #endif
 		}
 		else

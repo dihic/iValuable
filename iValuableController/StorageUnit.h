@@ -63,9 +63,15 @@ namespace IntelliStorage
 		public:		
 			const std::uint8_t TypeCode;
 			const std::uint16_t Version;
+		  #if ADDR_TYPE!=ADDR_SWTICH_10BITS
 			const bool IsLockController : 1;
 			const std::uint8_t GroupId 	: 4;
 			const std::uint8_t NodeId  	: 3;
+		  #else
+		  const bool IsLockController : 1;
+			const std::uint8_t GroupId 	: 4;
+			const std::uint8_t NodeId  	: 5;
+		  #endif
 		
 			typedef FastDelegate3<std::uint8_t, std::uint8_t, bool> DoorChangedHandler;
 			DoorChangedHandler OnDoorChangedEvent;
@@ -74,7 +80,11 @@ namespace IntelliStorage
 			
 			static std::uint16_t GetId(std::uint8_t groupId, std::uint8_t nodeId)
 			{
+				#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 				return ((groupId&0xf)<<3)|(nodeId&0x7);
+				#else
+				return ((groupId&0xf)<<5)|(nodeId&0x1f);
+				#endif
 			}
 			
 			virtual ~StorageUnit() {}		
