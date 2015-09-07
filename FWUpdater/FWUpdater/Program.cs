@@ -80,19 +80,37 @@ namespace FWUpdater
                     }
                     break;
                 case CommandType.Update:
-                    if (data[0] == 0xff)
-                        updatedEvent.Set();
-                    else
+                    switch (data.Length)
                     {
-                        ++updateTotal;
-                        if (data[1] != 0)
-                            ++updateCount;
-                        Console.WriteLine(" #Device 0x" + data[0].ToString("x2") +
-                                          ((data[1] == 0) ? " Update Failed!" : " Updated"));
+                        case 1:
+                            if (data[0] == 0xff)
+                                updatedEvent.Set();
+                            break;
+                        case 2:
+                            if (data[0] == 0xff)
+                                updatedEvent.Set();
+                            else
+                            {
+                                ++updateTotal;
+                                if (data[1] != 0)
+                                    ++updateCount;
+                                Console.WriteLine(" #Device 0x" + data[0].ToString("x2") +
+                                                  ((data[1] == 0) ? " Update Failed!" : " Updated"));
+                            }
+                            break;
+                        case 3:
+                            ++updateTotal;
+                            if (data[2] != 0)
+                                ++updateCount;
+                            Console.WriteLine(" #Device 0x" + (data[1]&0xf).ToString("x1") + data[0].ToString("x2") +
+                                              ((data[2] == 0) ? " Update Failed!" : " Updated"));
+                            break;
+
                     }
                     break;
                 case CommandType.Devices:
-                    if (data.Length == 0 || data[0]*4 + 1 != data.Length)
+                    var addr10Bit = (data[0]*5 + 1 == data.Length);
+                    if (data.Length == 0 || data[0] * 4 + 1 != data.Length)
                     {
                         Console.WriteLine("Response Error!");
                         break;
@@ -103,13 +121,26 @@ namespace FWUpdater
                         break;
                     }
                     Console.WriteLine("There " + ((data[0] == 1) ? "is only one device":"are "+(int)data[0]+" devices") + " connected.");
-                    for (var i = 0; i < data[0]; ++i)
+
+                    if (addr10Bit)
                     {
-                        Console.WriteLine(" #Device 0x" + (data[i*4 + 1]&0x7f).ToString("x2"));
-                        Console.WriteLine("  Lock Control: "+ ((data[i*4+1]&0x80)!=0 ? "Enable":"Disable"));
-                        Console.WriteLine("  Unit Type: " + (UnitType) data[i*4 + 2]);
-                        Console.WriteLine("  FW Version: " + (int) data[i*4 + 3] + "." + (int) data[i*4 + 4]);
+                        Console.WriteLine("(10bit ID Mode)");
+                        for (var i = 0; i < data[0]; ++i)
+                        {
+                            Console.WriteLine(" #Device 0x" + ((data[i * 5 + 1]|(data[i * 5 + 2]<<8)) & 0x1ff).ToString("x3"));
+                            Console.WriteLine("  Lock Control: " + ((data[i * 5 + 2] & 0x3) != 0 ? "Enable" : "Disable"));
+                            Console.WriteLine("  Unit Type: " + (UnitType)data[i * 5 + 3]);
+                            Console.WriteLine("  FW Version: " + (int)data[i * 5 + 4] + "." + (int)data[i * 4 + 4]);
+                        }
                     }
+                    else
+                        for (var i = 0; i < data[0]; ++i)
+                        {
+                            Console.WriteLine(" #Device 0x" + (data[i*4 + 1] & 0x7f).ToString("x2"));
+                            Console.WriteLine("  Lock Control: " + ((data[i*4 + 1] & 0x80) != 0 ? "Enable" : "Disable"));
+                            Console.WriteLine("  Unit Type: " + (UnitType) data[i*4 + 2]);
+                            Console.WriteLine("  FW Version: " + (int) data[i*4 + 3] + "." + (int) data[i*4 + 4]);
+                        }
                     break;
                 case CommandType.Status:
                     var errorCommand = (CommandType) data[0];
@@ -210,7 +241,7 @@ namespace FWUpdater
         public void UpdateAll()
         {
             Console.WriteLine("Updating Started...");
-            comm.SendCommand(CommandType.Update, new byte[] {0, 0, 0}, true);
+            comm.SendCommand(CommandType.Update, new byte[] {0, 0, 0, 0}, true);
             updatedEvent.WaitOne(Timeout.Infinite);
             if (updateTotal==0)
                 Console.WriteLine("None Updated");
@@ -218,10 +249,11 @@ namespace FWUpdater
                 Console.WriteLine(updateCount+" of "+updateTotal+" Devices Updated Successfully");
         }
 
-        public void Update(UnitType type, byte id = 0xff)
+        public void Update(UnitType type, ushort id = 0xffff)
         {
             Console.WriteLine("Updating Started...");
-            comm.SendCommand(CommandType.Update, new[] {(byte) (id == 0xff ? 1 : 2), (byte) type, id}, true);
+            comm.SendCommand(CommandType.Update,
+                new[] {(byte) (id == 0xffff ? 1 : 2), (byte) type, (byte) (id & 0xff), (byte) (id >> 8)}, true);
             updatedEvent.WaitOne(Timeout.Infinite);
             if (updateTotal == 0)
                 Console.WriteLine("None Updated");
@@ -288,7 +320,8 @@ namespace FWUpdater
                 Console.WriteLine(" (type): Unity|Indpt|Rfid|Locker");
                 Console.WriteLine(" (version): nn.nn");
                 Console.WriteLine(" (filepath): binary executable file");
-                Console.WriteLine(" (id): 0 to 127 for node id specified");
+                Console.WriteLine(" (id): 0 to 0x7F for 7-bit node id specified");
+                Console.WriteLine("       0 to 0x1FF for 9-bit node id specified");
                 return;
             }
             var program = new Program();
@@ -392,11 +425,11 @@ namespace FWUpdater
                                     Console.WriteLine("Invalid Parameters!");
                                     return;
                                 }
-                                if (id < 0 || id > 127)
-                                {
-                                    Console.WriteLine("Id Out of Range!");
-                                    return;
-                                }
+                                //if (id < 0 || id > 127)
+                                //{
+                                //    Console.WriteLine("Id Out of Range!");
+                                //    return;
+                                //}
                                 if (args.Length == 3)
                                 {
                                     if (!Enum.TryParse(args[2], true, out type))
@@ -404,10 +437,10 @@ namespace FWUpdater
                                         Console.WriteLine("Invalid Type!");
                                         return;
                                     }
-                                    program.Update(type, (byte) id);
+                                    program.Update(type, (ushort) id);
                                 }
                                 else
-                                    program.Update(UnitType.Same, (byte) id);
+                                    program.Update(UnitType.Same, (ushort) id);
                             }
                             else if (Enum.TryParse(args[1], true, out type))
                             {
