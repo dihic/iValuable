@@ -128,7 +128,12 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 	CANExtended::DeviceState state = static_cast<CANExtended::DeviceState>(data[0]);
 	if (state != CANExtended::Operational)
 		return;
+	
+	#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 	auto unit = unitManager->FindUnit(sourceId&0x7f);
+	#else
+	auto unit = unitManager->FindUnit(sourceId&0x1ff);
+	#endif
 	bool updated = (unit!=nullptr) && (unit->UpdateStatus()==StorageUnit::Updated);
 	
 	if (unit == nullptr || updated)
@@ -162,15 +167,23 @@ void HeartbeatArrival(uint16_t sourceId, const std::uint8_t *data, std::uint8_t 
 		}
 		CanEx->RegisterDevice(unit);
 		if (updated)
-		{	
+		{
+			#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 			unitManager->Recover(sourceId&0x7f, unit);
+			#else
+			unitManager->Recover(sourceId&0x1ff, unit);
+			#endif
 #ifdef DEBUG_PRINT
 			cout<<"#Recovered Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
 #endif
 		}
 		else
 		{
+			#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 			unitManager->Add(sourceId&0x7f, unit);
+			#else
+			unitManager->Add(sourceId&0x1ff, unit);
+			#endif
 #ifdef DEBUG_PRINT
 			cout<<"#Added Device 0x"<<std::hex<<sourceId<<std::dec<<endl;
 #endif

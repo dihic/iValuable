@@ -77,7 +77,7 @@ namespace IntelliStorage
 				UnitManager *Manager;
 				std::uint8_t Routine;
 				std::uint8_t UnitType;
-				std::uint8_t Id;
+				std::uint16_t Id;
 			};
 			const boost::shared_ptr<ConfigComm> &comm;
 			const boost::shared_ptr<ISPProgram> &updater;

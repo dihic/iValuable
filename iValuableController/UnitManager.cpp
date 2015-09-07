@@ -174,15 +174,26 @@ namespace IntelliStorage
 		auto manager = updater->Manager;
 		boost::shared_ptr<StorageUnit> unit;
 		
+		#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 		uint8_t status[2];
+		#else
+		uint8_t status[3];
+		#endif
 		switch (updater->Routine)
 		{
 			case UpdateAll:
 				for(auto it=manager->unitList.begin() ; it!=manager->unitList.end(); ++it)
 				{
+					#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 					status[0] = it->second->DeviceId & 0x7f;
 					status[1] = UpdateOne(manager, it->second);
 					manager->comm->SendFileData(CommandUpdate, status, 2);
+					#else
+					status[0] = it->second->DeviceId & 0xff;
+					status[1] = (it->second->DeviceId & 0x0100)>>8;
+					status[2] = UpdateOne(manager, it->second);
+					manager->comm->SendFileData(CommandUpdate, status, 3);
+					#endif
 				}
 				break;
 			case UpdateType:
@@ -190,26 +201,42 @@ namespace IntelliStorage
 				{
 					if (it->second->TypeCode != updater->UnitType)
 						continue;
+					#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 					status[0] = it->second->DeviceId & 0x7f;
 					status[1] = UpdateOne(manager, it->second);
 					manager->comm->SendFileData(CommandUpdate, status, 2);
+					#else
+					status[0] = it->second->DeviceId & 0xff;
+					status[1] = (it->second->DeviceId & 0x0100)>>8;
+					status[2] = UpdateOne(manager, it->second);
+					manager->comm->SendFileData(CommandUpdate, status, 3);
+					#endif
 				}
 				break;
 			case UpdateSingle:
+				#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 				status[0] = updater->Id;
 				status[1] = 0;
 				unit = manager->FindUnit(updater->Id);
 				if (unit != nullptr)
 					status[1] = UpdateOne(manager, unit, updater->UnitType);
 				manager->comm->SendFileData(CommandUpdate, status, 2);
+				#else
+				status[0] = updater->Id&0xff;
+				status[1] = (updater->Id&0x01)>>8;
+				status[2] = 0;
+				unit = manager->FindUnit(updater->Id);
+				if (unit != nullptr)
+					status[2] = UpdateOne(manager, unit, updater->UnitType);
+				manager->comm->SendFileData(CommandUpdate, status, 3);
+				#endif
 				break;
 			default:
 				break;
 		}
-		
 		status[0] = 0xff;
 		status[1] = 0;
-		manager->comm->SendFileData(CommandUpdate, status, 2);
+		manager->comm->SendFileData(CommandUpdate, status, 1);
 	}
 	
 	void UnitManager::CommandArrival(std::uint8_t command, std::uint8_t *parameters, std::size_t len)
@@ -356,6 +383,7 @@ namespace IntelliStorage
 				}
 				break;
 			case CommandUpdate:
+				#if ADDR_TYPE!=ADDR_SWTICH_10BITS
 				if (len<3)
 				{
 					status[1] = ErrorParameter;
@@ -363,6 +391,15 @@ namespace IntelliStorage
 					break;
 				}
 				args = new UpdateThreadArgs { this, parameters[0], parameters[1], parameters[2] };
+				#else
+				if (len<4)
+				{
+					status[1] = ErrorParameter;
+					comm->SendFileData(CommandStatus, status, 2);
+					break;
+				}
+				args = new UpdateThreadArgs { this, parameters[0], parameters[1], (uint16_t)(parameters[2]|(parameters[3]<<8)) };
+				#endif
 				
 				tid = osThreadCreate(UpdateThreadDef.get(), args);
 				if (tid==nullptr)
@@ -373,7 +410,7 @@ namespace IntelliStorage
 				}
 				break;
 			case CommandDevices:
-				size = unitList.size()*4;
+				size = unitList.size()*5;
 				data = boost::make_shared<uint8_t[]>(size+1);
 				data[0] = unitList.size();
 				if (size==0)
@@ -385,10 +422,11 @@ namespace IntelliStorage
 				for(auto it=unitList.begin() ; it!=unitList.end(); ++it)
 				{
 					p[0] = it->second->DeviceId & 0xff;
-					p[1] = it->second->TypeCode;
-					p[2] = it->second->Version>>8;
-					p[3] = it->second->Version&0xff;
-					p += 4;
+					p[1] = it->second->DeviceId >> 8;
+					p[2] = it->second->TypeCode;
+					p[3] = it->second->Version>>8;
+					p[4] = it->second->Version&0xff;
+					p += 5;
 				}
 				comm->SendFileData(command, data.get(), size+1);
 				break;
