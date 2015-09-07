@@ -110,7 +110,7 @@ namespace FWUpdater
                     break;
                 case CommandType.Devices:
                     var addr10Bit = (data[0]*5 + 1 == data.Length);
-                    if (data.Length == 0 || data[0] * 4 + 1 != data.Length)
+                    if (!addr10Bit && (data.Length == 0 || data[0] * 4 + 1 != data.Length))
                     {
                         Console.WriteLine("Response Error!");
                         break;
