@@ -130,7 +130,7 @@ namespace FWUpdater
                             Console.WriteLine(" #Device 0x" + ((data[i * 5 + 1]|(data[i * 5 + 2]<<8)) & 0x1ff).ToString("x3"));
                             Console.WriteLine("  Lock Control: " + ((data[i * 5 + 2] & 0x3) != 0 ? "Enable" : "Disable"));
                             Console.WriteLine("  Unit Type: " + (UnitType)data[i * 5 + 3]);
-                            Console.WriteLine("  FW Version: " + (int)data[i * 5 + 4] + "." + (int)data[i * 5 + 4]);
+                            Console.WriteLine("  FW Version: " + (int)data[i * 5 + 4] + "." + (int)data[i * 5 + 5]);
                         }
                     }
                     else
